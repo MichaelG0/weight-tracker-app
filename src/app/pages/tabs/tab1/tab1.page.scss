@@ -1,0 +1,236 @@
+:host {
+  --page-padding: 18px;
+}
+
+ion-header {
+  ion-toolbar.home-toolbar {
+    --background: transparent;
+    --border-width: 0;
+    padding: 10px var(--page-padding) 0;
+  }
+}
+
+.toolbar-shell {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 2px 0 0;
+  }
+}
+
+.eyebrow {
+  color: #9b98b3;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.profile-pill {
+  background: linear-gradient(140deg, #7c4dff 0%, #e040fb 100%);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  height: 40px;
+  width: 40px;
+}
+
+.dashboard {
+  display: grid;
+  gap: 16px;
+  padding: 10px var(--page-padding) 22px;
+}
+
+.balance-card,
+.insight-card,
+.timeline-card {
+  backdrop-filter: blur(10px);
+  background: rgba(22, 21, 35, 0.7);
+  border: 1px solid rgba(179, 136, 255, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  padding: 18px;
+}
+
+.label {
+  color: #b5b3cc;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.balance-card {
+  background: linear-gradient(155deg, #131221 0%, #211f32 45%, #2a2741 100%);
+  color: #f8f6ff;
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    background: radial-gradient(
+      circle,
+      rgba(124, 77, 255, 0.35),
+      transparent 65%
+    );
+    content: "";
+    height: 180px;
+    position: absolute;
+    right: -40px;
+    top: -75px;
+    width: 180px;
+  }
+
+  h2 {
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin: 8px 0 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .delta {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.77rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    padding: 6px 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .delta.positive {
+    background: rgba(0, 230, 118, 0.15);
+    color: #69f0af;
+  }
+}
+
+.progress-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  height: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+
+  span {
+    background: linear-gradient(90deg, #7c4dff 0%, #e040fb 100%);
+    border-radius: 999px;
+    display: block;
+    height: 100%;
+  }
+}
+
+.meta-row {
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  font-size: 0.78rem;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  button {
+    background: rgba(179, 136, 255, 0.08);
+    border: 1px solid rgba(179, 136, 255, 0.25);
+    border-radius: 16px;
+    color: #d1c4ff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-height: 52px;
+    padding: 8px;
+    transition: all 0.2s ease;
+
+    &:active {
+      background: rgba(179, 136, 255, 0.15);
+      transform: scale(0.96);
+    }
+  }
+}
+
+.insight-card {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+
+  h3 {
+    font-size: 1.15rem;
+    letter-spacing: -0.015em;
+    margin: 4px 0 0;
+  }
+
+  ion-icon {
+    background: rgba(124, 77, 255, 0.15);
+    border-radius: 12px;
+    color: #b388ff;
+    font-size: 1.35rem;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 10px;
+  }
+}
+
+.timeline-card {
+  .timeline-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    margin: 0;
+  }
+
+  a {
+    color: #b388ff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  ul {
+    display: grid;
+    gap: 12px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    align-items: center;
+    background: rgba(18, 17, 29, 0.85);
+    border: 1px solid rgba(179, 136, 255, 0.1);
+    border-radius: 14px;
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+
+    span {
+      color: #b5b3cc;
+      font-size: 0.82rem;
+    }
+
+    strong {
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
