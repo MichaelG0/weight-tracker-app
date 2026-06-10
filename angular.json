@@ -35,13 +35,14 @@
                 "output": "assets"
               },
               {
-                "glob": "**/*",
-                "input": "node_modules/sql.js/dist/",
-                "output": "assets/sql-wasm/"
+                "glob": "sql-wasm.wasm",
+                "input": "node_modules/sql.js/dist",
+                "output": "assets"
               }
             ],
             "styles": ["src/global.scss", "src/theme/variables.scss"],
             "scripts": [],
+            "externalDependencies": ["crypto"],
             "browser": "src/main.ts"
           },
           "configurations": {
@@ -80,6 +81,11 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["jeep-sqlite", "jeep-sqlite/loader"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "app:build:production"
