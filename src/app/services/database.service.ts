@@ -14,6 +14,7 @@ import {
   of,
 } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,10 @@ export class DatabaseService {
     await this.db.open();
     await this.db.execute(MIGRATIONS);
 
+    if (!environment.production) {
+      await this.seedMockData();
+    }
+
     // Signal readiness and pre-load reactive state.
     this.ready$.next();
     await Promise.all([
@@ -100,19 +105,51 @@ export class DatabaseService {
   private whenReady<T>(operation: () => Observable<T>): Observable<T> {
     return this.ready$.pipe(take(1), switchMap(() => operation()));
   }
-
+  
   private async syncEntries(): Promise<void> {
     const r = await this.db.query(
       `SELECT * FROM weight_entries ORDER BY logged_at DESC`
     );
     this._entries$.next((r.values ?? []) as WeightEntry[]);
   }
-
+  
   private async syncSettings(): Promise<void> {
     const r = await this.db.query(
       `SELECT * FROM user_settings WHERE user_id = 1`
     );
     this._settings$.next(r.values?.[0] ?? null);
+  }
+  
+  // ── Mock data ──────────────────────────────────────────────────────────────
+  
+  private async seedMockData(): Promise<void> {
+    await this.db.run(
+      `INSERT INTO user_settings (user_id, age, gender, height, goal_weight_kg)
+       VALUES (1, ?, ?, ?, ?)`,
+      [31, 'M', 178, 81]
+    );
+
+    const mockWeights = [
+      75.8, 75.9, 76.0, 75.9, 76.1,
+      76.0, 76.2, 76.1, 76.3, 76.2,
+      76.4, 76.3, 76.5, 76.4, 76.6,
+      76.5, 76.7, 76.6, 76.8, 76.7,
+      76.9, 76.8, 77.0, 76.9, 77.1,
+      77.0, 77.2, 77.1, 77.3, 77.2,
+    ];
+
+    const today = new Date();
+    today.setHours(7, 30, 0, 0);
+
+    for (let i = 0; i < mockWeights.length; i++) {
+      const loggedAt = new Date(today);
+      loggedAt.setDate(today.getDate() - (mockWeights.length - 1 - i));
+
+      await this.db.run(
+        `INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`,
+        [mockWeights[i], loggedAt.toISOString(), 'Mock seed data (lean bulk)']
+      );
+    }
   }
 
   // ── Weight entries ────────────────────────────────────────────────────────
