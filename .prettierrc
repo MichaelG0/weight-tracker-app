@@ -1,0 +1,29 @@
+{
+  "printWidth": 137,
+  "singleQuote": true,
+  "useTabs": false,
+  "tabWidth": 2,
+  "semi": true,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": "*.html",
+      "options": {
+        "parser": "angular"
+      }
+    },
+    {
+      "files": "*.config.ts",
+      "options": {
+        "printWidth": 88
+      }
+    },
+    {
+      "files": "**/*.css",
+      "options": {
+        "printWidth": 150
+      }
+    }
+  ]
+}

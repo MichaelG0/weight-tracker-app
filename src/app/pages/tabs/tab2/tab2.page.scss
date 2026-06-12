@@ -1,0 +1,345 @@
+ion-header {
+  box-shadow: none;
+
+  ion-toolbar.progress-toolbar {
+    --background: transparent;
+    --border-width: 0;
+    --border-style: none;
+    padding: 10px 18px 0;
+  }
+}
+
+.view-toggle {
+  align-items: center;
+  background: var(--ion-color-step-150);
+  border-radius: 12px;
+  display: flex;
+  gap: 0;
+  padding: 3px;
+}
+
+.toggle-btn {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--ion-color-step-650);
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 40px;
+
+  ion-icon {
+    font-size: 1.25rem;
+  }
+
+  &.active {
+    background: var(--ion-color-primary);
+    color: var(--ion-color-primary-contrast);
+    box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.35);
+  }
+}
+
+// ── Empty State ───────────────────────────────────────────────────────────────
+
+.empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+
+  .empty-icon-wrap {
+    align-items: center;
+    background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.1), rgba(var(--ion-color-secondary-rgb), 0.1));
+    border-radius: 50%;
+    color: var(--ion-color-primary);
+    display: flex;
+    height: 120px;
+    justify-content: center;
+    margin-bottom: 24px;
+    width: 120px;
+
+    ion-icon {
+      font-size: 3.5rem;
+    }
+  }
+
+  h2 {
+    color: var(--ion-color-step-950);
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+
+  p {
+    color: var(--ion-color-step-650);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 260px;
+  }
+}
+
+// ── Full-bleed chart ──────────────────────────────────────────────────────────
+
+ion-content.chart-content::part(scroll) {
+  display: flex;
+  padding-bottom: 96px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-wrap {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  padding: 12px 6px 0;
+  position: relative;
+
+  canvas {
+    display: block;
+    height: auto;
+    width: 100%;
+  }
+}
+
+// ── Chart controls ────────────────────────────────────────────────────────────
+
+.chart-controls {
+  position: absolute;
+  bottom: 24px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(var(--ion-background-color-rgb, 255, 255, 255), 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(var(--ion-background-color-rgb), 0.32), 
+              0 1px 2px rgba(var(--ion-background-color-rgb), 0.2);
+  border: 1px solid rgba(var(--ion-color-step-200-rgb), 0.4);
+}
+
+.chart-toggle {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--ion-color-step-500);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: var(--ion-color-step-800);
+    background: var(--ion-color-step-100);
+  }
+
+  &.active {
+    background: rgba(var(--ion-color-secondary-rgb), 0.12);
+    color: var(--ion-color-secondary);
+  }
+}
+
+.trend-controls-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trend-switch {
+  display: flex;
+  background: var(--ion-color-step-100);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.trend-btn {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ion-color-step-600);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 600;
+  height: 28px;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0 12px;
+  letter-spacing: -0.01em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    color: var(--ion-color-step-900);
+  }
+
+  &.active {
+    background: var(--ion-background-color);
+    color: var(--ion-color-step-950);
+    font-weight: 700;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(var(--ion-background-color-rgb), 0.28), 
+                0 1px 2px rgba(var(--ion-background-color-rgb), 0.18);
+  }
+}
+
+.info-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.35rem;
+  color: var(--ion-color-step-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: var(--ion-color-step-700);
+    background: var(--ion-color-step-100);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+/* Styling the inside of the popover */
+ion-popover {
+  --width: 300px;
+  --background: var(--ion-background-color);
+  --box-shadow: 0 12px 36px rgba(var(--ion-background-color-rgb), 0.5);
+  --border-radius: 16px;
+  
+  .popover-explanation {
+    h3 {
+      margin: 4px 0 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--ion-text-color);
+      letter-spacing: -0.02em;
+    }
+    
+    p {
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: var(--ion-color-step-700);
+      margin-bottom: 10px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .tech-note {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--ion-color-step-250);
+      
+      p {
+        font-size: 0.8rem;
+        color: var(--ion-color-step-500);
+        line-height: 1.4;
+      }
+      
+      em {
+        font-style: normal;
+        font-weight: 600;
+        color: var(--ion-color-step-700);
+      }
+    }
+  }
+}
+
+// ── Range tabs ────────────────────────────────────────────────────────────────
+
+.range-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 16px 0;
+  white-space: nowrap;
+
+  button {
+    background: var(--ion-color-step-150);
+    border: 0;
+    border-radius: 999px;
+    color: var(--ion-color-step-650);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 9px 20px;
+    transition:
+      background 0.2s,
+      color 0.2s;
+
+    &.active {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+    }
+  }
+}
+
+// ── List view ─────────────────────────────────────────────────────────────────
+
+.list-view {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.entry-card {
+  align-items: center;
+  background: var(--ion-color-step-150);
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.entry-date {
+  color: var(--ion-color-step-700);
+  font-size: 0.88rem;
+}
+
+.entry-weight {
+  color: var(--ion-color-step-950);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.load-more-btn {
+  background: var(--ion-color-step-150);
+  border: 0;
+  border-radius: 24px;
+  color: var(--ion-color-tertiary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 8px auto;
+  padding: 12px 32px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: fit-content;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+}

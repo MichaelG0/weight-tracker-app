@@ -2,38 +2,6 @@
   --page-padding: 18px;
 }
 
-ion-header {
-  box-shadow: none;
-
-  ion-toolbar.home-toolbar {
-    --background: transparent;
-    --border-width: 0;
-    --border-style: none;
-    padding: 10px 18px 0;
-  }
-}
-
-.toolbar-shell {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-
-  h1 {
-    font-size: 1.35rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin: 2px 0 0;
-  }
-}
-
-.eyebrow {
-  color: var(--ion-color-step-600);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
 .profile-pill {
   background: linear-gradient(140deg, #7c4dff 0%, #e040fb 100%);
   border: 0;
