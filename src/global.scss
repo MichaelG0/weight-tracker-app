@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap');
 
 /*
  * App Global CSS
@@ -12,20 +12,20 @@
  */
 
 /* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
+@import '@ionic/angular/css/core.css';
 
 /* Basic CSS for apps built with Ionic */
-@import "@ionic/angular/css/normalize.css";
-@import "@ionic/angular/css/structure.css";
-@import "@ionic/angular/css/typography.css";
-@import "@ionic/angular/css/display.css";
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
 
 /* Optional CSS utils that can be commented out */
-@import "@ionic/angular/css/padding.css";
-@import "@ionic/angular/css/float-elements.css";
-@import "@ionic/angular/css/text-alignment.css";
-@import "@ionic/angular/css/text-transformation.css";
-@import "@ionic/angular/css/flex-utils.css";
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/float-elements.css';
+@import '@ionic/angular/css/text-alignment.css';
+@import '@ionic/angular/css/text-transformation.css';
+@import '@ionic/angular/css/flex-utils.css';
 
 /**
  * Ionic Dark Mode
@@ -34,27 +34,34 @@
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-@import "@ionic/angular/css/palettes/dark.always.css";
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+@import '@ionic/angular/css/palettes/dark.class.css';
 // @import '@ionic/angular/css/palettes/dark.system.css';
 
 html,
 body,
 ion-app,
 ion-content {
-	font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
 }
 
 body {
-	background:
-		radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.12), transparent 40%),
-		radial-gradient(circle at 96% 10%, rgba(0, 187, 249, 0.1), transparent 40%),
-		linear-gradient(180deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
-	color: var(--ion-text-color);
+  background:
+    radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.08), transparent 40%),
+    radial-gradient(circle at 96% 10%, rgba(0, 187, 249, 0.06), transparent 40%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 52%, #f8fafc 100%);
+  color: var(--ion-text-color);
+}
+
+body.ion-palette-dark {
+  background:
+    radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.12), transparent 40%),
+    radial-gradient(circle at 96% 10%, rgba(0, 187, 249, 0.1), transparent 40%),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
 }
 
 ion-content::part(background) {
-	background: transparent;
+  background: transparent;
 }
 
 // HEADER

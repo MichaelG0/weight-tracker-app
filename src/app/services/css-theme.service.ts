@@ -1,7 +1,24 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class CssThemeService {
+  private readonly THEME_KEY = 'wt-theme-preference';
+  private readonly _isDarkMode = signal<boolean>(false);
+
+  constructor() {}
+
+  getThemeKey(): string {
+    return this.THEME_KEY;
+  }
+
+  isDarkMode(): boolean {
+    return this._isDarkMode();
+  }
+
+  toggleTheme(isDark: boolean) {
+    this._isDarkMode.update(() => isDark);
+  }
+
   themeVar(name: string, fallback: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
   }
