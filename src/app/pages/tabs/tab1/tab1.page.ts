@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonContent, IonIcon } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
@@ -25,7 +25,7 @@ interface DashboardVm {
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
-  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon],
+  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tab1Page {

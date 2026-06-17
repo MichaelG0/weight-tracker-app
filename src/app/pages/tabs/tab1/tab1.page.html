@@ -5,75 +5,98 @@
         <p class="eyebrow">Overview</p>
         <h1>Weight Tracker</h1>
       </div>
-      <!-- <button class="profile-pill" type="button" aria-label="Profile menu">
-        MG
-      </button> -->
     </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   @if (vm(); as vm) {
-    <section class="dashboard">
-      <article class="balance-card">
-        <p class="label">Current Trend</p>
-        <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
-        <div class="delta positive">{{ vm.rateLabel }}</div>
-        <div class="progress-track" aria-hidden="true">
-          <span [style.width.%]="vm.progressPercent ?? 0"></span>
-        </div>
-        <div class="meta-row">
-          <span>Goal: {{ vm.goalWeight !== null ? (vm.goalWeight | number: '1.1-1') + ' kg' : 'Not set' }}</span>
-          <span>{{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}</span>
-        </div>
-      </article>
+    <div class="dashboard">
+      <section class="settings-group">
+        <p class="group-label">Current Progress</p>
+        <ion-card class="balance-card">
+          <ion-card-content>
+            <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
+            <ion-badge color="success" class="delta">{{ vm.rateLabel }}</ion-badge>
+            <div class="progress-track" aria-hidden="true">
+              <ion-progress-bar color="primary" [value]="vm.progressPercent !== null ? vm.progressPercent / 100 : 0"></ion-progress-bar>
+            </div>
+            <div class="meta-row">
+              <span>Goal: {{ vm.goalWeight !== null ? (vm.goalWeight | number: '1.1-1') + ' kg' : 'Not set' }}</span>
+              <span>{{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </section>
 
       <section class="quick-actions">
-        <button type="button">Log Weight</button>
+        <ion-button expand="block" shape="round" color="primary" class="action-btn">Log Weight</ion-button>
       </section>
 
-      <section class="stats-grid" aria-label="Progress stats">
-        <div class="stat-tile">
-          <p class="label">7-day average</p>
-          <h4>{{ vm.avg7d !== null ? (vm.avg7d | number: '1.1-1') + ' kg' : '--' }}</h4>
-        </div>
-        <div class="stat-tile">
-          <p class="label">30-day trend</p>
-          <h4>{{ vm.trend30d !== null ? (vm.trend30d | number: '1.1-1') + ' kg' : '--' }}</h4>
-        </div>
-        <div class="stat-tile">
-          <p class="label">Expected goal date</p>
-          <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
-        </div>
+      <section class="settings-group">
+        <p class="group-label">Statistics</p>
+        <ion-grid class="stats-grid">
+          <ion-row>
+            <ion-col size="4">
+              <ion-card class="stat-tile">
+                <p class="label">7-day average</p>
+                <h4>{{ vm.avg7d !== null ? (vm.avg7d | number: '1.1-1') + ' kg' : '--' }}</h4>
+              </ion-card>
+            </ion-col>
+            <ion-col size="4">
+              <ion-card class="stat-tile">
+                <p class="label">30-day trend</p>
+                <h4>{{ vm.trend30d !== null ? (vm.trend30d | number: '1.1-1') + ' kg' : '--' }}</h4>
+              </ion-card>
+            </ion-col>
+            <ion-col size="4">
+              <ion-card class="stat-tile">
+                <p class="label">Expected goal</p>
+                <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       </section>
 
-      <article class="insight-card">
-        <div>
-          <p class="label">Weekly consistency</p>
-          <h3>{{ vm.consistency }}</h3>
-        </div>
-        <ion-icon name="trending-down-outline" aria-hidden="true"></ion-icon>
-      </article>
+      <section class="settings-group">
+        <p class="group-label">Insights</p>
+        <ion-list lines="none">
+          <ion-item class="setting-item">
+            <div class="icon-wrap" slot="start">
+              <ion-icon name="trending-down-outline"></ion-icon>
+            </div>
+            <ion-label>
+              <p class="label">Weekly consistency</p>
+              <h3>{{ vm.consistency }}</h3>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </section>
 
-      <article class="recommendation-card">
-        <p class="label">Adaptive recommendation</p>
-        <p>{{ vm.recommendation }}</p>
-      </article>
+      <section class="settings-group">
+        <p class="group-label">Recommendation</p>
+        <ion-card class="recommendation-card">
+          <ion-card-content>
+            <p>{{ vm.recommendation }}</p>
+          </ion-card-content>
+        </ion-card>
+      </section>
 
-      <article class="timeline-card">
+      <section class="settings-group">
         <div class="timeline-head">
-          <h3>Recent entries</h3>
+          <p class="group-label">Recent entries</p>
           <a href="#">See all</a>
         </div>
-        <ul>
+        <ion-list lines="none">
           @for (entry of vm.recentEntries; track entry.label) {
-            <li>
-              <span>{{ entry.label }}</span>
-              <strong>{{ entry.weight | number: '1.1-1' }} kg</strong>
-            </li>
+            <ion-item class="setting-item">
+              <ion-label>{{ entry.label }}</ion-label>
+              <ion-note slot="end" class="weight-note">{{ entry.weight | number: '1.1-1' }} kg</ion-note>
+            </ion-item>
           }
-        </ul>
-      </article>
-    </section>
+        </ion-list>
+      </section>
+    </div>
   }
 </ion-content>
