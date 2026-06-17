@@ -40,64 +40,6 @@
   }
 }
 
-.settings-group {
-  padding: 0 18px 24px;
-
-  .group-label {
-    color: var(--ion-color-step-600);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    margin-bottom: 10px;
-    padding-left: 4px;
-    text-transform: uppercase;
-  }
-
-  ion-list {
-    background: transparent;
-    border-radius: 20px;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-  }
-
-  .setting-item {
-    --background: var(--ion-color-step-100);
-    --border-radius: 16px;
-    --inner-padding-end: 16px;
-    --padding-start: 16px;
-    margin-bottom: 8px;
-
-    .icon-wrap {
-      align-items: center;
-      background: rgba(var(--ion-color-primary-rgb), 0.1);
-      border-radius: 10px;
-      color: var(--ion-color-primary);
-      display: flex;
-      height: 36px;
-      justify-content: center;
-      margin-right: 16px;
-      width: 36px;
-
-      ion-icon {
-        font-size: 1.2rem;
-      }
-    }
-
-    ion-label {
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    ion-toggle {
-      --handle-background: var(--ion-color-primary);
-      --handle-background-checked: var(--ion-color-primary-contrast);
-      --track-background: var(--ion-color-step-200);
-      --track-background-checked: var(--ion-color-primary);
-    }
-  }
-}
-
 .logout-wrap {
   padding: 0 18px 40px;
 }

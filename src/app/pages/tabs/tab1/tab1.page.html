@@ -12,7 +12,7 @@
 <ion-content [fullscreen]="true">
   @if (vm(); as vm) {
     <div class="dashboard">
-      <section class="settings-group">
+      <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
             <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
@@ -32,8 +32,8 @@
         <ion-button expand="block" shape="round" color="primary" class="action-btn">Log Weight</ion-button>
       </section>
 
-      <section class="settings-group">
-        <p class="group-label">Statistics</p>
+      <section class="list-group">
+        <p class="list-group-label">Statistics</p>
         <ion-grid class="stats-grid">
           <ion-row>
             <ion-col size="4">
@@ -58,10 +58,10 @@
         </ion-grid>
       </section>
 
-      <section class="settings-group">
-        <p class="group-label">Insights</p>
+      <section class="list-group">
+        <p class="list-group-label">Insights</p>
         <ion-list lines="none">
-          <ion-item class="setting-item">
+          <ion-item class="list-group-item">
             <div class="icon-wrap" slot="start">
               <ion-icon name="trending-down-outline"></ion-icon>
             </div>
@@ -73,8 +73,8 @@
         </ion-list>
       </section>
 
-      <section class="settings-group">
-        <p class="group-label">Recommendation</p>
+      <section class="list-group">
+        <p class="list-group-label">Recommendation</p>
         <ion-card class="recommendation-card">
           <ion-card-content>
             <p>{{ vm.recommendation }}</p>
@@ -82,14 +82,14 @@
         </ion-card>
       </section>
 
-      <section class="settings-group">
+      <section class="list-group">
         <div class="timeline-head">
-          <p class="group-label">Recent entries</p>
+          <p class="list-group-label">Recent entries</p>
           <a href="#">See all</a>
         </div>
         <ion-list lines="none">
           @for (entry of vm.recentEntries; track entry.label) {
-            <ion-item class="setting-item">
+            <ion-item class="list-group-item">
               <ion-label>{{ entry.label }}</ion-label>
               <ion-note slot="end" class="weight-note">{{ entry.weight | number: '1.1-1' }} kg</ion-note>
             </ion-item>

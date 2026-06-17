@@ -10,67 +10,10 @@
   padding-bottom: 32px;
 }
 
-.settings-group {
-  padding: 0 18px 16px;
-
-  .group-label {
-    color: var(--ion-color-step-600);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    margin-bottom: 10px;
-    padding-left: 4px;
-    text-transform: uppercase;
-  }
-
-  ion-list {
-    background: transparent;
-    border-radius: 20px;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-  }
-
-  .setting-item {
-    --background: var(--ion-color-step-100);
-    --border-radius: 16px;
-    --inner-padding-end: 16px;
-    --padding-start: 16px;
-    margin-bottom: 8px;
-
-    .icon-wrap {
-      align-items: center;
-      background: var(--ion-color-primary);
-      border-radius: 10px;
-      color: var(--ion-color-primary-contrast);
-      display: flex;
-      height: 36px;
-      justify-content: center;
-      margin-right: 16px;
-      width: 36px;
-
-      ion-icon {
-        font-size: 1.2rem;
-      }
-    }
-
-    ion-label {
-      font-weight: 600;
-      letter-spacing: -0.01em;
-
-      h3 {
-        margin: 4px 0 0;
-        font-size: 1.1rem;
-        font-weight: 700;
-      }
-    }
-
-    .weight-note {
-      color: var(--ion-color-primary);
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-  }
+.weight-note {
+  color: var(--ion-color-primary);
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .balance-card {
