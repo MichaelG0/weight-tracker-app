@@ -3,10 +3,10 @@
 }
 
 .profile-pill {
-  background: linear-gradient(140deg, #7c4dff 0%, #e040fb 100%);
+  background: linear-gradient(140deg, var(--ion-color-primary) 0%, var(--ion-color-secondary) 100%);
   border: 0;
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--ion-color-primary-contrast);
   font-size: 0.8rem;
   font-weight: 700;
   height: 40px;
@@ -45,7 +45,7 @@
   &::after {
     background: radial-gradient(
       circle,
-      rgba(124, 77, 255, 0.35),
+      rgba(var(--ion-color-primary-rgb), 0.25),
       transparent 65%
     );
     content: "";
@@ -91,7 +91,7 @@
   z-index: 1;
 
   span {
-    background: linear-gradient(90deg, #7c4dff 0%, #e040fb 100%);
+    background: linear-gradient(90deg, var(--ion-color-primary) 0%, var(--ion-color-secondary) 100%);
     border-radius: 999px;
     display: block;
     height: 100%;
@@ -161,9 +161,9 @@
   }
 
   ion-icon {
-    background: rgba(124, 77, 255, 0.15);
+    background: rgba(var(--ion-color-primary-rgb), 0.15);
     border-radius: 12px;
-    color: #b388ff;
+    color: var(--ion-color-primary);
     font-size: 1.35rem;
     min-height: 42px;
     min-width: 42px;
@@ -197,7 +197,7 @@
   }
 
   a {
-    color: #b388ff;
+    color: var(--ion-color-secondary);
     font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;

@@ -47,15 +47,17 @@ ion-content {
 
 body {
 	background:
-		radial-gradient(circle at 8% -12%, rgba(124, 77, 255, 0.15), transparent 40%),
-		radial-gradient(circle at 96% 10%, rgba(224, 64, 251, 0.12), transparent 40%),
-		linear-gradient(180deg, #0b0a12 0%, #131221 52%, #0b0a12 100%);
+		radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.12), transparent 40%),
+		radial-gradient(circle at 96% 10%, rgba(0, 187, 249, 0.1), transparent 40%),
+		linear-gradient(180deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
 	color: var(--ion-text-color);
 }
 
 ion-content::part(background) {
 	background: transparent;
 }
+
+// HEADER
 
 ion-header.header-md {
   box-shadow: none;
