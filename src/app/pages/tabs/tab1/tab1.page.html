@@ -13,7 +13,6 @@
   @if (vm(); as vm) {
     <div class="dashboard">
       <section class="settings-group">
-        <p class="group-label">Current Progress</p>
         <ion-card class="balance-card">
           <ion-card-content>
             <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
