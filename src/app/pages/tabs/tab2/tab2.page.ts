@@ -84,6 +84,7 @@ export class Tab2Page {
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
+      this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
       if (mode !== 'graph' || !canvas || entries.length === 0) {
@@ -385,23 +386,23 @@ export class Tab2Page {
   }
 
   // ── Chart Colors ─────────────────────────────────────────────────────────────
-  
+
   private getChartColors(): ChartColors {
     return {
-      guideLine: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.35, '124, 77, 255'),
-      scaleLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.5, '179, 136, 255'),
-      scaleDot: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.55, '179, 136, 255'),
-      scaleDotHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '179, 136, 255'),
-      scaleDotBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.85, '245, 244, 249'),
-      scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.95, '245, 244, 249'),
-      trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#e040fb'),
-      axisGrid: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.07, '179, 136, 255'),
-      axisBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.15, '179, 136, 255'),
-      axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.45, '245, 244, 249'),
-      tooltipBackground: this.cssTheme.rgbaVar('--ion-color-step-50-rgb', 0.95, '18, 17, 29'),
-      tooltipTitle: this.cssTheme.themeVar('--ion-color-tertiary', '#b388ff'),
-      tooltipBody: this.cssTheme.themeVar('--ion-text-color', '#f5f4f9'),
-      tooltipBorder: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.3, '124, 77, 255'),
+      guideLine: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.35, '0, 179, 155'),
+      scaleLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.4, '155, 93, 229'),
+      scaleDot: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.55, '155, 93, 229'),
+      scaleDotHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '155, 93, 229'),
+      scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '155, 93, 229'),
+      scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.95, '155, 93, 229'),
+      trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#00f5d4'),
+      axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
+      axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),
+      axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.65, '15, 23, 42'),
+      tooltipBackground: this.cssTheme.rgbaVar('--ion-background-color-rgb', 0.95, '248, 250, 252'),
+      tooltipTitle: this.cssTheme.themeVar('--ion-color-primary', '#00b39b'),
+      tooltipBody: this.cssTheme.themeVar('--ion-text-color', '#0f172a'),
+      tooltipBorder: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.3, '0, 179, 155'),
     };
   }
 }
