@@ -93,6 +93,22 @@ ion-content.chart-content::part(scroll) {
   overflow: hidden;
 }
 
+.trend-chips {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px 0;
+  gap: 8px;
+
+  ion-button.info-btn {
+    --color: var(--ion-color-step-400);
+    margin: 0;
+
+    &:hover {
+      --color: var(--ion-color-step-700);
+    }
+  }
+}
+
 .chart-wrap {
   flex: 1;
   height: 100%;
@@ -107,126 +123,13 @@ ion-content.chart-content::part(scroll) {
   }
 }
 
-// ── Chart controls ────────────────────────────────────────────────────────────
-
-.chart-controls {
-  position: absolute;
-  bottom: 24px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(var(--ion-background-color-rgb, 255, 255, 255), 0.8);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 16px;
-  padding: 6px;
-  box-shadow: 0 8px 32px rgba(var(--ion-background-color-rgb), 0.32), 
-              0 1px 2px rgba(var(--ion-background-color-rgb), 0.2);
-  border: 1px solid rgba(var(--ion-color-step-200-rgb), 0.4);
-}
-
-.chart-toggle {
-  background: transparent;
-  border: none;
-  border-radius: 10px;
-  color: var(--ion-color-step-500);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  width: 32px;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-
-  &:hover {
-    color: var(--ion-color-step-800);
-    background: var(--ion-color-step-100);
-  }
-
-  &.active {
-    background: rgba(var(--ion-color-secondary-rgb), 0.12);
-    color: var(--ion-color-secondary);
-  }
-}
-
-.trend-controls-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.trend-switch {
-  display: flex;
-  background: var(--ion-color-step-100);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.trend-btn {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  color: var(--ion-color-step-600);
-  cursor: pointer;
-  display: flex;
-  font-size: 0.8rem;
-  font-weight: 600;
-  height: 28px;
-  justify-content: center;
-  min-width: 64px;
-  padding: 0 12px;
-  letter-spacing: -0.01em;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    color: var(--ion-color-step-900);
-  }
-
-  &.active {
-    background: var(--ion-background-color);
-    color: var(--ion-color-step-950);
-    font-weight: 700;
-    box-sizing: border-box;
-    box-shadow: 0 2px 8px rgba(var(--ion-background-color-rgb), 0.28), 
-                0 1px 2px rgba(var(--ion-background-color-rgb), 0.18);
-  }
-}
-
-.info-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.35rem;
-  color: var(--ion-color-step-400);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  height: 32px;
-  width: 32px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    color: var(--ion-color-step-700);
-    background: var(--ion-color-step-100);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
-}
-
 /* Styling the inside of the popover */
 ion-popover {
   --width: 300px;
   --background: var(--ion-background-color);
   --box-shadow: 0 12px 36px rgba(var(--ion-background-color-rgb), 0.5);
   --border-radius: 16px;
-  
+
   .popover-explanation {
     h3 {
       margin: 4px 0 8px;
@@ -235,13 +138,13 @@ ion-popover {
       color: var(--ion-text-color);
       letter-spacing: -0.02em;
     }
-    
+
     p {
       font-size: 0.9rem;
       line-height: 1.45;
       color: var(--ion-color-step-700);
       margin-bottom: 10px;
-      
+
       &:last-child {
         margin-bottom: 0;
       }
@@ -251,13 +154,13 @@ ion-popover {
       margin-top: 14px;
       padding-top: 12px;
       border-top: 1px dashed var(--ion-color-step-250);
-      
+
       p {
         font-size: 0.8rem;
         color: var(--ion-color-step-500);
         line-height: 1.4;
       }
-      
+
       em {
         font-style: normal;
         font-weight: 600;
@@ -269,77 +172,41 @@ ion-popover {
 
 // ── Range tabs ────────────────────────────────────────────────────────────────
 
-.range-tabs {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  padding: 16px 0;
-  white-space: nowrap;
+.range-tabs-container {
+  padding: 16px;
 
-  button {
-    background: var(--ion-color-step-150);
-    border: 0;
+  ion-segment {
+    background: var(--ion-color-step-100);
     border-radius: 999px;
-    color: var(--ion-color-step-650);
+    padding: 2px;
+  }
+
+  ion-segment-button {
+    --color: var(--ion-color-step-600);
+    --color-checked: var(--ion-text-color);
+    --background-checked: var(--ion-background-color);
+    --border-radius: 999px;
     font-size: 0.78rem;
     font-weight: 700;
-    padding: 9px 20px;
-    transition:
-      background 0.2s,
-      color 0.2s;
-
-    &.active {
-      background: var(--ion-color-primary);
-      color: var(--ion-color-primary-contrast);
-    }
   }
 }
 
 // ── List view ─────────────────────────────────────────────────────────────────
 
-.list-view {
-  display: grid;
-  gap: 10px;
-  padding: 16px;
+.list-group {
+  padding-top: 16px;
   overflow-y: auto;
-}
 
-.entry-card {
-  align-items: center;
-  background: var(--ion-color-step-150);
-  border-radius: 18px;
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 18px;
-}
+  .weight-note {
+    color: var(--ion-color-primary);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
 
-.entry-date {
-  color: var(--ion-color-step-700);
-  font-size: 0.88rem;
-}
-
-.entry-weight {
-  color: var(--ion-color-step-950);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.load-more-btn {
-  background: var(--ion-color-step-150);
-  border: 0;
-  border-radius: 24px;
-  color: var(--ion-color-tertiary);
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 8px auto;
-  padding: 12px 32px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: fit-content;
-
-  &:active {
-    opacity: 0.8;
-    transform: scale(0.96);
+  .load-more-btn {
+    font-size: 0.95rem;
+    font-weight: 600;
+    width: 250px;
+    margin: 16px auto;
   }
 }

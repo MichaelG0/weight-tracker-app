@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonContent, IonIcon, IonPopover } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonContent, IonIcon, IonPopover, IonSegment, IonSegmentButton, IonChip, IonLabel, IonButton, IonList, IonItem, IonNote } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { barChartOutline, listOutline, analyticsOutline, informationCircleOutline } from 'ionicons/icons';
 import Chart from 'chart.js/auto';
@@ -47,7 +47,7 @@ const LIST_PAGE_SIZE = 250;
   selector: 'app-tab2',
   templateUrl: 'tab2.page.html',
   styleUrls: ['tab2.page.scss'],
-  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon, IonPopover],
+  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon, IonPopover, IonSegment, IonSegmentButton, IonChip, IonLabel, IonButton, IonList, IonItem, IonNote],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tab2Page {
