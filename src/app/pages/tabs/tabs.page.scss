@@ -1,9 +1,33 @@
+ion-tabs::before {
+  content: '';
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  position: fixed;
+  height: calc(var(--navbar-height) + 16px);
+  width: 100%;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 45%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 45%,
+    rgba(0, 0, 0, 1) 100%
+  );
+}
+
 ion-tab-bar {
-  // Ultra-clean glassmorphism without borders
-  --background: var(--ion-color-step-100);
+  --background: var(--ion-color-step-150);
   --border: 0;
   backdrop-filter: blur(20px);
-  border: none; 
+  border: none;
   position: fixed;
   bottom: 16px;
   left: 18px;
