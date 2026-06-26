@@ -1,70 +1,71 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar class="home-toolbar">
     <div class="toolbar-shell">
       <div>
-        <p class="eyebrow">Settings</p>
         <h1>Profile</h1>
       </div>
     </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <div class="profile-header">
-    <div class="avatar-wrap">
-      <div class="avatar-inner">MG</div>
+<ion-content class="tab-content">
+  <div class="list-group-wrp">
+    <div class="profile-header">
+      <div class="avatar-wrap">
+        <div class="avatar-inner">MG</div>
+      </div>
+      <h2>Michael Guarino</h2>
+      <p>Premium Member</p>
     </div>
-    <h2>Michael Guarino</h2>
-    <p>Premium Member</p>
-  </div>
 
-  <section class="list-group">
-    <p class="list-group-label">Appearance</p>
-    <ion-list lines="none">
-      <ion-item class="list-group-item">
-        <div class="icon-wrap" slot="start">
-          <ion-icon name="moon-outline"></ion-icon>
-        </div>
-        <ion-label>Dark Mode</ion-label>
-        <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="toggleTheme($event)"></ion-toggle>
-      </ion-item>
-    </ion-list>
-  </section>
+    <section class="list-group">
+      <p class="list-group-label">Appearance</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="moon-outline"></ion-icon>
+          </div>
+          <ion-label>Dark Mode</ion-label>
+          <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="toggleTheme($event)"></ion-toggle>
+        </ion-item>
+      </ion-list>
+    </section>
 
-  <section class="list-group">
-    <p class="list-group-label">Account</p>
-    <ion-list lines="none">
-      <ion-item class="list-group-item" button>
-        <div class="icon-wrap" slot="start">
-          <ion-icon name="person-outline"></ion-icon>
-        </div>
-        <ion-label>Personal Details</ion-label>
-      </ion-item>
-      <ion-item class="list-group-item" button>
-        <div class="icon-wrap" slot="start">
-          <ion-icon name="notifications-outline"></ion-icon>
-        </div>
-        <ion-label>Reminders</ion-label>
-      </ion-item>
-    </ion-list>
-  </section>
+    <section class="list-group">
+      <p class="list-group-label">Account</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item" button>
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="person-outline"></ion-icon>
+          </div>
+          <ion-label>Personal Details</ion-label>
+        </ion-item>
+        <ion-item class="list-group-item" button>
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="notifications-outline"></ion-icon>
+          </div>
+          <ion-label>Reminders</ion-label>
+        </ion-item>
+      </ion-list>
+    </section>
 
-  <section class="list-group">
-    <p class="list-group-label">Support</p>
-    <ion-list lines="none">
-      <ion-item class="list-group-item" button>
-        <div class="icon-wrap" slot="start">
-          <ion-icon name="shield-checkmark-outline"></ion-icon>
-        </div>
-        <ion-label>Privacy Policy</ion-label>
-      </ion-item>
-    </ion-list>
-  </section>
+    <section class="list-group">
+      <p class="list-group-label">Support</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item" button>
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+          </div>
+          <ion-label>Privacy Policy</ion-label>
+        </ion-item>
+      </ion-list>
+    </section>
 
-  <div class="logout-wrap">
-    <button class="logout-btn">
-      <ion-icon name="log-out-outline"></ion-icon>
-      Logout
-    </button>
+    <div class="logout-wrap">
+      <button class="logout-btn">
+        <ion-icon name="log-out-outline"></ion-icon>
+        Logout
+      </button>
+    </div>
   </div>
 </ion-content>

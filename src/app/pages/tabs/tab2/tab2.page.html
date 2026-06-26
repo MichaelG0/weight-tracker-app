@@ -1,9 +1,8 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar class="home-toolbar">
     <div class="toolbar-shell">
       <div>
-        <p class="eyebrow">Progress</p>
-        <h1>Weight Tracker</h1>
+        <h1>Progress</h1>
       </div>
       <div slot="end" class="view-toggle">
         <ion-segment [value]="viewMode()" (ionChange)="setView($any($event).detail.value)" mode="ios">
@@ -19,7 +18,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="chart-content" [fullscreen]="true">
+<ion-content class="chart-content">
   @if (listEntries().length === 0) {
     <div class="empty-state">
       <div class="empty-icon-wrap">

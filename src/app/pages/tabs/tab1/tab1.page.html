@@ -1,17 +1,16 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar class="home-toolbar">
     <div class="toolbar-shell">
       <div>
-        <p class="eyebrow">Overview</p>
         <h1>Weight Tracker</h1>
       </div>
     </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content class="tab-content">
   @if (vm(); as vm) {
-    <div class="dashboard">
+    <div class="list-group-wrp">
       <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
