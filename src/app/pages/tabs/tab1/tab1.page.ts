@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -25,7 +26,7 @@ interface DashboardVm {
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
-  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol],
+  imports: [CommonModule, RouterLink, IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tab1Page {
@@ -89,7 +90,7 @@ export class Tab1Page {
       return 'Previous';
     }
 
-    return new Date(isoDate).toLocaleDateString(undefined, {
+    return new Date(isoDate).toLocaleDateString('en-GB', {
       month: 'short',
       day: 'numeric',
     });

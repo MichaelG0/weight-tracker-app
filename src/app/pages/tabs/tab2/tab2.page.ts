@@ -1,9 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonContent, IonIcon, IonPopover, IonSegment, IonSegmentButton, IonChip, IonLabel, IonButton, IonList, IonItem, IonNote } from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonContent,
+  IonIcon,
+  IonPopover,
+  IonSegment,
+  IonSegmentButton,
+  IonChip,
+  IonLabel,
+  IonButton,
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { barChartOutline, listOutline, analyticsOutline, informationCircleOutline } from 'ionicons/icons';
+import { analyticsOutline, informationCircleOutline } from 'ionicons/icons';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
@@ -12,7 +23,6 @@ import { DatabaseService, UserSettings, WeightEntry } from 'src/app/services/dat
 import 'hammerjs';
 Chart.register(zoomPlugin);
 
-export type ViewMode = 'graph' | 'list';
 export type RangeMode = 'current' | 'month' | 'full';
 interface Pt {
   x: number;
@@ -47,7 +57,19 @@ const LIST_PAGE_SIZE = 250;
   selector: 'app-tab2',
   templateUrl: 'tab2.page.html',
   styleUrls: ['tab2.page.scss'],
-  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonIcon, IonPopover, IonSegment, IonSegmentButton, IonChip, IonLabel, IonButton, IonList, IonItem, IonNote],
+  imports: [
+    CommonModule,
+    IonHeader,
+    IonToolbar,
+    IonContent,
+    IonIcon,
+    IonPopover,
+    IonSegment,
+    IonSegmentButton,
+    IonChip,
+    IonLabel,
+    IonButton,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tab2Page {
@@ -56,9 +78,7 @@ export class Tab2Page {
 
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
-  readonly viewMode = signal<ViewMode>('graph');
   readonly rangeMode = signal<RangeMode>('current');
-  readonly listVisibleCount = signal(LIST_PAGE_SIZE);
   readonly showDaily = signal<boolean>(false);
   readonly showTrend = signal<boolean>(true);
 
@@ -71,14 +91,11 @@ export class Tab2Page {
   readonly sortedAll = computed(() => [...this.allEntries()].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)));
 
   readonly listEntries = computed(() => [...this.sortedAll()].reverse());
-  readonly visibleListEntries = computed(() => this.listEntries().slice(0, this.listVisibleCount()));
-  readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
   constructor() {
-    addIcons({ barChartOutline, listOutline, analyticsOutline, informationCircleOutline });
+    addIcons({ analyticsOutline, informationCircleOutline });
 
     effect(() => {
-      const mode = this.viewMode();
       const entries = this.sortedAll();
       const settings = this.settings();
       const range = this.rangeMode();
@@ -87,7 +104,7 @@ export class Tab2Page {
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
-      if (mode !== 'graph' || !canvas || entries.length === 0) {
+      if (!canvas || entries.length === 0) {
         this.destroyChart();
         return;
       }
@@ -96,18 +113,8 @@ export class Tab2Page {
     });
   }
 
-  setView(mode: ViewMode): void {
-    this.viewMode.set(mode);
-    if (mode === 'list') {
-      this.listVisibleCount.set(LIST_PAGE_SIZE);
-    }
-  }
   setRange(range: RangeMode): void {
     this.rangeMode.set(range);
-  }
-
-  showMoreListEntries(): void {
-    this.listVisibleCount.update(count => count + LIST_PAGE_SIZE);
   }
 
   toggleShowDaily(): void {

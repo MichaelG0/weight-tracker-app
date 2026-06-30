@@ -50,12 +50,12 @@ ion-tab-button {
   border-radius: 16px;
 
   ion-icon {
-    font-size: calc(var(--navbar-height) - 36px);
+    font-size: calc(var(--navbar-height) / 2.7);
     transition: transform 0.2s ease;
   }
 
   ion-label {
-    font-size: calc(var(--navbar-height) - 46px);
+    font-size: calc(var(--navbar-height) / 5.4);
     font-weight: 600;
     letter-spacing: 0.02em;
     margin-top: 3px;

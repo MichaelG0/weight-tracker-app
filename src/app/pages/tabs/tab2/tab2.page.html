@@ -4,16 +4,6 @@
       <div>
         <h1>Progress</h1>
       </div>
-      <div slot="end" class="view-toggle">
-        <ion-segment [value]="viewMode()" (ionChange)="setView($any($event).detail.value)" mode="ios">
-          <ion-segment-button value="graph" aria-label="Graph view">
-            <ion-icon name="bar-chart-outline"></ion-icon>
-          </ion-segment-button>
-          <ion-segment-button value="list" aria-label="List view">
-            <ion-icon name="list-outline"></ion-icon>
-          </ion-segment-button>
-        </ion-segment>
-      </div>
     </div>
   </ion-toolbar>
 </ion-header>
@@ -28,78 +18,56 @@
       <p>Log your weight on the first tab to start tracking your progress and see your trend here.</p>
     </div>
   } @else {
-    @if (viewMode() === 'graph') {
-      <div class="trend-chips">
-        <ion-chip [color]="showDaily() ? 'secondary' : 'medium'" [outline]="!showDaily()" (click)="toggleShowDaily()">
-          <ion-label>Daily</ion-label>
-        </ion-chip>
-        <ion-chip [color]="showTrend() ? 'primary' : 'medium'" [outline]="!showTrend()" (click)="toggleShowTrend()">
-          <ion-label>Trend</ion-label>
-        </ion-chip>
-        <ion-button fill="clear" color="medium" id="trend-info-trigger" aria-label="What is weight trend?" title="What is weight trend?">
-          <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
-        </ion-button>
+    <div class="trend-chips">
+      <ion-chip [color]="showDaily() ? 'secondary' : 'medium'" [outline]="!showDaily()" (click)="toggleShowDaily()">
+        <ion-label>Daily</ion-label>
+      </ion-chip>
+      <ion-chip [color]="showTrend() ? 'primary' : 'medium'" [outline]="!showTrend()" (click)="toggleShowTrend()">
+        <ion-label>Trend</ion-label>
+      </ion-chip>
+      <ion-button fill="clear" color="medium" id="trend-info-trigger" aria-label="What is weight trend?" title="What is weight trend?">
+        <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+      </ion-button>
 
-        <ion-popover trigger="trend-info-trigger" triggerAction="click" alignment="start">
-          <ng-template>
-            <ion-content class="ion-padding popover-explanation">
-              <h3>📉 What is "Weight Trend"?</h3>
-              <p>Your body weight naturally fluctuates daily due to water retention, sodium, and digestion.</p>
+      <ion-popover trigger="trend-info-trigger" triggerAction="click" alignment="start">
+        <ng-template>
+          <ion-content class="ion-padding popover-explanation">
+            <h3>📉 What is "Weight Trend"?</h3>
+            <p>Your body weight naturally fluctuates daily due to water retention, sodium, and digestion.</p>
 
+            <p>
+              <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true
+              physical progress.
+            </p>
+
+            <div class="tech-note">
               <p>
-                <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true
-                physical progress.
+                <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in
+                <em>The Hacker's Diet</em>. It dampens sudden daily spikes so you can focus on long-term body tissue changes, not
+                temporary water weight.
               </p>
-
-              <div class="tech-note">
-                <p>
-                  <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in
-                  <em>The Hacker's Diet</em>. It dampens sudden daily spikes so you can focus on long-term body tissue changes, not
-                  temporary water weight.
-                </p>
-              </div>
-            </ion-content>
-          </ng-template>
-        </ion-popover>
-      </div>
-
-      <div class="chart-wrap">
-        <canvas #weightChart></canvas>
-      </div>
-
-      <div class="range-tabs-container">
-        <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
-          <ion-segment-button value="current">
-            <ion-label>Journey</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="month">
-            <ion-label>Month</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="full">
-            <ion-label>To Goal</ion-label>
-          </ion-segment-button>
-        </ion-segment>
-      </div>
-    }
-    @if (viewMode() === 'list') {
-      <section class="list-group">
-        <ion-list lines="none">
-          @for (entry of visibleListEntries(); track entry.id) {
-            <ion-item class="list-group-item">
-              <ion-label>{{ entry.logged_at | date: 'EEE, d MMM yy' }}</ion-label>
-              <ion-note slot="end" class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} kg</ion-note>
-            </ion-item>
-          }
-
-          @if (hasMoreListEntries()) {
-            <div class="ion-padding-top ion-text-center">
-              <ion-button shape="round" color="step-150" class="load-more-btn" (click)="showMoreListEntries()">
-                Load more entries
-              </ion-button>
             </div>
-          }
-        </ion-list>
-      </section>
-    }
+          </ion-content>
+        </ng-template>
+      </ion-popover>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas #weightChart></canvas>
+    </div>
+
+    <div class="range-tabs-container">
+      <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
+        <ion-segment-button value="current">
+          <ion-label>Journey</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="month">
+          <ion-label>Month</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="full">
+          <ion-label>To Goal</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
   }
 </ion-content>

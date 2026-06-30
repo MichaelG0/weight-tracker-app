@@ -84,7 +84,7 @@
       <section class="list-group">
         <div class="timeline-head">
           <p class="list-group-label">Recent entries</p>
-          <a href="#">See all</a>
+          <a [routerLink]="['/tabs/tab4']" routerDirection="forward">See all</a>
         </div>
         <ion-list lines="none">
           @for (entry of vm.recentEntries; track entry.label) {
