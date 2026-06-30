@@ -48,16 +48,11 @@
               </div>
             </ion-item>
           }
-
-          @if (hasMoreListEntries()) {
-            <div class="ion-padding-top ion-text-center">
-              <ion-button fill="clear" class="load-more-btn" (click)="showMoreListEntries()">
-                <ion-icon slot="start" name="chevron-down-outline"></ion-icon>
-                Load more entries
-              </ion-button>
-            </div>
-          }
         </ion-list>
+
+        <ion-infinite-scroll [disabled]="!hasMoreListEntries()" threshold="100px" (ionInfinite)="onInfiniteScroll($event)">
+          <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Loading more entries..."></ion-infinite-scroll-content>
+        </ion-infinite-scroll>
       </section>
     </div>
   }

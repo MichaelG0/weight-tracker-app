@@ -1,9 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonContent, IonList, IonItem, IonLabel, IonNote, IonButton, IonIcon } from '@ionic/angular/standalone';
+import {
+  InfiniteScrollCustomEvent,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonToolbar,
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, chevronDownOutline } from 'ionicons/icons';
+import { analyticsOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 
 const LIST_PAGE_SIZE = 50;
@@ -16,7 +27,18 @@ interface HistoryEntry extends WeightEntry {
   selector: 'app-tab4',
   templateUrl: 'tab4.page.html',
   styleUrls: ['tab4.page.scss'],
-  imports: [CommonModule, IonHeader, IonToolbar, IonContent, IonList, IonItem, IonLabel, IonNote, IonButton, IonIcon],
+  imports: [
+    CommonModule,
+    IonHeader,
+    IonToolbar,
+    IonContent,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonIcon,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tab4Page {
@@ -40,10 +62,11 @@ export class Tab4Page {
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
   constructor() {
-    addIcons({ analyticsOutline, chevronDownOutline });
+    addIcons({ analyticsOutline });
   }
 
-  showMoreListEntries(): void {
+  onInfiniteScroll(event: InfiniteScrollCustomEvent): void {
     this.listVisibleCount.update(count => count + LIST_PAGE_SIZE);
+    event.target.complete();
   }
 }
