@@ -62,26 +62,34 @@ ion-header {
     width: 100%;
   }
 
-  .entry-date {
-    color: var(--ion-color-step-700);
-    font-size: 0.9rem;
-  }
-
   .weight-note {
-    color: var(--ion-color-primary);
+    color: var(--ion-color-step-900);
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    justify-self: start;
+
+    .unit {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--ion-color-step-500);
+    }
   }
 
-  .entry-weight {
-    justify-self: center;
+  .entry-date {
+    color: var(--ion-color-step-550);
+    font-size: 0.88rem;
+    font-weight: 600;
+    justify-self: end;
   }
 
   .entry-change {
     color: var(--ion-color-success);
     font-size: 0.85rem;
     font-weight: 700;
-    justify-self: end;
     margin: 0;
     text-align: right;
 
