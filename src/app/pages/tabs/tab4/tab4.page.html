@@ -9,43 +9,56 @@
 </ion-header>
 
 <ion-content class="tab-content">
-  <div class="list-group-wrp">
-    @if (listEntries().length === 0) {
-      <div class="empty-state">
-        <div class="empty-icon-wrap">
-          <ion-icon name="analytics-outline"></ion-icon>
-        </div>
-        <h2>No data points yet</h2>
-        <p>Log your weight on the first tab to start tracking your progress and see your entries here.</p>
+  @if (listEntries().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon-wrap">
+        <ion-icon name="analytics-outline"></ion-icon>
       </div>
-    } @else {
+      <h2>No data points yet</h2>
+      <p>Log your weight on the first tab to start tracking your progress and see your entries here.</p>
+    </div>
+  } @else {
+    <div class="list-group-wrp">
       <section class="list-group">
         <ion-list lines="none">
           @for (entry of visibleListEntries(); track entry.id) {
             <ion-item class="list-group-item">
-              <div class="history-row">
-                <div class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></div>
-                <ion-note class="entry-change" [class.negative]="(entry.weightChangeKg ?? 0) < 0">
-                  @if (entry.weightChangeKg === null) {
-                    --
-                  } @else if (entry.weightChangeKg === 0) {
-                    =
-                  } @else {
-                    {{ (entry.weightChangeKg > 0 ? '+' : '') + (entry.weightChangeKg | number: '1.1-1') }} kg
-                  }
-                </ion-note>
-                <ion-label class="entry-date">{{ entry.logged_at | date: 'd MMM yy' }}</ion-label>
+              <div class="history-card-inner">
+                <div class="weight-meta">
+                  <div class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></div>
+
+                  <div
+                    class="entry-change"
+                    [class.negative]="(entry.weightChangeKg ?? 0) < 0"
+                    [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
+                  >
+                    @if (entry.weightChangeKg === null) {
+                      <span>--</span>
+                    } @else if (entry.weightChangeKg === 0) {
+                      <span>No change</span>
+                    } @else {
+                      <span>{{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | number: '1.1-1') }} kg</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="date-meta">
+                  <ion-label class="entry-date">{{ entry.logged_at | date: 'd MMM yyyy' }}</ion-label>
+                </div>
               </div>
             </ion-item>
           }
 
           @if (hasMoreListEntries()) {
             <div class="ion-padding-top ion-text-center">
-              <ion-button shape="round" class="load-more-btn" (click)="showMoreListEntries()"> Load more entries </ion-button>
+              <ion-button fill="clear" class="load-more-btn" (click)="showMoreListEntries()">
+                <ion-icon slot="start" name="chevron-down-outline"></ion-icon>
+                Load more entries
+              </ion-button>
             </div>
           }
         </ion-list>
       </section>
-    }
-  </div>
+    </div>
+  }
 </ion-content>

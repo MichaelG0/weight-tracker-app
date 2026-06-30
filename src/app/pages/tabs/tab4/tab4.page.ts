@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { IonHeader, IonToolbar, IonContent, IonList, IonItem, IonLabel, IonNote, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline } from 'ionicons/icons';
+import { analyticsOutline, chevronDownOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 
 const LIST_PAGE_SIZE = 50;
@@ -40,7 +40,7 @@ export class Tab4Page {
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
   constructor() {
-    addIcons({ analyticsOutline });
+    addIcons({ analyticsOutline, chevronDownOutline });
   }
 
   showMoreListEntries(): void {
