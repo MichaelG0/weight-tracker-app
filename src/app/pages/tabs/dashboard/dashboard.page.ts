@@ -23,13 +23,13 @@ interface DashboardVm {
 }
 
 @Component({
-  selector: 'app-tab1',
-  templateUrl: 'tab1.page.html',
-  styleUrls: ['tab1.page.scss'],
+  selector: 'app-dashboard',
+  templateUrl: 'dashboard.page.html',
+  styleUrls: ['dashboard.page.scss'],
   imports: [CommonModule, RouterLink, IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Tab1Page {
+export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
 
   private readonly entries = toSignal(this.databaseService.entries$, { initialValue: [] });

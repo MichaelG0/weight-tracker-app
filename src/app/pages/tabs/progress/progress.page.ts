@@ -54,9 +54,9 @@ interface ChartColors {
 const LIST_PAGE_SIZE = 250;
 
 @Component({
-  selector: 'app-tab2',
-  templateUrl: 'tab2.page.html',
-  styleUrls: ['tab2.page.scss'],
+  selector: 'app-progress',
+  templateUrl: 'progress.page.html',
+  styleUrls: ['progress.page.scss'],
   imports: [
     CommonModule,
     IonHeader,
@@ -72,7 +72,7 @@ const LIST_PAGE_SIZE = 250;
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Tab2Page {
+export class ProgressPage {
   private readonly db = inject(DatabaseService);
   private readonly cssTheme = inject(CssThemeService);
 

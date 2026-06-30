@@ -5,13 +5,13 @@ import { addIcons } from 'ionicons';
 import { moonOutline, personOutline, notificationsOutline, shieldCheckmarkOutline, logOutOutline } from 'ionicons/icons';
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
+  selector: 'app-settings',
+  templateUrl: 'settings.page.html',
+  styleUrls: ['settings.page.scss'],
   imports: [IonHeader, IonToolbar, IonContent, IonList, IonItem, IonLabel, IonToggle, IonIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Tab3Page {
+export class SettingsPage {
   themeService = inject(CssThemeService);
 
   constructor() {

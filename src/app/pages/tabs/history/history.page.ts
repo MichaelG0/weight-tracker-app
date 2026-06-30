@@ -24,9 +24,9 @@ interface HistoryEntry extends WeightEntry {
 }
 
 @Component({
-  selector: 'app-tab4',
-  templateUrl: 'tab4.page.html',
-  styleUrls: ['tab4.page.scss'],
+  selector: 'app-history',
+  templateUrl: 'history.page.html',
+  styleUrls: ['history.page.scss'],
   imports: [
     CommonModule,
     IonHeader,
@@ -41,7 +41,7 @@ interface HistoryEntry extends WeightEntry {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Tab4Page {
+export class HistoryPage {
   private readonly db = inject(DatabaseService);
   readonly listVisibleCount = signal(LIST_PAGE_SIZE);
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
