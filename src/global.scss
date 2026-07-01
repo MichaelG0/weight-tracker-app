@@ -117,7 +117,7 @@ ion-card {
   --background: var(--ion-color-step-100);
   background: var(--ion-color-step-100);
   margin: 0;
-  border-radius: 24px;
+  border-radius: 18px;
   color: var(--ion-text-color);
   box-shadow: none;
 }
@@ -144,7 +144,7 @@ ion-card {
 
     ion-list {
       background: transparent;
-      border-radius: 20px;
+      border-radius: 18px;
       overflow: hidden;
       margin: 0;
       padding: 0;
@@ -156,7 +156,7 @@ ion-card {
 
     .list-group-item {
       --background: var(--ion-color-step-100);
-      --border-radius: 16px;
+      --border-radius: 18px;
       --inner-padding-end: 16px;
       --padding-start: 16px;
       transition: transform 0.2s ease;

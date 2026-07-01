@@ -7,27 +7,10 @@ ion-content.chart-content::part(scroll) {
   overflow: hidden;
 }
 
-.trend-chips {
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 8px;
-
-  ion-button.info-btn {
-    --color: var(--ion-color-step-400);
-    margin: 0;
-
-    &:hover {
-      --color: var(--ion-color-step-700);
-    }
-  }
-}
-
 .chart-wrap {
   flex: 1;
   height: 100%;
   overflow: hidden;
-  padding: 12px 6px 0;
   position: relative;
 
   canvas {
@@ -37,12 +20,38 @@ ion-content.chart-content::part(scroll) {
   }
 }
 
-/* Styling the inside of the popover */
+// ── Range tabs ────────────────────────────────────────────────────────────────
+
+.range-tabs-container {
+  padding: 4px 18px 12px;
+
+  ion-segment {
+    background: var(--ion-color-step-100);
+    border-radius: 18px;
+    padding: 2px;
+  }
+
+  ion-segment-button {
+    --color: var(--ion-color-step-600);
+    --color-checked: var(--ion-text-color);
+    --background-checked: var(--ion-background-color);
+    --border-radius: 18px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+}
+
+// ── Popover ─────────────────────────────────────────────────────────────
+
 ion-popover {
   --width: 300px;
   --background: var(--ion-background-color);
   --box-shadow: 0 12px 36px rgba(var(--ion-background-color-rgb), 0.5);
-  --border-radius: 16px;
+  --border-radius: 18px;
+
+  &::part(content) {
+    border-radius: 18px;
+  }
 
   .popover-explanation {
     h3 {
@@ -78,29 +87,65 @@ ion-popover {
       em {
         font-style: normal;
         font-weight: 600;
-        color: var(--ion-color-step-700);
+        color: var(--ion-color-step-650);
       }
     }
   }
 }
 
-// ── Range tabs ────────────────────────────────────────────────────────────────
+// ── Trend chips ───────────────────────────────────────────────────────────────
 
-.range-tabs-container {
-  padding: 16px;
+ion-card.trend-chips {
+  margin: 12px 18px;
 
-  ion-segment {
-    background: var(--ion-color-step-100);
-    border-radius: 999px;
-    padding: 2px;
-  }
+  ion-card-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 8px;
 
-  ion-segment-button {
-    --color: var(--ion-color-step-600);
-    --color-checked: var(--ion-text-color);
-    --background-checked: var(--ion-background-color);
-    --border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 700;
+    ion-chip {
+      --background: transparent;
+      --color: var(--ion-text-color);
+      margin: 0;
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-inline-start: 10px;
+      font-weight: 700;
+
+      .chip-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+
+        &.trend {
+          width: 20px;
+        }
+      }
+
+      &.daily-chip {
+        color: var(--ion-color-secondary);
+
+        &.active {
+          --background: rgba(var(--ion-color-secondary-rgb), 0.12);
+        }
+      }
+
+      &.trend-chip {
+        color: var(--ion-color-primary);
+
+        &.active {
+          --background: rgba(var(--ion-color-primary-rgb), 0.12);
+        }
+      }
+    }
+
+    ion-button.info-btn {
+      margin: 0;
+      --border-radius: 100%;
+    }
   }
 }

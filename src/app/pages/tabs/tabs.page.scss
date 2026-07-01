@@ -34,7 +34,7 @@ ion-tab-bar {
   right: 18px;
   height: var(--navbar-height);
   width: auto;
-  border-radius: 16px;
+  border-radius: 18px;
 }
 
 ion-tab-button {
@@ -47,7 +47,7 @@ ion-tab-button {
   --background-focused-opacity: 0;
   --background-activated: transparent;
   --background-activated-opacity: 0;
-  border-radius: 16px;
+  border-radius: 18px;
 
   ion-icon {
     font-size: calc(var(--navbar-height) / 2.7);

@@ -18,44 +18,6 @@
       <p>Log your weight on the first tab to start tracking your progress and see your trend here.</p>
     </div>
   } @else {
-    <div class="trend-chips">
-      <ion-chip [color]="showDaily() ? 'secondary' : 'medium'" [outline]="!showDaily()" (click)="toggleShowDaily()">
-        <ion-label>Daily</ion-label>
-      </ion-chip>
-      <ion-chip [color]="showTrend() ? 'primary' : 'medium'" [outline]="!showTrend()" (click)="toggleShowTrend()">
-        <ion-label>Trend</ion-label>
-      </ion-chip>
-      <ion-button fill="clear" color="medium" id="trend-info-trigger" aria-label="What is weight trend?" title="What is weight trend?">
-        <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
-      </ion-button>
-
-      <ion-popover trigger="trend-info-trigger" triggerAction="click" alignment="start">
-        <ng-template>
-          <ion-content class="ion-padding popover-explanation">
-            <h3>📉 What is "Weight Trend"?</h3>
-            <p>Your body weight naturally fluctuates daily due to water retention, sodium, and digestion.</p>
-
-            <p>
-              <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true
-              physical progress.
-            </p>
-
-            <div class="tech-note">
-              <p>
-                <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in
-                <em>The Hacker's Diet</em>. It dampens sudden daily spikes so you can focus on long-term body tissue changes, not
-                temporary water weight.
-              </p>
-            </div>
-          </ion-content>
-        </ng-template>
-      </ion-popover>
-    </div>
-
-    <div class="chart-wrap">
-      <canvas #weightChart></canvas>
-    </div>
-
     <div class="range-tabs-container">
       <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
         <ion-segment-button value="current">
@@ -69,5 +31,65 @@
         </ion-segment-button>
       </ion-segment>
     </div>
+
+    <div class="chart-wrap">
+      <canvas #weightChart></canvas>
+    </div>
+
+    <ion-card class="trend-chips">
+      <ion-card-content>
+        <ion-chip class="daily-chip" [class.active]="showDaily()" (click)="toggleShowDaily()">
+          <svg class="chip-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 12H5.5M18.5 12H22" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="3" fill="none" />
+          </svg>
+          <ion-label>Daily</ion-label>
+        </ion-chip>
+        <ion-chip class="trend-chip" [class.active]="showTrend()" (click)="toggleShowTrend()">
+          <svg class="chip-icon trend" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M2 16C2 16 5 7 10 12C15 17 19 8 22 8"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <ion-label>Trend</ion-label>
+        </ion-chip>
+        <ion-button
+          fill="clear"
+          color="medium"
+          id="trend-info-trigger"
+          class="info-btn"
+          aria-label="What is weight trend?"
+          title="What is weight trend?"
+        >
+          <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+        </ion-button>
+
+        <ion-popover trigger="trend-info-trigger" triggerAction="click" alignment="start">
+          <ng-template>
+            <ion-content class="ion-padding popover-explanation">
+              <h3>📉 What is "Weight Trend"?</h3>
+              <p>Your body weight naturally fluctuates daily due to water retention, sodium, and digestion.</p>
+
+              <p>
+                <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true
+                physical progress.
+              </p>
+
+              <div class="tech-note">
+                <p>
+                  <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in
+                  <em>The Hacker's Diet</em>. It dampens sudden daily spikes so you can focus on long-term body tissue changes, not
+                  temporary water weight.
+                </p>
+              </div>
+            </ion-content>
+          </ng-template>
+        </ion-popover>
+      </ion-card-content>
+    </ion-card>
   }
 </ion-content>

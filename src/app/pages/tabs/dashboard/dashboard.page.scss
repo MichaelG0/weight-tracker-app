@@ -7,6 +7,7 @@
 .balance-card {
   overflow: hidden;
   position: relative;
+  border-radius: 24px;
 
   &::after {
     background: radial-gradient(
@@ -136,7 +137,6 @@
   --background: var(--ion-color-step-100);
   background: var(--ion-color-step-100);
   border-left: 4px solid var(--ion-color-primary);
-  border-radius: 16px;
   margin: 0;
   box-shadow: none;
 
