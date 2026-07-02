@@ -111,7 +111,7 @@ export class DatabaseService {
     await this.db.run(
       `INSERT INTO user_settings (user_id, age, gender, height_cm, goal_weight_kg, goal_date)
        VALUES (1, ?, ?, ?, ?, ?)`,
-      [31, 'M', 178, 80, new Date('2026-07-01').toISOString()],
+      [31, 'M', 178, 81, new Date('2026-09-13').toISOString()],
     );
 
     const mockData: [string, number][] = [

@@ -381,18 +381,18 @@ export class ProgressPage {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
-      xMax = now + 86400000;
+      xMax = now;
     } else if (range === 'full' && entries.length > 0 && goalWeight !== null && goalDateMs !== null) {
       xMin = +new Date(entries[0].logged_at);
       xMax = goalDateMs;
     } else {
       xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : now - 30 * 86400000;
-      xMax = now + 86400000;
+      xMax = now;
     }
 
     const mn = weights.length ? Math.min(...weights) : 70;
     const mx = weights.length ? Math.max(...weights) : 90;
-    const pad = Math.max((mx - mn) * 0.2, 0.5);
+    const pad = Math.max((mx - mn) * 0.05, 0.125);
     return { xMin, xMax, yMin: mn - pad, yMax: mx + pad };
   }
 
@@ -402,8 +402,8 @@ export class ProgressPage {
     return {
       guideLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.35, '155, 93, 229'),
       scaleLine: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.4, '0, 187, 249'),
-      scaleDot: this.cssTheme.rgbaVar('--ion-background-color-rgb', 1, '248, 250, 252'),
-      scaleDotHover: this.cssTheme.rgbaVar('--ion-background-color-rgb', 1, '248, 250, 252'),
+      scaleDot: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
+      scaleDotHover: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
       scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.85, '0, 187, 249'),
       scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 1, '0, 187, 249'),
       trendLine: this.cssTheme.themeVar('--ion-color-primary', '#00b39b'),

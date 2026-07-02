@@ -18,23 +18,27 @@
       <p>Log your weight on the first tab to start tracking your progress and see your trend here.</p>
     </div>
   } @else {
-    <div class="range-tabs-container">
-      <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
-        <ion-segment-button value="current">
-          <ion-label>Journey</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="month">
-          <ion-label>Month</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="full">
-          <ion-label>To Goal</ion-label>
-        </ion-segment-button>
-      </ion-segment>
-    </div>
+    <ion-card class="chart-card">
+      <ion-card-content>
+        <div class="chart-wrap">
+          <canvas #weightChart></canvas>
+        </div>
 
-    <div class="chart-wrap">
-      <canvas #weightChart></canvas>
-    </div>
+        <div class="range-tabs-container">
+          <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
+            <ion-segment-button value="current">
+              <ion-label>Journey</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="month">
+              <ion-label>Month</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="full">
+              <ion-label>To Goal</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+      </ion-card-content>
+    </ion-card>
 
     <ion-card class="trend-chips">
       <ion-card-content>
