@@ -1,26 +1,65 @@
-ion-tabs::before {
-  content: '';
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
-  position: fixed;
-  height: calc(var(--navbar-height) + 16px);
-  width: 100%;
-  bottom: 0;
-  z-index: 1;
-  pointer-events: none;
+ion-tabs {
+  .tabs-footer-backdrop {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--navbar-height) + 16px);
+    pointer-events: none;
+    z-index: 1;
 
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 45%,
-    rgba(0, 0, 0, 1) 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 45%,
-    rgba(0, 0, 0, 1) 100%
-  );
+    .tabs-footer-backdrop__layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+
+      backdrop-filter: blur(1px) saturate(103%);
+      -webkit-backdrop-filter: blur(1px) saturate(103%);
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 100%);
+    }
+
+    .tabs-footer-backdrop__layer--1 {
+      height: calc(var(--navbar-height) + 16px);
+    }
+
+    .tabs-footer-backdrop__layer--2 {
+      height: calc(var(--navbar-height) + 8px);
+      background: rgba(var(--ion-background-color-deep-rgb), 0.05);
+    }
+
+    .tabs-footer-backdrop__layer--3 {
+      height: calc(var(--navbar-height));
+      background: rgba(var(--ion-background-color-deep-rgb), 0.1);
+    }
+
+    .tabs-footer-backdrop__layer--4 {
+      height: calc(var(--navbar-height) - 8px);
+      background: rgba(var(--ion-background-color-deep-rgb), 0.15);
+    }
+
+    .tabs-footer-backdrop__layer--5 {
+      height: calc(var(--navbar-height) - 16px);
+      background: rgba(var(--ion-background-color-deep-rgb), 0.2);
+    }
+
+    .tabs-footer-backdrop__layer--6 {
+      height: calc(var(--navbar-height) - 24px);
+      background: rgba(var(--ion-background-color-deep-rgb), 0.25);
+    }
+
+    .tabs-footer-backdrop__layer--7 {
+      height: calc(var(--navbar-height) - 32px);
+      background: rgba(var(--ion-background-color-deep-rgb), 0.3);
+    }
+  }
+}
+
+::ng-deep body.ion-palette-dark ion-tabs .tabs-footer-backdrop .tabs-footer-backdrop__layer {
+  backdrop-filter: blur(1px) saturate(103%) brightness(0.9) !important;
+  -webkit-backdrop-filter: blur(1px) saturate(103%) brightness(0.9) !important;
 }
 
 ion-tab-bar {
@@ -35,6 +74,7 @@ ion-tab-bar {
   height: var(--navbar-height);
   width: auto;
   border-radius: 18px;
+  z-index: 2;
 }
 
 ion-tab-button {

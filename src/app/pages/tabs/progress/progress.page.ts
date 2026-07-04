@@ -410,7 +410,7 @@ export class ProgressPage {
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
       axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),
       axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.65, '15, 23, 42'),
-      tooltipBackground: this.cssTheme.rgbaVar('--ion-background-color-rgb', 0.95, '248, 250, 252'),
+      tooltipBackground: this.cssTheme.rgbaVar('--ion-background-color-deep-rgb', 0.95, '248, 250, 252'),
       tooltipTitle: this.cssTheme.themeVar('--ion-color-primary', '#00b39b'),
       tooltipBody: this.cssTheme.themeVar('--ion-text-color', '#0f172a'),
       tooltipBorder: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.3, '0, 179, 155'),

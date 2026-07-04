@@ -107,7 +107,7 @@ ion-header.header-md {
 // ── Tab Content ────────────────────────────────────────────────────────
 
 ion-content.tab-content {
-  --padding-top: 12px;
+  --padding-top: var(--content-padding-top);
   --padding-bottom: calc(var(--navbar-height) + 40px);
 }
 
