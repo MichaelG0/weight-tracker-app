@@ -1,6 +1,6 @@
 // ── Header ───────────────────────────────────────────────────────
 
-ion-header.header-md ion-toolbar.home-toolbar {
+ion-header ion-toolbar {
   --background: var(--ion-color-step-100);
 }
 
@@ -120,8 +120,8 @@ ion-card.trend-chips {
 
 ion-popover {
   --width: 300px;
-  --background: var(--ion-background-color);
-  --box-shadow: 0 12px 36px rgba(var(--ion-background-color-rgb), 0.5);
+  --background: var(--ion-background-color-deep);
+  --box-shadow: 0 12px 36px rgba(var(--ion-background-color-deep-rgb), 0.5);
   --border-radius: 18px;
 
   &::part(content) {

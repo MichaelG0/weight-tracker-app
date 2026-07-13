@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import {
   IonHeader,
   IonToolbar,
+  IonTitle,
   IonContent,
   IonIcon,
   IonPopover,
@@ -63,6 +64,7 @@ const LIST_PAGE_SIZE = 250;
     CommonModule,
     IonHeader,
     IonToolbar,
+    IonTitle,
     IonContent,
     IonIcon,
     IonPopover,

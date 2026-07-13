@@ -72,36 +72,60 @@ ion-button {
 
 // ── Header ────────────────────────────────────────────────────────
 
-ion-header.header-md {
+ion-header.header-md,
+ion-header.header-ios {
   box-shadow: none;
 
-  ion-toolbar.home-toolbar {
+  ion-toolbar {
     --background: transparent;
     --border-width: 0;
     --border-style: none;
-    padding: 10px 18px 0;
   }
 }
 
-.toolbar-shell {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
+ion-header.header-md ion-toolbar {
+  padding: 0 18px;
 
-  h1 {
+  ion-title {
     font-size: 1.35rem;
     font-weight: 800;
     letter-spacing: -0.02em;
-    margin: 2px 0 0;
+    padding: 0;
   }
 }
 
-.eyebrow {
-  color: var(--ion-color-step-600);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
+ion-header.app-glass-header-host {
+  box-shadow: none;
+
+  ion-toolbar {
+    --background: transparent;
+    --border-width: 0;
+    --border-style: none;
+  }
+
+  .app-glass-header-backdrop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: calc(var(--app-glass-header-height, 56px));
+    pointer-events: none;
+    z-index: 1;
+
+    .app-glass-header-backdrop__layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      pointer-events: none;
+      background: rgba(var(--ion-background-color-shallow-rgb), 0.2);
+
+      backdrop-filter: blur(1px) saturate(100%);
+      -webkit-backdrop-filter: blur(1px) saturate(100%);
+      mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 100%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 100%);
+    }
+  }
 }
 
 // ── Tab Content ────────────────────────────────────────────────────────

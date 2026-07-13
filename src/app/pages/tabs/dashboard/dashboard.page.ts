@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
+import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 
 interface DashboardVm {
   currentWeight: number | null;
@@ -26,7 +27,7 @@ interface DashboardVm {
   selector: 'app-dashboard',
   templateUrl: 'dashboard.page.html',
   styleUrls: ['dashboard.page.scss'],
-  imports: [CommonModule, RouterLink, IonHeader, IonToolbar, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol],
+  imports: [CommonModule, RouterLink, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol, GlassHeaderBackdropDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardPage {

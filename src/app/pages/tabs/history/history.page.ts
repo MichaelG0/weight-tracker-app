@@ -5,6 +5,7 @@ import {
   InfiniteScrollCustomEvent,
   IonContent,
   IonHeader,
+  IonTitle,
   IonIcon,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
@@ -16,6 +17,7 @@ import {
 import { addIcons } from 'ionicons';
 import { analyticsOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
+import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 
 const LIST_PAGE_SIZE = 50;
 
@@ -31,6 +33,7 @@ interface HistoryEntry extends WeightEntry {
     CommonModule,
     IonHeader,
     IonToolbar,
+    IonTitle,
     IonContent,
     IonList,
     IonItem,
@@ -38,6 +41,7 @@ interface HistoryEntry extends WeightEntry {
     IonIcon,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
+    GlassHeaderBackdropDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
