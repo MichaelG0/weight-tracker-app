@@ -2,11 +2,32 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol } from '@ionic/angular/standalone';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonIcon,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonNote,
+  IonCard,
+  IonCardContent,
+  IonBadge,
+  IonProgressBar,
+  IonButton,
+  IonGrid,
+  IonRow,
+  IonCol,
+  ModalController,
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
+import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
+import { take } from 'rxjs/operators';
 
 interface DashboardVm {
   currentWeight: number | null;
@@ -27,11 +48,33 @@ interface DashboardVm {
   selector: 'app-dashboard',
   templateUrl: 'dashboard.page.html',
   styleUrls: ['dashboard.page.scss'],
-  imports: [CommonModule, RouterLink, IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonList, IonItem, IonLabel, IonNote, IonCard, IonCardContent, IonBadge, IonProgressBar, IonButton, IonGrid, IonRow, IonCol, GlassHeaderBackdropDirective],
+  imports: [
+    CommonModule,
+    RouterLink,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonIcon,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonNote,
+    IonCard,
+    IonCardContent,
+    IonBadge,
+    IonProgressBar,
+    IonButton,
+    IonGrid,
+    IonRow,
+    IonCol,
+    GlassHeaderBackdropDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
+  private readonly modalCtrl = inject(ModalController);
 
   private readonly entries = toSignal(this.databaseService.entries$, { initialValue: [] });
   private readonly settings = toSignal(this.databaseService.settings$, { initialValue: null });
@@ -39,14 +82,10 @@ export class DashboardPage {
   readonly vm = computed(() => {
     const entries = this.entries();
     const settings = this.settings();
-    const sorted = [...entries].sort(
-      (a, b) => +new Date(b.logged_at) - +new Date(a.logged_at)
-    );
+    const sorted = [...entries].sort((a, b) => +new Date(b.logged_at) - +new Date(a.logged_at));
 
     const currentWeight = sorted[0]?.weight_kg ?? null;
-    const startWeight = sorted.length
-      ? sorted[sorted.length - 1].weight_kg
-      : null;
+    const startWeight = sorted.length ? sorted[sorted.length - 1].weight_kg : null;
     const goalWeight = settings?.goal_weight_kg ?? null;
 
     const avg7d = this.averageInWindow(sorted, 7);
@@ -74,6 +113,23 @@ export class DashboardPage {
 
   constructor() {
     addIcons({ trendingDownOutline });
+  }
+
+  async openLogWeight(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: LogWeightModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+
+    await modal.present();
+
+    const { data, role } = await modal.onWillDismiss();
+
+    if (role === 'confirm' && data) {
+      this.databaseService.addEntry(data).pipe(take(1)).subscribe();
+    }
   }
 
   private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {
@@ -138,19 +194,12 @@ export class DashboardPage {
 
     const first = inWindow[0];
     const last = inWindow[inWindow.length - 1];
-    const elapsedDays = Math.max(
-      1,
-      Math.round((+new Date(last.logged_at) - +new Date(first.logged_at)) / 86400000)
-    );
+    const elapsedDays = Math.max(1, Math.round((+new Date(last.logged_at) - +new Date(first.logged_at)) / 86400000));
 
     return ((last.weight_kg - first.weight_kg) / elapsedDays) * 7;
   }
 
-  private progressPercent(
-    startWeight: number | null,
-    currentWeight: number | null,
-    goalWeight: number | null
-  ): number | null {
+  private progressPercent(startWeight: number | null, currentWeight: number | null, goalWeight: number | null): number | null {
     if (startWeight == null || currentWeight == null || goalWeight == null) {
       return null;
     }
@@ -165,11 +214,7 @@ export class DashboardPage {
     return Math.min(100, Math.max(0, pct));
   }
 
-  private expectedGoalDate(
-    currentWeight: number | null,
-    goalWeight: number | null,
-    weeklyRate: number | null
-  ): string | null {
+  private expectedGoalDate(currentWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
     if (currentWeight == null || goalWeight == null || weeklyRate == null) {
       return null;
     }

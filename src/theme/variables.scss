@@ -24,9 +24,12 @@
   --ion-color-tertiary-shade: #8952ca;
   --ion-color-tertiary-tint: #a56de8;
 
-  --ion-color-success: #00f5d4;
+  --ion-color-success: #2dd36f;
   --ion-color-warning: #fee440;
   --ion-color-danger: #f15bb5;
+
+  --highlight-color-valid: #00b39b;
+  --highlight-color-valid-rgb: var(--ion-color-primary-rgb);
 
   /* Surface and text tokens - Clean Slate */
   --ion-background-color-deep: #f6f8fb;
@@ -77,6 +80,10 @@
 
   --navbar-height: 54px;
   --content-padding-top: 12px;
+
+  // Calendar
+  --wheel-highlight-background: rgba(var(--ion-color-primary-rgb), 0.12);
+  --wheel-fade-background-rgb: none;
 }
 
 body.ion-palette-dark {

@@ -146,6 +146,12 @@ ion-card {
   box-shadow: none;
 }
 
+// ── Ion Input ────────────────────────────────────────────────────────
+
+.sc-ion-input-md-h, .sc-ion-textarea-md-h {
+  --highlight-color-valid: var(--ion-color-primary);
+}
+
 // ── List Group ────────────────────────────────────────────────────────
 
 .list-group-wrp {

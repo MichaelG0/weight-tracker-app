@@ -47,8 +47,8 @@
   }
 
   .delta {
-    --background: rgba(var(--ion-color-success-rgb), 0.15);
-    --color: var(--ion-color-success);
+    background: rgba(var(--ion-color-success-rgb), 0.15);
+    color: var(--ion-color-success);
     font-size: 0.75rem;
     font-weight: 800;
     margin-bottom: 18px;

@@ -8,7 +8,7 @@ import { environment } from 'src/environments/environment';
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 export interface WeightEntry {
-  id?: number;
+  id: number;
   weight_kg: number;
   logged_at: string; // ISO-8601
   notes?: string;
