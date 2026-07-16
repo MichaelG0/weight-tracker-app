@@ -19,7 +19,7 @@
         label="Weight (kg)"
         labelPlacement="stacked"
         fill="outline"
-        [(ngModel)]="weight"
+        [(ngModel)]="formData.weight"
         (ionInput)="onWeightInput($event)"
         (keydown)="onWeightKeydown($event)"
         name="weight"
@@ -28,18 +28,21 @@
         min="0"
         max="1000"
         errorText="Enter a valid weight"
-        autofocus
       ></ion-input>
     </div>
 
     <div class="date-wrap">
       <p class="field-label">Date</p>
       <ion-datetime
+        #dateTimePicker
         presentation="date"
-        [(ngModel)]="selectedDate"
-        [value]="selectedDate"
+        [class.has-entry]="formData.existingEntryId"
+        [(ngModel)]="formData.selectedDate"
+        [value]="formData.selectedDate"
         name="selectedDate"
         [max]="maxDate"
+        [highlightedDates]="highlightedDates()"
+        (ionChange)="onDateChange($event)"
         size="cover"
         showAdjacentDays
       ></ion-datetime>
@@ -52,7 +55,7 @@
         labelPlacement="stacked"
         fill="outline"
         placeholder="e.g. post-morning, fasted..."
-        [(ngModel)]="notes"
+        [(ngModel)]="formData.notes"
         name="notes"
         [rows]="3"
         [autoGrow]="true"

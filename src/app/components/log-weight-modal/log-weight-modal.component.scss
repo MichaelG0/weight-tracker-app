@@ -82,3 +82,15 @@ ion-content {
     --box-shadow: 0 4px 10px rgba(var(--ion-color-primary-rgb), 0.2);
   }
 }
+
+::ng-deep ion-datetime.has-entry::part(calendar-day active)::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ion-color-primary-contrast);
+}

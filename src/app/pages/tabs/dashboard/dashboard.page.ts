@@ -118,6 +118,9 @@ export class DashboardPage {
   async openLogWeight(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: LogWeightModalComponent,
+      componentProps: {
+        entries: this.entries(),
+      },
       breakpoints: [0, 0.85, 1],
       initialBreakpoint: 0.85,
       handleBehavior: 'cycle',
@@ -128,7 +131,11 @@ export class DashboardPage {
     const { data, role } = await modal.onWillDismiss();
 
     if (role === 'confirm' && data) {
-      this.databaseService.addEntry(data).pipe(take(1)).subscribe();
+      if (data.id != null) {
+        this.databaseService.updateEntry(data).pipe(take(1)).subscribe();
+      } else {
+        this.databaseService.addEntry(data).pipe(take(1)).subscribe();
+      }
     }
   }
 
