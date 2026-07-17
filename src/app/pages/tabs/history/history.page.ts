@@ -17,9 +17,10 @@ import {
   IonList,
   IonToolbar,
   ModalController,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, createOutline, trashOutline } from 'ionicons/icons';
+import { analyticsOutline, createOutline, trashOutline, arrowUndoOutline } from 'ionicons/icons';
 import { take } from 'rxjs';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
@@ -59,6 +60,7 @@ interface HistoryEntry extends WeightEntry {
 export class HistoryPage {
   private readonly db = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly toastCtrl = inject(ToastController);
   readonly listVisibleCount = signal(LIST_PAGE_SIZE);
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
   readonly sortedAll = computed(() => [...this.allEntries()].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)));
@@ -78,7 +80,7 @@ export class HistoryPage {
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
   constructor() {
-    addIcons({ analyticsOutline, createOutline, trashOutline });
+    addIcons({ analyticsOutline, createOutline, trashOutline, arrowUndoOutline });
   }
 
   onInfiniteScroll(event: InfiniteScrollCustomEvent): void {
@@ -116,7 +118,31 @@ export class HistoryPage {
     }
   }
 
-  onDelete(entry: HistoryEntry): void {
+  async onDelete(entry: HistoryEntry): Promise<void> {
+    // 1. Delete immediately
     this.db.deleteEntry(entry.id).pipe(take(1)).subscribe();
+
+    // 2. Show toast with undo button
+    const toast = await this.toastCtrl.create({
+      message: 'Weight entry deleted',
+      duration: 5000,
+      swipeGesture: 'vertical',
+      position: 'bottom',
+      buttons: [
+        {
+          text: 'Undo',
+          role: 'cancel',
+          handler: () => {
+            this.db.addEntry({
+              weight_kg: entry.weight_kg,
+              logged_at: entry.logged_at,
+              notes: entry.notes,
+            }).pipe(take(1)).subscribe();
+          },
+        },
+      ],
+    });
+
+    await toast.present();
   }
 }

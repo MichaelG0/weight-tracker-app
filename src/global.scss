@@ -238,6 +238,30 @@ ion-card {
   }
 }
 
+// ── Ion Toast ───────────────────────────────────────────────────────────────
+
+ion-toast {
+  --background: var(--ion-color-step-950);
+  --color: var(--ion-color-step-50);
+  --button-color: var(--ion-color-primary);
+  --border-radius: 16px;
+  --margin: 16px;
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --ion-safe-area-bottom: calc(var(--navbar-height) + 12px);
+
+  &::part(message) {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  &::part(button) {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+  }
+}
+
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 .empty-state {
