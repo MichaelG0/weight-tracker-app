@@ -20,7 +20,7 @@ import {
   ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, createOutline, trashOutline, arrowUndoOutline } from 'ionicons/icons';
+import { analyticsOutline, create, trash, arrowUndoOutline } from 'ionicons/icons';
 import { take } from 'rxjs';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
@@ -80,7 +80,7 @@ export class HistoryPage {
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
   constructor() {
-    addIcons({ analyticsOutline, createOutline, trashOutline, arrowUndoOutline });
+    addIcons({ analyticsOutline, create, trash, arrowUndoOutline });
   }
 
   onInfiniteScroll(event: InfiniteScrollCustomEvent): void {

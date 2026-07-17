@@ -46,11 +46,13 @@
               </ion-item>
 
               <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
-                <ion-item-option color="primary" (click)="onEdit(entry)">
-                  <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                <ion-item-option color="primary" class="edit-btn" (click)="onEdit(entry)">
+                  <ion-icon slot="top" name="create"></ion-icon>
+                  <span>Edit</span>
                 </ion-item-option>
                 <ion-item-option color="danger" expandable (click)="onDelete(entry)">
-                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  <ion-icon slot="top" name="trash"></ion-icon>
+                  <span>Delete</span>
                 </ion-item-option>
               </ion-item-options>
             </ion-item-sliding>

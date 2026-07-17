@@ -14,19 +14,11 @@
 
 // ── Item Options ─────────────────────────────────────────────────────────────────
 
-ion-item-options {
-  gap: 4px;
-  padding-left: 4px;
+ion-item-option {
+  padding: 0 6px;
 
-  ion-item-option {
-    --padding-start: 16px;
-    --padding-end: 16px;
-    border-radius: 18px;
-    transition: transform 0.2s ease;
-
-    &:active {
-      transform: scale(0.99);
-    }
+  &.edit-btn {
+    width: 66px;
   }
 }
 
@@ -37,7 +29,7 @@ ion-item-options {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 14px 4px;
+  padding: 8px 4px;
 }
 
 .weight-meta {

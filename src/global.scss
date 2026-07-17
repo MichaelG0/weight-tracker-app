@@ -238,6 +238,34 @@ ion-card {
   }
 }
 
+// ── Item Options ─────────────────────────────────────────────────────────────────
+
+ion-item-sliding[appDeckCardOptions] ion-item-options {
+  gap: 4px;
+  padding-left: 4px;
+
+  ion-item-option {
+    --padding-start: 16px;
+    --padding-end: 16px;
+    border-radius: 18px;
+    font-size: 0.8rem;
+    text-transform: none;
+    transition: transform 0.2s ease;
+
+    ion-icon[slot="top"] {
+      font-size: 1rem;
+    }
+
+    &::part(inner) {
+      gap: 6px;
+    }
+
+    &:active {
+      transform: scale(0.99);
+    }
+  }
+}
+
 // ── Ion Toast ───────────────────────────────────────────────────────────────
 
 ion-toast {
