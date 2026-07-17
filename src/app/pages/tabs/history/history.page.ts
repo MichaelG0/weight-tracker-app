@@ -24,6 +24,7 @@ import { take } from 'rxjs';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
+import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 
 const LIST_PAGE_SIZE = 50;
 
@@ -51,6 +52,7 @@ interface HistoryEntry extends WeightEntry {
     IonInfiniteScroll,
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
+    DeckCardOptionsDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -115,8 +117,6 @@ export class HistoryPage {
   }
 
   onDelete(entry: HistoryEntry): void {
-    console.log('deleting...');
-    
     this.db.deleteEntry(entry.id).pipe(take(1)).subscribe();
   }
 }
