@@ -110,9 +110,6 @@
 }
 
 .stat-tile {
-  --background: var(--ion-color-step-100);
-  background: var(--ion-color-step-100);
-  border-radius: 18px;
   margin: 0;
   padding: 14px;
   box-shadow: none;
@@ -134,8 +131,6 @@
 }
 
 .recommendation-card {
-  --background: var(--ion-color-step-100);
-  background: var(--ion-color-step-100);
   border-left: 4px solid var(--ion-color-primary);
   margin: 0;
   box-shadow: none;
@@ -170,11 +165,6 @@
     text-decoration: none;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
-}
-
-@media (max-width: 360px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+    padding-right: 4px;
   }
 }

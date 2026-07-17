@@ -138,8 +138,7 @@ ion-content.tab-content {
 // ── Ion Card ────────────────────────────────────────────────────────
 
 ion-card {
-  --background: var(--ion-color-step-100);
-  background: var(--ion-color-step-100);
+  --background: var(--list-item-background);
   margin: 0;
   border-radius: 18px;
   color: var(--ion-text-color);
@@ -148,7 +147,8 @@ ion-card {
 
 // ── Ion Input ────────────────────────────────────────────────────────
 
-.sc-ion-input-md-h, .sc-ion-textarea-md-h {
+.sc-ion-input-md-h,
+.sc-ion-textarea-md-h {
   --highlight-color-valid: var(--ion-color-primary);
 }
 
@@ -173,6 +173,8 @@ ion-card {
     }
 
     ion-list {
+      display: flex;
+      flex-direction: column;
       background: transparent;
       border-radius: 18px;
       overflow: hidden;
@@ -180,16 +182,21 @@ ion-card {
       padding: 0;
     }
 
-    .list-group-item:not(:last-child) {
-      margin-bottom: 8px;
-    }
-
     .list-group-item {
-      --background: var(--ion-color-step-100);
-      --border-radius: 18px;
+      --background: var(--list-item-background);
       --inner-padding-end: 16px;
       --padding-start: 16px;
       transition: transform 0.2s ease;
+
+      &:first-child {
+        border-top-left-radius: 18px;
+        border-top-right-radius: 18px;
+      }
+
+      &:last-child {
+        border-bottom-left-radius: 18px;
+        border-bottom-right-radius: 18px;
+      }
 
       &:active {
         transform: scale(0.99);

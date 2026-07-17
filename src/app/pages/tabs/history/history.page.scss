@@ -1,5 +1,37 @@
 // ── List view ─────────────────────────────────────────────────────────────────
 
+.list-group-wrp {
+  .list-group {
+    ion-list {
+      gap: 8px;
+    }
+
+    .list-group-item {
+      border-radius: 18px;
+    }
+  }
+}
+
+// ── Item Options ─────────────────────────────────────────────────────────────────
+
+ion-item-options {
+  gap: 4px;
+  padding: 4px;
+
+  ion-item-option {
+    --padding-start: 16px;
+    --padding-end: 16px;
+    border-radius: 18px;
+    transition: transform 0.2s ease;
+
+    &:active {
+      transform: scale(0.99);
+    }
+  }
+}
+
+// ── Items Inner ────────────────────────────────────────────────────────
+
 .history-card-inner {
   display: flex;
   align-items: center;

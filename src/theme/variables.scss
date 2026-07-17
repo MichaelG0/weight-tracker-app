@@ -78,12 +78,15 @@
   --ion-color-step-950: #080c16;
   --ion-color-step-950-rgb: 8, 12, 22;
 
-  --navbar-height: 54px;
-  --content-padding-top: 12px;
-
   // Calendar
   --wheel-highlight-background: rgba(var(--ion-color-primary-rgb), 0.12);
   --wheel-fade-background-rgb: none;
+
+  // Custom
+  --list-item-background: rgba(var(--ion-color-step-200-rgb), 0.25);
+
+  --navbar-height: 54px;
+  --content-padding-top: 12px;
 }
 
 body.ion-palette-dark {
@@ -155,4 +158,7 @@ body.ion-palette-dark {
   --ion-color-step-900-rgb: 246, 246, 248;
   --ion-color-step-950: #ffffff;
   --ion-color-step-950-rgb: 255, 255, 255;
+
+  // Custom
+  --list-item-background: rgba(var(--ion-color-step-200-rgb), 0.25);
 }

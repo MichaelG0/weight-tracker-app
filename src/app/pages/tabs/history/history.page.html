@@ -18,31 +18,42 @@
       <section class="list-group">
         <ion-list lines="none">
           @for (entry of visibleListEntries(); track entry.id) {
-            <ion-item class="list-group-item">
-              <div class="history-card-inner">
-                <div class="weight-meta">
-                  <div class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></div>
+            <ion-item-sliding>
+              <ion-item class="list-group-item">
+                <div class="history-card-inner">
+                  <div class="weight-meta">
+                    <div class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></div>
 
-                  <div
-                    class="entry-change"
-                    [class.negative]="(entry.weightChangeKg ?? 0) < 0"
-                    [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
-                  >
-                    @if (entry.weightChangeKg === null) {
-                      <span>--</span>
-                    } @else if (entry.weightChangeKg === 0) {
-                      <span>No change</span>
-                    } @else {
-                      <span>{{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | number: '1.1-1') }} kg</span>
-                    }
+                    <div
+                      class="entry-change"
+                      [class.negative]="(entry.weightChangeKg ?? 0) < 0"
+                      [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
+                    >
+                      @if (entry.weightChangeKg === null) {
+                        <span>--</span>
+                      } @else if (entry.weightChangeKg === 0) {
+                        <span>No change</span>
+                      } @else {
+                        <span>{{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | number: '1.1-1') }} kg</span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="date-meta">
+                    <ion-label class="entry-date">{{ entry.logged_at | date: 'd MMM yyyy' }}</ion-label>
                   </div>
                 </div>
+              </ion-item>
 
-                <div class="date-meta">
-                  <ion-label class="entry-date">{{ entry.logged_at | date: 'd MMM yyyy' }}</ion-label>
-                </div>
-              </div>
-            </ion-item>
+              <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
+                <ion-item-option color="primary" (click)="onEdit(entry)">
+                  <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                </ion-item-option>
+                <ion-item-option color="danger" expandable (click)="onDelete(entry)">
+                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                </ion-item-option>
+              </ion-item-options>
+            </ion-item-sliding>
           }
         </ion-list>
 
