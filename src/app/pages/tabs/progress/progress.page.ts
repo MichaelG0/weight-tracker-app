@@ -402,20 +402,20 @@ export class ProgressPage {
 
   private getChartColors(): ChartColors {
     return {
-      guideLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.35, '155, 93, 229'),
-      scaleLine: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.4, '0, 187, 249'),
+      guideLine: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.35, '0, 179, 155'),
+      scaleLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.4, '6, 182, 212'),
       scaleDot: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
       scaleDotHover: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
-      scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.85, '0, 187, 249'),
-      scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 1, '0, 187, 249'),
-      trendLine: this.cssTheme.themeVar('--ion-color-primary', '#00b39b'),
+      scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '6, 182, 212'),
+      scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 1, '6, 182, 212'),
+      trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
       axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),
       axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.65, '15, 23, 42'),
       tooltipBackground: this.cssTheme.rgbaVar('--ion-background-color-deep-rgb', 0.95, '248, 250, 252'),
-      tooltipTitle: this.cssTheme.themeVar('--ion-color-primary', '#00b39b'),
+      tooltipTitle: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       tooltipBody: this.cssTheme.themeVar('--ion-text-color', '#0f172a'),
-      tooltipBorder: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.3, '0, 179, 155'),
+      tooltipBorder: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.3, '99, 102, 241'),
     };
   }
 }

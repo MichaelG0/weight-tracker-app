@@ -14,6 +14,7 @@ ion-content.chart-content::part(scroll) {
 }
 
 ion-card.chart-card {
+  --background: var(--ion-color-step-100);
   border-radius: 0;
   height: calc(100% - var(--navbar-height) - 16px - 18px);
 
@@ -94,13 +95,13 @@ ion-card.trend-chips {
 
       &.active {
         &.daily-chip {
-          color: var(--ion-color-secondary);
-          --background: rgba(var(--ion-color-secondary-rgb), 0.12);
+          color: var(--ion-color-tertiary);
+          --background: rgba(var(--ion-color-tertiary-rgb), 0.12);
         }
 
         &.trend-chip {
-          color: var(--ion-color-primary);
-          --background: rgba(var(--ion-color-primary-rgb), 0.12);
+          color: var(--ion-color-secondary);
+          --background: rgba(var(--ion-color-secondary-rgb), 0.12);
         }
       }
     }
