@@ -8,7 +8,6 @@ ion-header ion-toolbar {
 
 ion-content.chart-content::part(scroll) {
   display: flex;
-  padding-bottom: calc(var(--navbar-height) + 16px);
   flex-direction: column;
   overflow: hidden;
 }
@@ -16,7 +15,7 @@ ion-content.chart-content::part(scroll) {
 ion-card.chart-card {
   --background: var(--ion-color-step-100);
   border-radius: 0;
-  height: calc(100% - var(--navbar-height) - 16px - 18px);
+  height: calc(100% - var(--navbar-height) - 104px);
 
   ion-card-content {
     padding: 0;
@@ -53,7 +52,6 @@ ion-card.chart-card {
         --indicator-box-shadow: none;
         --border-radius: 18px;
         padding: 4px;
-        margin: 0;
         font-size: 0.78rem;
         font-weight: 700;
       }
@@ -65,22 +63,25 @@ ion-card.chart-card {
 
 ion-card.trend-chips {
   margin: 16px 18px 20px;
+  border-radius: 99px;
 
   ion-card-content {
     display: grid;
     grid-template-columns: 1fr 1fr auto;
     align-items: center;
-    padding: 6px 16px;
+    padding: 5px 12px;
     gap: 8px;
-
+    
     ion-chip {
       --background: transparent;
       --color: var(--ion-color-step-600);
+      padding: 8px 16px;
       margin: 0;
+      border-radius: 99px;
       transition: all 0.2s ease-in-out;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       font-weight: 700;
 
       .chip-icon {
