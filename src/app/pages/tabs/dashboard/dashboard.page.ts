@@ -24,7 +24,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { take } from 'rxjs/operators';
@@ -78,15 +78,18 @@ export class DashboardPage {
 
   private readonly entries = toSignal(this.databaseService.entries$, { initialValue: [] });
   private readonly settings = toSignal(this.databaseService.settings$, { initialValue: null });
+  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
 
   readonly vm = computed(() => {
     const entries = this.entries();
     const settings = this.settings();
+    const goals = this.goals();
     const sorted = [...entries].sort((a, b) => +new Date(b.logged_at) - +new Date(a.logged_at));
 
     const currentWeight = sorted[0]?.weight_kg ?? null;
     const startWeight = sorted.length ? sorted[sorted.length - 1].weight_kg : null;
-    const goalWeight = settings?.goal_weight_kg ?? null;
+    const activeGoal = this.findActiveGoal(goals);
+    const goalWeight = activeGoal?.goal_weight_kg ?? null;
 
     const avg7d = this.averageInWindow(sorted, 7);
     const trend30d = this.netChangeInWindow(sorted, 30);
@@ -281,5 +284,16 @@ export class DashboardPage {
     }
 
     return 'Current trend is in a sustainable range. Keep calories and training consistent this week.';
+  }
+
+  private findActiveGoal(goals: Goal[]): Goal | null {
+    if (!goals.length) return null;
+    const now = Date.now();
+    // Find the earliest goal whose date is still in the future
+    const future = goals
+      .filter(g => +new Date(g.goal_date) >= now)
+      .sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    // Fall back to the latest goal if all are past
+    return future[0] ?? goals.sort((a, b) => +new Date(b.goal_date) - +new Date(a.goal_date))[0];
   }
 }

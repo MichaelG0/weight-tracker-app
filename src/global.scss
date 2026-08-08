@@ -108,7 +108,7 @@ ion-header.app-glass-header-host {
     left: 0;
     right: 0;
     top: 0;
-    height: calc(var(--app-glass-header-height, 56px));
+    height: 56px;
     pointer-events: none;
     z-index: 1;
 
@@ -118,7 +118,7 @@ ion-header.app-glass-header-host {
       right: 0;
       top: 0;
       pointer-events: none;
-      background: rgba(var(--ion-background-color-shallow-rgb), 0.2);
+      background: rgba(var(--ion-background-color-shallow-rgb), 0.1);
 
       backdrop-filter: blur(1px) saturate(100%);
       -webkit-backdrop-filter: blur(1px) saturate(100%);

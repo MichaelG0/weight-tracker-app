@@ -20,6 +20,8 @@ import {
   IonHeader,
   IonIcon,
   IonInput,
+  IonItem,
+  IonList,
   IonTextarea,
   IonTitle,
   IonToolbar,
@@ -46,6 +48,8 @@ import { WeightEntry } from 'src/app/services/database.service';
     IonInput,
     IonTextarea,
     IonDatetime,
+    IonList,
+    IonItem,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

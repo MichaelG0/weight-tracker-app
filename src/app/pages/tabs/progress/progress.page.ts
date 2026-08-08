@@ -15,18 +15,28 @@ import {
   IonChip,
   IonLabel,
   IonButton,
+  IonList,
+  IonItem,
+  IonItemSliding,
+  IonItemOptions,
+  IonItemOption,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, informationCircleOutline } from 'ionicons/icons';
+import { analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline } from 'ionicons/icons';
+import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
+import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
+import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
-import { DatabaseService, UserSettings, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, WeightEntry } from 'src/app/services/database.service';
 
 import 'hammerjs';
+import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 Chart.register(zoomPlugin);
 
-export type RangeMode = 'current' | 'month' | 'full';
+export type RangeMode = 'journey' | 'month' | 'to-goal';
 interface Pt {
   x: number;
   y: number;
@@ -75,21 +85,29 @@ const LIST_PAGE_SIZE = 250;
     IonChip,
     IonLabel,
     IonButton,
+    IonList,
+    IonItem,
+    IonItemSliding,
+    IonItemOptions,
+    IonItemOption,
+    DeckCardOptionsDirective,
+    GlassHeaderBackdropDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressPage {
   private readonly db = inject(DatabaseService);
   private readonly cssTheme = inject(CssThemeService);
+  private readonly modalCtrl = inject(ModalController);
 
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
-  readonly rangeMode = signal<RangeMode>('current');
+  readonly rangeMode = signal<RangeMode>('journey');
   readonly showDaily = signal<boolean>(false);
   readonly showTrend = signal<boolean>(true);
 
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
-  private readonly settings = toSignal(this.db.settings$, { initialValue: null });
+  readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
@@ -99,11 +117,11 @@ export class ProgressPage {
   readonly listEntries = computed(() => [...this.sortedAll()].reverse());
 
   constructor() {
-    addIcons({ analyticsOutline, informationCircleOutline });
+    addIcons({ analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline });
 
     effect(() => {
       const entries = this.sortedAll();
-      const settings = this.settings();
+      const goals = this.goals();
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
@@ -115,7 +133,7 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(canvas, entries, settings, range, showDaily, showTrend);
+      this.renderChart(canvas, entries, goals, range, showDaily, showTrend);
     });
   }
 
@@ -123,20 +141,49 @@ export class ProgressPage {
     this.rangeMode.set(range);
   }
 
-  toggleShowDaily(): void {
-    if (this.showDaily() && !this.showTrend()) {
-      return;
-    }
+  // ── Goal management ─────────────────────────────────────────────────────────
 
+  async addGoal(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: SetGoalModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onWillDismiss();
+    if (role === 'confirm' && data) {
+      this.db.addGoal(data).pipe(take(1)).subscribe();
+    }
+  }
+
+  async editGoal(goal: Goal): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: SetGoalModalComponent,
+      componentProps: { goal },
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onWillDismiss();
+    if (role === 'confirm' && data && data.id != null) {
+      this.db.updateGoal(data).pipe(take(1)).subscribe();
+    }
+  }
+
+  deleteGoal(id: number): void {
+    this.db.deleteGoal(id).pipe(take(1)).subscribe();
+  }
+
+  toggleShowDaily(): void {
     this.pendingViewport = this.getCurrentViewport();
     this.showDaily.update(v => !v);
   }
 
   toggleShowTrend(): void {
-    if (this.showTrend() && !this.showDaily()) {
-      return;
-    }
-
     this.pendingViewport = this.getCurrentViewport();
     this.showTrend.update(v => !v);
   }
@@ -151,39 +198,27 @@ export class ProgressPage {
   private renderChart(
     canvas: HTMLCanvasElement,
     entries: WeightEntry[],
-    settings: UserSettings | null,
+    goals: Goal[],
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
   ): void {
-    const goalWeight: number | null = settings?.goal_weight_kg ?? null;
-    const goalDateMs = this.resolveGoalDateMs(settings);
     const colors: ChartColors = this.getChartColors();
 
     const dots: Pt[] = entries.map(e => ({ x: +new Date(e.logged_at), y: e.weight_kg }));
     const trendLine: Pt[] = this.hackersDietAvg(entries);
-    const guide: Pt[] = goalWeight !== null && goalDateMs !== null ? this.guideLine(entries, goalWeight, goalDateMs) : [];
-    const bounds = this.getBounds(entries, goalWeight, goalDateMs, range);
+    const guideDatasets = this.buildGuideDatasets(entries, goals, trendLine, colors);
+    const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
+    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range);
 
     const xMinLimit = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
-    const xMaxLimit = goalDateMs !== null ? goalDateMs + 7 * 86400000 : Date.now() + 86400000;
+    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 7 * 86400000 : Date.now() + 86400000;
 
     const config = {
       type: 'line',
       data: {
         datasets: [
-          {
-            // ── Guide line (ideal trajectory)
-            label: 'Guide',
-            data: guide,
-            borderColor: colors['guideLine'],
-            borderWidth: 1.5,
-            borderDash: [8, 5],
-            pointRadius: 0,
-            tension: 0,
-            fill: false,
-            order: 4,
-          } as any,
+          ...guideDatasets,
           ...(showDaily
             ? [
                 {
@@ -349,32 +384,68 @@ export class ProgressPage {
     return pts;
   }
 
-  private guideLine(sorted: WeightEntry[], goal: number, goalDateMs: number): Pt[] {
-    if (!sorted.length) return [];
-    return [
-      { x: +new Date(sorted[0].logged_at), y: sorted[0].weight_kg },
-      { x: goalDateMs, y: goal },
-    ];
-  }
+  private buildGuideDatasets(entries: WeightEntry[], goals: Goal[], trendLine: Pt[], colors: ChartColors): any[] {
+    if (!entries.length || !goals.length) return [];
 
-  private resolveGoalDateMs(settings: UserSettings | null): number | null {
-    const parsedGoalDateMs = settings?.goal_date ? +new Date(settings.goal_date) : NaN;
-    if (Number.isFinite(parsedGoalDateMs)) {
-      return parsedGoalDateMs;
+    const sortedGoals = [...goals].sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    const datasets: any[] = [];
+
+    for (let i = 0; i < sortedGoals.length; i++) {
+      const goal = sortedGoals[i];
+      const goalDateMs = +new Date(goal.goal_date);
+      if (!Number.isFinite(goalDateMs)) continue;
+
+      let startPt: Pt;
+      if (i === 0) {
+        // First goal: guide starts from first entry
+        startPt = { x: +new Date(entries[0].logged_at), y: entries[0].weight_kg };
+      } else {
+        // Subsequent goals: start from the trend value at the previous goal's date
+        const prevGoalDateMs = +new Date(sortedGoals[i - 1].goal_date);
+        startPt = { x: prevGoalDateMs, y: this.trendValueAt(trendLine, prevGoalDateMs, sortedGoals[i - 1].goal_weight_kg) };
+      }
+
+      datasets.push({
+        label: 'Guide',
+        data: [startPt, { x: goalDateMs, y: goal.goal_weight_kg }],
+        borderColor: colors['guideLine'],
+        borderWidth: 1.5,
+        borderDash: [8, 5],
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        order: 4,
+      });
     }
 
-    return null;
+    return datasets;
+  }
+
+  private trendValueAt(trendLine: Pt[], targetMs: number, fallback: number): number {
+    if (!trendLine.length) return fallback;
+
+    // Find the closest trend point at or before the target date
+    let closest: Pt | null = null;
+    for (const pt of trendLine) {
+      if (pt.x <= targetMs) {
+        closest = pt;
+      } else {
+        break;
+      }
+    }
+
+    return closest?.y ?? trendLine[trendLine.length - 1].y;
   }
 
   private getBounds(
     entries: WeightEntry[],
-    goalWeight: number | null,
-    goalDateMs: number | null,
+    goals: Goal[],
+    lastGoalDateMs: number | null,
     range: RangeMode,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
     const now = Date.now();
     const weights = entries.map(e => e.weight_kg);
-    if (goalWeight !== null) weights.push(goalWeight);
+    for (const g of goals) weights.push(g.goal_weight_kg);
 
     let xMin: number;
     let xMax: number;
@@ -384,9 +455,9 @@ export class ProgressPage {
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
       xMax = now;
-    } else if (range === 'full' && entries.length > 0 && goalWeight !== null && goalDateMs !== null) {
+    } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0 && lastGoalDateMs !== null) {
       xMin = +new Date(entries[0].logged_at);
-      xMax = goalDateMs;
+      xMax = lastGoalDateMs;
     } else {
       xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : now - 30 * 86400000;
       xMax = now;

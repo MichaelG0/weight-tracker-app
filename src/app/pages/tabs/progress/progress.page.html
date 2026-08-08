@@ -1,10 +1,10 @@
-<ion-header>
+<ion-header appGlassBackdrop>
   <ion-toolbar>
     <ion-title>Progress</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="chart-content">
+<ion-content fullscreen class="chart-content">
   @if (listEntries().length === 0) {
     <div class="empty-state">
       <div class="empty-icon-wrap">
@@ -22,13 +22,13 @@
 
         <div class="range-tabs-container">
           <ion-segment [value]="rangeMode()" (ionChange)="setRange($any($event).detail.value)" mode="ios">
-            <ion-segment-button value="current">
+            <ion-segment-button value="journey">
               <ion-label>Journey</ion-label>
             </ion-segment-button>
             <ion-segment-button value="month">
               <ion-label>Month</ion-label>
             </ion-segment-button>
-            <ion-segment-button value="full">
+            <ion-segment-button value="to-goal">
               <ion-label>To Goal</ion-label>
             </ion-segment-button>
           </ion-segment>
@@ -89,6 +89,41 @@
             </ion-content>
           </ng-template>
         </ion-popover>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="goals-card">
+      <ion-card-content>
+        <div class="goals-header">
+          <p class="goals-label">Goals</p>
+          <ion-button fill="clear" size="small" (click)="addGoal()">
+            <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+          </ion-button>
+        </div>
+        <ion-list lines="none">
+          @for (goal of goals(); track goal.id) {
+            <ion-item-sliding #slidingItem appDeckCardOptions>
+              <ion-item class="goal-item" button (click)="editGoal(goal)">
+                <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
+                <ion-label>
+                  <h3>{{ goal.goal_weight_kg }} kg</h3>
+                  <p>{{ goal.goal_date | date: 'mediumDate' }}{{ goal.label ? ' · ' + goal.label : '' }}</p>
+                </ion-label>
+              </ion-item>
+              <ion-item-options side="end">
+                <ion-item-option color="danger" (click)="deleteGoal(goal.id); slidingItem.close()">
+                  <ion-icon slot="top" name="trash-outline"></ion-icon>
+                  Delete
+                </ion-item-option>
+              </ion-item-options>
+            </ion-item-sliding>
+          } @empty {
+            <ion-item class="goal-item" button (click)="addGoal()">
+              <ion-icon name="add-outline" slot="start" class="goal-flag"></ion-icon>
+              <ion-label>Set your first goal</ion-label>
+            </ion-item>
+          }
+        </ion-list>
       </ion-card-content>
     </ion-card>
   }

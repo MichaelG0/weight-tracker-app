@@ -2,34 +2,34 @@
   <ion-toolbar>
     <ion-title>Log Weight</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="dismiss()">
+      <ion-button (click)="dismiss()" aria-label="Close">
         <ion-icon slot="icon-only" name="close-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content class="ion-padding">
   <form #logForm="ngForm" (ngSubmit)="save(logForm)" class="log-weight-form">
-    <div class="weight-input-wrap">
-      <ion-input
-        type="number"
-        inputmode="decimal"
-        placeholder="0.0"
-        label="Weight (kg)"
-        labelPlacement="stacked"
-        fill="outline"
-        [(ngModel)]="formData.weight"
-        (ionInput)="onWeightInput($event)"
-        (keydown)="onWeightKeydown($event)"
-        name="weight"
-        required
-        step="0.1"
-        min="0"
-        max="1000"
-        errorText="Enter a valid weight"
-      ></ion-input>
-    </div>
+    <ion-list lines="none" class="log-form-list">
+      <ion-item>
+        <ion-input
+          type="number"
+          inputmode="decimal"
+          placeholder="0.0"
+          label="Weight (kg)"
+          labelPlacement="stacked"
+          step="0.1"
+          min="1"
+          max="1000"
+          name="weight"
+          [(ngModel)]="formData.weight"
+          required
+          (ionInput)="onWeightInput($event)"
+          (keydown)="onWeightKeydown($event)"
+        ></ion-input>
+      </ion-item>
+    </ion-list>
 
     <div class="date-wrap">
       <p class="field-label">Date</p>
@@ -48,20 +48,19 @@
       ></ion-datetime>
     </div>
 
-    <div class="notes-wrap">
-      <!-- errorText is only for showing the bottom border in iOS mode -->
-      <ion-textarea
-        label="Notes (optional)"
-        labelPlacement="stacked"
-        fill="outline"
-        placeholder="e.g. post-morning, fasted..."
-        [(ngModel)]="formData.notes"
-        name="notes"
-        [rows]="3"
-        [autoGrow]="true"
-        errorText="Error"
-      ></ion-textarea>
-    </div>
+    <ion-list lines="none" class="log-form-list">
+      <ion-item>
+        <ion-textarea
+          label="Notes (optional)"
+          labelPlacement="stacked"
+          placeholder="e.g. post-morning, fasted..."
+          [(ngModel)]="formData.notes"
+          name="notes"
+          [rows]="2"
+          [autoGrow]="true"
+        ></ion-textarea>
+      </ion-item>
+    </ion-list>
 
     <ion-button type="submit" expand="block" shape="round" color="primary" class="submit-btn" [disabled]="logForm.invalid">
       Save

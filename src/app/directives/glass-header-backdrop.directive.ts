@@ -80,7 +80,7 @@ export class GlassHeaderBackdropDirective implements AfterViewInit, OnDestroy {
   private updateHeightVar(): void {
     const host = this.hostRef.nativeElement;
     const toolbar = host.querySelector('ion-toolbar') as HTMLElement | null;
-    const baseHeight = Math.max(44, Math.round(toolbar?.offsetHeight ?? host.offsetHeight ?? 56)) + 12;
+    const baseHeight = Math.max(44, Math.round(toolbar?.offsetHeight ?? host.offsetHeight ?? 56)) + 4;
 
     this.layerEls.forEach((layer, index) => {
       const offset = this.layerHeightOffsets[index] ?? 0;

@@ -14,13 +14,18 @@ export interface WeightEntry {
   notes?: string;
 }
 
+export interface Goal {
+  id: number;
+  goal_weight_kg: number;
+  goal_date: string; // ISO-8601
+  label?: string;
+}
+
 export interface UserSettings {
   user_id: number;
   age?: number;
   gender?: string;
   height_cm: number;
-  goal_weight_kg?: number;
-  goal_date: string; // ISO-8601
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -37,9 +42,14 @@ const MIGRATIONS = `
     user_id        INTEGER PRIMARY KEY,
     age            INTEGER,
     gender         TEXT,
-    height_cm      REAL,
-    goal_weight_kg REAL,
-    goal_date      TEXT
+    height_cm      REAL
+  );
+
+  CREATE TABLE IF NOT EXISTS goals (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_weight_kg REAL NOT NULL,
+    goal_date      TEXT NOT NULL,
+    label          TEXT
   );
 `;
 
@@ -59,9 +69,11 @@ export class DatabaseService {
 
   private readonly _entries$ = new BehaviorSubject<WeightEntry[]>([]);
   private readonly _settings$ = new BehaviorSubject<UserSettings | null>(null);
+  private readonly _goals$ = new BehaviorSubject<Goal[]>([]);
 
   readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable();
   readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable();
+  readonly goals$: Observable<Goal[]> = this._goals$.asObservable();
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
 
@@ -81,7 +93,7 @@ export class DatabaseService {
 
     // Signal readiness and pre-load reactive state.
     this.ready$.next();
-    await Promise.all([this.syncEntries(), this.syncSettings()]);
+    await Promise.all([this.syncEntries(), this.syncSettings(), this.syncGoals()]);
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
@@ -105,14 +117,31 @@ export class DatabaseService {
     this._settings$.next(r.values?.[0] ?? null);
   }
 
+  private async syncGoals(): Promise<void> {
+    const r = await this.db.query(`SELECT * FROM goals ORDER BY goal_date ASC`);
+    this._goals$.next((r.values ?? []) as Goal[]);
+  }
+
   // ── Mock data ──────────────────────────────────────────────────────────────
 
   private async seedMockData(): Promise<void> {
     await this.db.run(
-      `INSERT INTO user_settings (user_id, age, gender, height_cm, goal_weight_kg, goal_date)
-       VALUES (1, ?, ?, ?, ?, ?)`,
-      [31, 'M', 178, 81, new Date('2026-09-13').toISOString()],
+      `INSERT INTO user_settings (user_id, age, gender, height_cm)
+       VALUES (1, ?, ?, ?)`,
+      [31, 'M', 178],
     );
+
+    const mockGoals = [
+      { weight: 80, date: '2026-07-01', label: 'Lean bulk target' },
+      { weight: 76, date: '2027-01-01' },
+    ];
+
+    for (const goal of mockGoals) {
+      await this.db.run(
+        `INSERT INTO goals (goal_weight_kg, goal_date, label) VALUES (?, ?, ?)`,
+        [goal.weight, goal.date, goal.label],
+      );
+    }
 
     const mockData: [string, number][] = [
       ['2025-09-05', 76.0], ['2025-09-06', 76.4], ['2025-09-07', 76.3], ['2025-09-08', 76.5], ['2025-09-09', 75.9],
@@ -165,6 +194,16 @@ export class DatabaseService {
       ['2026-07-08', 79.7], ['2026-07-09', 79.0], ['2026-07-10', 79.7], ['2026-07-11', 79.6], ['2026-07-12', 80.0],
       ['2026-07-13', 80.4], ['2026-07-14', 80.2], ['2026-07-16', 79.7],
     ];
+
+    // Increass iterations to generate additional randomized mock data.
+    for (let i = 0; i < 0; i++) {
+      const date = new Date(2025, 8, 1); // September 1, 2025
+      date.setDate(date.getDate() - i);
+      const weight = 75 + Math.random() + Math.sin(i / 100); // Random weight with some variation
+      const formattedDate = date.toISOString().split('T')[0];
+      const formattedWeight = parseFloat(weight.toFixed(1));      
+      mockData.push([formattedDate, formattedWeight]);
+    }
 
     for (const [date, weight] of mockData) {
       await this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
@@ -232,18 +271,60 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, age, gender, height_cm, goal_weight_kg, goal_date)
-             VALUES (1, ?, ?, ?, ?, ?)
+          `INSERT INTO user_settings (user_id, age, gender, height_cm)
+             VALUES (1, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
-             age            = excluded.age,
-             gender         = excluded.gender,
-             height_cm         = excluded.height_cm,
-             goal_weight_kg = excluded.goal_weight_kg,
-             goal_date      = excluded.goal_date`,
-          [settings.age ?? null, settings.gender ?? null, settings.height_cm, settings.goal_weight_kg ?? null, settings.goal_date ?? null],
+             age       = excluded.age,
+             gender    = excluded.gender,
+             height_cm = excluded.height_cm`,
+          [settings.age ?? null, settings.gender ?? null, settings.height_cm],
         ),
       ).pipe(
         switchMap(() => from(this.syncSettings())),
+        map(() => undefined),
+      ),
+    );
+  }
+
+  // ── Goals ──────────────────────────────────────────────────────────────────
+
+  addGoal(goal: Omit<Goal, 'id'>): Observable<void> {
+    return this.whenReady(() =>
+      from(
+        this.db.run(`INSERT INTO goals (goal_weight_kg, goal_date, label) VALUES (?, ?, ?)`, [
+          goal.goal_weight_kg,
+          goal.goal_date,
+          goal.label ?? null,
+        ]),
+      ).pipe(
+        switchMap(() => from(this.syncGoals())),
+        map(() => undefined),
+      ),
+    );
+  }
+
+  updateGoal(goal: Required<Pick<Goal, 'id'>> & Partial<Goal>): Observable<void> {
+    return this.whenReady(() =>
+      from(
+        this.db.run(
+          `UPDATE goals
+             SET goal_weight_kg = COALESCE(?, goal_weight_kg),
+                 goal_date      = COALESCE(?, goal_date),
+                 label          = COALESCE(?, label)
+           WHERE id = ?`,
+          [goal.goal_weight_kg ?? null, goal.goal_date ?? null, goal.label ?? null, goal.id],
+        ),
+      ).pipe(
+        switchMap(() => from(this.syncGoals())),
+        map(() => undefined),
+      ),
+    );
+  }
+
+  deleteGoal(id: number): Observable<void> {
+    return this.whenReady(() =>
+      from(this.db.run(`DELETE FROM goals WHERE id = ?`, [id])).pipe(
+        switchMap(() => from(this.syncGoals())),
         map(() => undefined),
       ),
     );
