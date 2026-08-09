@@ -49,6 +49,7 @@ interface ViewportState {
 
 interface ChartColors {
   guideLine: string;
+  guideBand: string;
   scaleLine: string;
   scaleDot: string;
   scaleDotHover: string;
@@ -146,8 +147,8 @@ export class ProgressPage {
   async addGoal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
-      breakpoints: [0, 0.85, 1],
-      initialBreakpoint: 0.85,
+      breakpoints: [0, 0.59, 1],
+      initialBreakpoint: 0.59,
       handleBehavior: 'cycle',
     });
     await modal.present();
@@ -162,8 +163,8 @@ export class ProgressPage {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
       componentProps: { goal },
-      breakpoints: [0, 0.85, 1],
-      initialBreakpoint: 0.85,
+      breakpoints: [0, 0.59, 1],
+      initialBreakpoint: 0.59,
       handleBehavior: 'cycle',
     });
     await modal.present();
@@ -211,7 +212,9 @@ export class ProgressPage {
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
     const bounds = this.getBounds(entries, goals, lastGoalDateMs, range);
 
-    const xMinLimit = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
+    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
+    const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
+    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs);
     const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 7 * 86400000 : Date.now() + 86400000;
 
     const config = {
@@ -385,29 +388,50 @@ export class ProgressPage {
   }
 
   private buildGuideDatasets(entries: WeightEntry[], goals: Goal[], trendLine: Pt[], colors: ChartColors): any[] {
-    if (!entries.length || !goals.length) return [];
+    if (!goals.length) return [];
 
-    const sortedGoals = [...goals].sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    const sortedGoals = [...goals].sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date));
     const datasets: any[] = [];
 
-    for (let i = 0; i < sortedGoals.length; i++) {
-      const goal = sortedGoals[i];
+    for (const goal of sortedGoals) {
+      const startDateMs = +new Date(goal.start_date);
       const goalDateMs = +new Date(goal.goal_date);
-      if (!Number.isFinite(goalDateMs)) continue;
+      if (!Number.isFinite(goalDateMs) || !Number.isFinite(startDateMs)) continue;
 
-      let startPt: Pt;
-      if (i === 0) {
-        // First goal: guide starts from first entry
-        startPt = { x: +new Date(entries[0].logged_at), y: entries[0].weight_kg };
+      const startPt: Pt = { x: startDateMs, y: goal.start_weight_kg };
+
+      let dataPts: Pt[];
+      if (goal.label === 'maintenance') {
+        dataPts = [{ x: startDateMs, y: goal.goal_weight_kg }, { x: goalDateMs, y: goal.goal_weight_kg }];
+        // Add band boundaries
+        datasets.push({
+          label: 'Guide Upper',
+          data: [{ x: startDateMs, y: goal.goal_weight_kg + 0.9 }, { x: goalDateMs, y: goal.goal_weight_kg + 0.9 }],
+          borderColor: 'transparent',
+          borderWidth: 0,
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+          order: 5,
+        });
+        datasets.push({
+          label: 'Guide Lower',
+          data: [{ x: startDateMs, y: goal.goal_weight_kg - 0.9 }, { x: goalDateMs, y: goal.goal_weight_kg - 0.9 }],
+          borderColor: 'transparent',
+          borderWidth: 0,
+          pointRadius: 0,
+          tension: 0,
+          fill: '-1',
+          backgroundColor: colors['guideBand'],
+          order: 6,
+        });
       } else {
-        // Subsequent goals: start from the trend value at the previous goal's date
-        const prevGoalDateMs = +new Date(sortedGoals[i - 1].goal_date);
-        startPt = { x: prevGoalDateMs, y: this.trendValueAt(trendLine, prevGoalDateMs, sortedGoals[i - 1].goal_weight_kg) };
+        dataPts = [startPt, { x: goalDateMs, y: goal.goal_weight_kg }];
       }
 
       datasets.push({
         label: 'Guide',
-        data: [startPt, { x: goalDateMs, y: goal.goal_weight_kg }],
+        data: dataPts,
         borderColor: colors['guideLine'],
         borderWidth: 1.5,
         borderDash: [8, 5],
@@ -419,22 +443,6 @@ export class ProgressPage {
     }
 
     return datasets;
-  }
-
-  private trendValueAt(trendLine: Pt[], targetMs: number, fallback: number): number {
-    if (!trendLine.length) return fallback;
-
-    // Find the closest trend point at or before the target date
-    let closest: Pt | null = null;
-    for (const pt of trendLine) {
-      if (pt.x <= targetMs) {
-        closest = pt;
-      } else {
-        break;
-      }
-    }
-
-    return closest?.y ?? trendLine[trendLine.length - 1].y;
   }
 
   private getBounds(
@@ -474,6 +482,7 @@ export class ProgressPage {
   private getChartColors(): ChartColors {
     return {
       guideLine: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.35, '0, 179, 155'),
+      guideBand: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.1, '0, 179, 155'),
       scaleLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.4, '6, 182, 212'),
       scaleDot: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
       scaleDotHover: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),

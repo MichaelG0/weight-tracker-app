@@ -55,7 +55,7 @@ body {
 
 body.ion-palette-dark {
   background:
-    radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.10), transparent 40%),
+    radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.1), transparent 40%),
     radial-gradient(circle at 96% 10%, rgba(129, 140, 248, 0.08), transparent 40%),
     linear-gradient(180deg, #080e1a 0%, #121c2c 52%, #080e1a 100%);
 }
@@ -148,8 +148,17 @@ ion-card {
 // ── Ion Input ────────────────────────────────────────────────────────
 
 .sc-ion-input-md-h,
-.sc-ion-textarea-md-h {
-  --highlight-color-valid: var(--ion-color-primary);
+.sc-ion-textarea-md-h,
+ion-select.md {
+  --highlight-color-valid: var(--ion-color-tertiary);
+}
+
+// ── Date Input ────────────────────────────────────────────────────────
+
+input[type='date']::-webkit-inner-spin-button,
+input[type='date']::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
 }
 
 // ── List Group ────────────────────────────────────────────────────────
@@ -252,7 +261,7 @@ ion-item-sliding[appDeckCardOptions] ion-item-options {
     text-transform: none;
     transition: transform 0.2s ease;
 
-    ion-icon[slot="top"] {
+    ion-icon[slot='top'] {
       font-size: 1rem;
     }
 

@@ -47,8 +47,8 @@
   }
 
   .delta {
-    background: rgba(var(--ion-color-success-rgb), 0.15);
-    color: var(--ion-color-success);
+    background: rgba(var(--ion-color-tertiary-rgb), 0.15);
+    color: var(--ion-color-tertiary);
     font-size: 0.75rem;
     font-weight: 800;
     margin-bottom: 18px;
@@ -61,6 +61,56 @@
     margin-bottom: 12px;
     position: relative;
     z-index: 1;
+
+    .maint-track {
+      background: var(--ion-color-step-200);
+      border-radius: 4px;
+      height: 8px;
+      position: relative;
+      width: 100%;
+      margin: 14px 0 8px;
+
+      .maint-center-mark {
+        background: var(--ion-color-step-400);
+        height: 14px;
+        left: 50%;
+        position: absolute;
+        top: -3px;
+        transform: translateX(-50%);
+        width: 2px;
+        border-radius: 2px;
+      }
+
+      .maint-indicator {
+        background: var(--ion-color-primary);
+        border-radius: 50%;
+        height: 16px;
+        position: absolute;
+        top: -4px;
+        transform: translateX(-50%);
+        transition: left 0.3s ease, background 0.3s ease;
+        width: 16px;
+        z-index: 2;
+
+        &.danger {
+          background: var(--ion-color-danger);
+        }
+      }
+
+      .maint-bounds {
+        display: flex;
+        justify-content: space-between;
+        position: absolute;
+        top: -16px;
+        width: 100%;
+        
+        span {
+          color: var(--ion-color-step-500);
+          font-size: 0.6rem;
+          font-weight: 700;
+        }
+      }
+    }
   }
 
   .meta-row {

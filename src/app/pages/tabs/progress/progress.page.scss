@@ -186,13 +186,22 @@ ion-card.goals-card {
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+      padding-left: 4px;
       margin: 0;
     }
 
     ion-button {
+      --border-radius: 999px;
       --padding-start: 8px;
       --padding-end: 8px;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
       margin: 0;
+      margin-right: -2px;
+
+      ion-icon {
+        font-size: 1.2rem;
+      }
     }
   }
 

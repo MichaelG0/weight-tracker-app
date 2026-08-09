@@ -14,11 +14,15 @@ export interface WeightEntry {
   notes?: string;
 }
 
+export type GoalType = 'weight gain' | 'weight loss' | 'maintenance';
+
 export interface Goal {
   id: number;
+  start_weight_kg: number;
   goal_weight_kg: number;
+  start_date: string; // ISO-8601
   goal_date: string; // ISO-8601
-  label?: string;
+  label: GoalType;
 }
 
 export interface UserSettings {
@@ -47,7 +51,9 @@ const MIGRATIONS = `
 
   CREATE TABLE IF NOT EXISTS goals (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    start_weight_kg REAL NOT NULL DEFAULT 0,
     goal_weight_kg REAL NOT NULL,
+    start_date     TEXT NOT NULL DEFAULT '2024-01-01',
     goal_date      TEXT NOT NULL,
     label          TEXT
   );
@@ -131,15 +137,15 @@ export class DatabaseService {
       [31, 'M', 178],
     );
 
-    const mockGoals = [
-      { weight: 80, date: '2026-07-01', label: 'Lean bulk target' },
-      { weight: 76, date: '2027-01-01' },
+    const mockGoals: { start_weight: number; weight: number; start_date: string; date: string; label: GoalType }[] = [
+      { start_weight: 76, weight: 80, start_date: '2025-09-05', date: '2026-07-01', label: 'weight gain' },
+      { start_weight: 80, weight: 76, start_date: '2026-07-01', date: '2027-01-01', label: 'weight loss' },
     ];
 
     for (const goal of mockGoals) {
       await this.db.run(
-        `INSERT INTO goals (goal_weight_kg, goal_date, label) VALUES (?, ?, ?)`,
-        [goal.weight, goal.date, goal.label],
+        `INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`,
+        [goal.start_weight, goal.weight, goal.start_date, goal.date, goal.label],
       );
     }
 
@@ -291,8 +297,10 @@ export class DatabaseService {
   addGoal(goal: Omit<Goal, 'id'>): Observable<void> {
     return this.whenReady(() =>
       from(
-        this.db.run(`INSERT INTO goals (goal_weight_kg, goal_date, label) VALUES (?, ?, ?)`, [
+        this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
+          goal.start_weight_kg,
           goal.goal_weight_kg,
+          goal.start_date,
           goal.goal_date,
           goal.label ?? null,
         ]),
@@ -308,11 +316,13 @@ export class DatabaseService {
       from(
         this.db.run(
           `UPDATE goals
-             SET goal_weight_kg = COALESCE(?, goal_weight_kg),
-                 goal_date      = COALESCE(?, goal_date),
-                 label          = COALESCE(?, label)
+             SET start_weight_kg = COALESCE(?, start_weight_kg),
+                 goal_weight_kg  = COALESCE(?, goal_weight_kg),
+                 start_date      = COALESCE(?, start_date),
+                 goal_date       = COALESCE(?, goal_date),
+                 label           = COALESCE(?, label)
            WHERE id = ?`,
-          [goal.goal_weight_kg ?? null, goal.goal_date ?? null, goal.label ?? null, goal.id],
+          [goal.start_weight_kg ?? null, goal.goal_weight_kg ?? null, goal.start_date ?? null, goal.goal_date ?? null, goal.label ?? null, goal.id],
         ),
       ).pipe(
         switchMap(() => from(this.syncGoals())),

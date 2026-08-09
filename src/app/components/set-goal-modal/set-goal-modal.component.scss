@@ -31,32 +31,38 @@ ion-content {
     border-radius: 14px;
     --padding-start: 16px;
     --inner-padding-end: 16px;
+
+    &.input-disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
   }
 
-  ion-input {
+  ion-input,
+  ion-select {
     font-weight: 600;
+  }
+
+  .refresh-btn {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    --border-radius: 999px;
+    margin-right: -8px;
+    align-self: center;
+
+    ion-icon {
+      font-size: 1.2rem;
+    }
   }
 }
 
-.date-wrap {
-  margin-bottom: 20px;
-
-  .field-label {
-    color: var(--ion-color-step-600);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    margin-top: 0;
-    margin-bottom: 8px;
-    padding-left: 4px;
-    text-transform: uppercase;
-  }
-
-  ion-datetime {
-    --background: var(--ion-color-step-100);
-    border-radius: 14px;
-    width: 100%;
-  }
+.error-msg {
+  color: var(--ion-color-danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: -8px 0 16px 4px;
 }
 
 .submit-btn {
@@ -66,7 +72,7 @@ ion-content {
   font-weight: 800;
   letter-spacing: -0.01em;
   transition: all 0.2s ease;
-  
+
   &:active {
     transform: scale(0.97);
   }

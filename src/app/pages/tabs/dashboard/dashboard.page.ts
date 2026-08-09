@@ -24,7 +24,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { take } from 'rxjs/operators';
@@ -36,6 +36,9 @@ interface DashboardVm {
   trend30d: number | null;
   goalWeight: number | null;
   startWeight: number | null;
+  goalType: GoalType;
+  maintOffset: number | null;
+  maintPercent: number | null;
   progressPercent: number | null;
   expectedGoalDate: string | null;
   consistency: string;
@@ -90,6 +93,16 @@ export class DashboardPage {
     const startWeight = sorted.length ? sorted[sorted.length - 1].weight_kg : null;
     const activeGoal = this.findActiveGoal(goals);
     const goalWeight = activeGoal?.goal_weight_kg ?? null;
+    const goalType = activeGoal?.label ?? 'weight loss';
+
+    let maintOffset: number | null = null;
+    let maintPercent: number | null = null;
+
+    if (goalType === 'maintenance' && currentWeight !== null && goalWeight !== null) {
+      maintOffset = currentWeight - goalWeight;
+      // Map [-0.9, 0.9] to [0%, 100%]
+      maintPercent = Math.max(0, Math.min(100, ((maintOffset + 0.9) / 1.8) * 100));
+    }
 
     const avg7d = this.averageInWindow(sorted, 7);
     const trend30d = this.netChangeInWindow(sorted, 30);
@@ -105,6 +118,9 @@ export class DashboardPage {
       trend30d,
       goalWeight,
       startWeight,
+      goalType,
+      maintOffset,
+      maintPercent,
       progressPercent,
       expectedGoalDate,
       consistency,

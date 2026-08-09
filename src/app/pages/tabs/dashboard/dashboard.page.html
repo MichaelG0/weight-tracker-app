@@ -11,13 +11,30 @@
         <ion-card class="balance-card">
           <ion-card-content>
             <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
-            <ion-badge color="success" class="delta">{{ vm.rateLabel }}</ion-badge>
+            <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
-              <ion-progress-bar color="primary" [value]="vm.progressPercent !== null ? vm.progressPercent / 100 : 0"></ion-progress-bar>
+              @if (vm.goalType === 'maintenance' && vm.maintPercent !== null) {
+                <div class="maint-track">
+                  <div class="maint-center-mark"></div>
+                  <div class="maint-indicator" [style.left.%]="vm.maintPercent" [class.danger]="vm.maintPercent <= 5 || vm.maintPercent >= 95"></div>
+                  <div class="maint-bounds">
+                    <span>-0.9</span>
+                    <span>+0.9</span>
+                  </div>
+                </div>
+              } @else {
+                <ion-progress-bar color="primary" [value]="vm.progressPercent !== null ? vm.progressPercent / 100 : 0"></ion-progress-bar>
+              }
             </div>
             <div class="meta-row">
               <span>Goal: {{ vm.goalWeight !== null ? (vm.goalWeight | number: '1.1-1') + ' kg' : 'Not set' }}</span>
-              <span>{{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}</span>
+              <span>
+                @if (vm.goalType === 'maintenance') {
+                  {{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + (vm.maintOffset | number:'1.1-1') + ' kg' : 'No data' }}
+                } @else {
+                  {{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}
+                }
+              </span>
             </div>
           </ion-card-content>
         </ion-card>

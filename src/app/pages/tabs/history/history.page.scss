@@ -60,8 +60,8 @@ ion-item-option {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 100px;
-  background: rgba(var(--ion-color-primary-rgb, 45, 211, 111), 0.12);
-  color: var(--ion-color-primary, #2dd36f);
+  background: rgba(var(--ion-color-tertiary-rgb, 45, 211, 111), 0.12);
+  color: var(--ion-color-tertiary, #2dd36f);
 
   &.negative {
     background: rgba(var(--ion-color-danger-rgb, 235, 68, 90), 0.12);
@@ -83,15 +83,4 @@ ion-item-option {
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-
-.load-more-btn {
-  --color: var(--ion-color-primary);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-
-  &::part(native) {
-    padding: 0 24px;
-  }
 }
