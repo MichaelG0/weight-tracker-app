@@ -4,6 +4,30 @@ ion-content.chart-content::part(scroll) {
   padding-bottom: calc(var(--navbar-height) + 20px);
 }
 
+.empty-state {
+  height: auto;
+  padding: 32px 40px;
+
+  .empty-icon-wrap {
+    height: 64px;
+    width: 64px;
+    margin-bottom: 16px;
+
+    ion-icon {
+      font-size: 2rem;
+    }
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 4px;
+  }
+
+  p {
+    font-size: 0.85rem;
+  }
+}
+
 ion-card.chart-card {
   --background: var(--list-item-background);
   padding-top: 56px;

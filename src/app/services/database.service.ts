@@ -94,7 +94,7 @@ export class DatabaseService {
     await this.db.execute(MIGRATIONS);
 
     if (!environment.production) {
-      await this.seedMockData();
+      // await this.seedMockData();
     }
 
     // Signal readiness and pre-load reactive state.
