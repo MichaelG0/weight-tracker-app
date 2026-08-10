@@ -12,20 +12,20 @@
 <ion-content class="ion-padding">
   <form #goalForm="ngForm" (ngSubmit)="submit()">
     <ion-list lines="none" class="goal-form-list">
-      <ion-item>
-        <ion-select
-          label="Goal Type"
-          labelPlacement="stacked"
-          name="label"
-          [(ngModel)]="formData.label"
-          (ionChange)="onGoalTypeChange()"
-          required
-        >
-          <ion-select-option value="weight loss">Weight Loss</ion-select-option>
-          <ion-select-option value="weight gain">Weight Gain</ion-select-option>
-          <ion-select-option value="maintenance">Maintenance</ion-select-option>
-        </ion-select>
-      </ion-item>
+      <div class="goal-type-chips">
+        <ion-chip
+          [class.selected]="formData.label === 'weight loss'"
+          (click)="selectGoalType('weight loss')"
+        >Weight Loss</ion-chip>
+        <ion-chip
+          [class.selected]="formData.label === 'weight gain'"
+          (click)="selectGoalType('weight gain')"
+        >Weight Gain</ion-chip>
+        <ion-chip
+          [class.selected]="formData.label === 'maintenance'"
+          (click)="selectGoalType('maintenance')"
+        >Maintenance</ion-chip>
+      </div>
 
       <ion-item>
         <ion-input

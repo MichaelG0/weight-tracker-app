@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import {
   IonButton,
   IonButtons,
+  IonChip,
   IonContent,
   IonHeader,
   IonIcon,
@@ -12,8 +13,6 @@ import {
   IonTitle,
   IonToggle,
   IonToolbar,
-  IonSelect,
-  IonSelectOption,
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -33,14 +32,13 @@ import { take } from 'rxjs';
     IonTitle,
     IonButtons,
     IonButton,
+    IonChip,
     IonIcon,
     IonContent,
     IonList,
     IonItem,
     IonInput,
     IonToggle,
-    IonSelect,
-    IonSelectOption,
     PureFnPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,9 +77,11 @@ export class SetGoalModalComponent implements OnInit {
       }
     });
 
-    // Grab latest entries for the hacker's diet EMA
+    // Grab latest entries for the hacker's diet EMA (only need recent entries for a stable trend)
     this.db.entries$.pipe(take(1)).subscribe(entries => {
-      this.allEntries = [...entries].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at));
+      this.allEntries = [...entries]
+        .sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at))
+        .slice(-50);
 
       if (!this.isEditing) {
         this.refreshStartWeight();
@@ -109,6 +109,11 @@ export class SetGoalModalComponent implements OnInit {
 
     this.formData.startWeight = parseFloat(currentTrend.toFixed(1));
     this.onStartWeightChange();
+  }
+
+  selectGoalType(type: GoalType): void {
+    this.formData.label = type;
+    this.onGoalTypeChange();
   }
 
   onGoalTypeChange(): void {

@@ -26,6 +26,28 @@ ion-content {
   background: transparent;
   margin-bottom: 20px;
 
+  .goal-type-chips {
+    display: flex;
+    gap: 8px;
+
+    ion-chip {
+      flex: 1;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      --background: var(--list-item-background);
+      --color: var(--ion-text-color);
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+
+      &.selected {
+        --background: rgba(var(--ion-color-primary-rgb), 0.12);
+        --color: var(--ion-color-primary);
+        border-color: var(--ion-color-primary);
+      }
+    }
+  }
+
   ion-item {
     --background: var(--list-item-background);
     border-radius: 14px;
