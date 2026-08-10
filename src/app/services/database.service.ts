@@ -137,15 +137,17 @@ export class DatabaseService {
       [31, 'M', 178],
     );
 
-    const mockGoals: { start_weight: number; weight: number; start_date: string; date: string; label: GoalType }[] = [
-      { start_weight: 76, weight: 80, start_date: '2025-09-05', date: '2026-07-01', label: 'weight gain' },
-      { start_weight: 80, weight: 76, start_date: '2026-07-01', date: '2027-01-01', label: 'weight loss' },
+    const mockGoals: Omit<Goal, 'id'>[] = [
+      { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', label: 'weight gain' },
+      { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', label: 'maintenance' },
+      { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-10-11', label: 'weight loss' },
+      { start_weight_kg: 76, goal_weight_kg: 79, start_date: '2026-10-11', goal_date: '2027-04-11', label: 'weight gain' },
     ];
 
     for (const goal of mockGoals) {
       await this.db.run(
         `INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`,
-        [goal.start_weight, goal.weight, goal.start_date, goal.date, goal.label],
+        [goal.start_weight_kg, goal.goal_weight_kg, goal.start_date, goal.goal_date, goal.label],
       );
     }
 
@@ -198,7 +200,11 @@ export class DatabaseService {
       ['2026-06-24', 80.2], ['2026-06-25', 80.3], ['2026-06-26', 80.3], ['2026-06-27', 80.5], ['2026-06-28', 80.3],
       ['2026-06-29', 80.3], ['2026-06-30', 79.9], ['2026-07-01', 79.9], ['2026-07-03', 80.3], ['2026-07-04', 79.7],
       ['2026-07-08', 79.7], ['2026-07-09', 79.0], ['2026-07-10', 79.7], ['2026-07-11', 79.6], ['2026-07-12', 80.0],
-      ['2026-07-13', 80.4], ['2026-07-14', 80.2], ['2026-07-16', 79.7],
+      ['2026-07-13', 80.4], ['2026-07-14', 80.2], ['2026-07-16', 79.7], ['2026-07-17', 80.1], ['2026-07-18', 80.1],
+      ['2026-07-19', 80.6], ['2026-07-20', 79.7], ['2026-07-21', 79.9], ['2026-07-22', 79.7], ['2026-07-24', 79.8],
+      ['2026-07-25', 79.7], ['2026-07-26', 80.0], ['2026-07-27', 79.9], ['2026-07-28', 79.9], ['2026-07-29', 79.6],
+      ['2026-07-30', 80.1], ['2026-07-31', 80.3], ['2026-08-01', 79.8], ['2026-08-02', 79.8], ['2026-08-03', 80.1],
+      ['2026-08-04', 80.2], ['2026-08-05', 79.9], ['2026-08-06', 79.7],
     ];
 
     // Increass iterations to generate additional randomized mock data.

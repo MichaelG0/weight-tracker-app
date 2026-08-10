@@ -53,6 +53,7 @@
           labelPlacement="stacked"
           name="startDate"
           [(ngModel)]="formData.startDate"
+          (ngModelChange)="onSpeedChange()"
           required
         ></ion-input>
       </ion-item>
@@ -67,26 +68,65 @@
           step="0.1"
           name="weight"
           [(ngModel)]="formData.weight"
+          (ngModelChange)="onSpeedChange()"
           [readonly]="formData.label === 'maintenance'"
           required
           (keydown)="filterKey($event)"
         ></ion-input>
       </ion-item>
 
-      <ion-item>
+      @if (formData.weight | pureFn:getWeightDirectionError:formData.startWeight:formData.label; as wdError) {
+        @if (goalForm.controls['weight']?.touched && goalForm.controls['weight']?.dirty) {
+          <p class="error-msg">{{ wdError }}</p>
+        }
+      }
+
+      @if (formData.label !== 'maintenance') {
+        <ion-item>
+          <ion-input
+            type="number"
+            inputmode="decimal"
+            placeholder="0.0"
+            [label]="formData.label | pureFn:getSpeedLabel"
+            labelPlacement="stacked"
+            step="0.05"
+            name="weeklySpeed"
+            [(ngModel)]="weeklySpeed"
+            (ngModelChange)="onSpeedChange()"
+            required
+            (keydown)="filterKey($event)"
+            [disabled]="useCustomEndDate"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item class="toggle-item">
+          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ngModelChange)="onCustomEndDateToggle()"
+            >Custom end date</ion-toggle
+          >
+        </ion-item>
+      }
+
+      <ion-item [class.input-disabled]="!useCustomEndDate && formData.label !== 'maintenance'">
         <ion-input
           type="date"
           label="End Date"
           labelPlacement="stacked"
           name="endDate"
           [(ngModel)]="formData.endDate"
+          [readonly]="!useCustomEndDate && formData.label !== 'maintenance'"
           required
         ></ion-input>
       </ion-item>
+
+      @if (formData.startDate | pureFn:getDateError:formData.endDate; as dtError) {
+        @if (goalForm.controls['endDate']?.touched && goalForm.controls['endDate']?.dirty) {
+          <p class="error-msg">{{ dtError }}</p>
+        }
+      }
     </ion-list>
 
-    @if (overlapError) {
-      <p class="error-msg">{{ overlapError }}</p>
+    @if (formData.startDate | pureFn:getOverlapError:formData.endDate; as olError) {
+      <p class="error-msg">{{ olError }}</p>
     }
 
     <ion-button expand="block" shape="round" type="submit" class="submit-btn" [disabled]="!goalForm.valid || !isFormValid">

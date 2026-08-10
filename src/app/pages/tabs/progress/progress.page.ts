@@ -147,8 +147,8 @@ export class ProgressPage {
   async addGoal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
-      breakpoints: [0, 0.59, 1],
-      initialBreakpoint: 0.59,
+      breakpoints: [0, 0.75, 1],
+      initialBreakpoint: 0.75,
       handleBehavior: 'cycle',
     });
     await modal.present();
@@ -163,8 +163,8 @@ export class ProgressPage {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
       componentProps: { goal },
-      breakpoints: [0, 0.59, 1],
-      initialBreakpoint: 0.59,
+      breakpoints: [0, 0.75, 1],
+      initialBreakpoint: 0.75,
       handleBehavior: 'cycle',
     });
     await modal.present();

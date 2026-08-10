@@ -10,6 +10,7 @@ import {
   IonItem,
   IonList,
   IonTitle,
+  IonToggle,
   IonToolbar,
   IonSelect,
   IonSelectOption,
@@ -18,6 +19,7 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
+import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 
 @Component({
@@ -36,8 +38,10 @@ import { take } from 'rxjs';
     IonList,
     IonItem,
     IonInput,
+    IonToggle,
     IonSelect,
     IonSelectOption,
+    PureFnPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,7 +52,8 @@ export class SetGoalModalComponent implements OnInit {
   @Input() goal?: Goal;
 
   isEditing = false;
-  overlapError = '';
+  useCustomEndDate = false;
+  weeklySpeed: number | null = null;
 
   private allEntries: WeightEntry[] = [];
   private allGoals: Goal[] = [];
@@ -100,7 +105,7 @@ export class SetGoalModalComponent implements OnInit {
     let currentTrend = this.allEntries[0].weight_kg;
     for (const entry of this.allEntries) {
       currentTrend = currentTrend + ALPHA * (entry.weight_kg - currentTrend);
-    }    
+    }
 
     this.formData.startWeight = parseFloat(currentTrend.toFixed(1));
     this.onStartWeightChange();
@@ -110,16 +115,45 @@ export class SetGoalModalComponent implements OnInit {
     if (this.formData.label === 'maintenance') {
       this.formData.weight = this.formData.startWeight;
     }
+    this.recalculateEndDate();
   }
 
   onStartWeightChange(): void {
     if (this.formData.label === 'maintenance') {
       this.formData.weight = this.formData.startWeight;
     }
+    this.recalculateEndDate();
+  }
+
+  onSpeedChange(): void {
+    this.recalculateEndDate();
+  }
+
+  onCustomEndDateToggle(): void {
+    if (!this.useCustomEndDate) {
+      this.recalculateEndDate();
+    }
+  }
+
+  private recalculateEndDate(): void {
+    if (this.useCustomEndDate || this.formData.label === 'maintenance') return;
+    if (!this.weeklySpeed || !this.formData.startWeight || !this.formData.weight || !this.formData.startDate) return;
+    if (this.weeklySpeed <= 0) return;
+
+    const totalChange = Math.abs(this.formData.weight - this.formData.startWeight);
+    const weeklyChange = this.formData.startWeight * (this.weeklySpeed / 100);
+    const weeks = totalChange / weeklyChange;
+    const days = Math.ceil(weeks * 7);
+
+    const start = new Date(this.formData.startDate);
+    start.setDate(start.getDate() + days);
+    this.formData.endDate = start.toISOString().substring(0, 10);
   }
 
   get isFormValid(): boolean {
     if (!this.formData.weight || !this.formData.startDate || !this.formData.endDate || !this.formData.startWeight) return false;
+
+    if (!this.useCustomEndDate && this.formData.label !== 'maintenance' && !this.weeklySpeed) return false;
 
     if (this.formData.startDate >= this.formData.endDate) return false;
 
@@ -131,8 +165,7 @@ export class SetGoalModalComponent implements OnInit {
     if (this.formData.label === 'maintenance' && w !== s) return false;
 
     // Overlap check
-    this.overlapError = this.checkOverlap();
-    if (this.overlapError) return false;
+    if (this.getOverlapError(this.formData.startDate, this.formData.endDate)) return false;
 
     return true;
   }
@@ -150,7 +183,13 @@ export class SetGoalModalComponent implements OnInit {
   submit(): void {
     if (!this.isFormValid) return;
 
-    const result: Partial<Goal> & { start_weight_kg: number; goal_weight_kg: number; start_date: string; goal_date: string; label: GoalType } = {
+    const result: Partial<Goal> & {
+      start_weight_kg: number;
+      goal_weight_kg: number;
+      start_date: string;
+      goal_date: string;
+      label: GoalType;
+    } = {
       start_weight_kg: this.formData.startWeight!,
       goal_weight_kg: this.formData.weight!,
       start_date: this.formData.startDate,
@@ -178,24 +217,43 @@ export class SetGoalModalComponent implements OnInit {
     return lastEnd > today ? lastEnd : today;
   }
 
-  private checkOverlap(): string {
-    const start = this.formData.startDate;
-    const end = this.formData.endDate;
-    if (!start || !end) return '';
+  // ── Piped Methods ───────────────────────────────────────────────────────
 
+  getSpeedLabel = (label: GoalType): string => {
+    if (label === 'weight loss') return 'Speed (%/week) — recommended: 0.5–1.0';
+    if (label === 'weight gain') return 'Speed (%/week) — recommended: 0.25–0.5';
+    return 'Speed (%/week)';
+  };
+
+  getWeightDirectionError = (weight: number | null, startWeight: number | null, label: GoalType): string => {
+    if (!weight || !startWeight) return '';
+    if (label === 'weight loss' && weight >= startWeight) {
+      return 'Target weight must be lower than start weight for weight loss';
+    }
+    if (label === 'weight gain' && weight <= startWeight) {
+      return 'Target weight must be higher than start weight for weight gain';
+    }
+    return '';
+  };
+
+  getDateError = (startDate: string, endDate: string): string => {
+    if (!startDate || !endDate) return '';
+    if (endDate <= startDate) {
+      return 'End date must be after start date';
+    }
+    return '';
+  };
+
+  getOverlapError = (startDate: string, endDate: string): string => {
+    if (!startDate || !endDate) return '';
     for (const g of this.allGoals) {
-      // Skip the goal being edited
       if (this.isEditing && this.goal && g.id === this.goal.id) continue;
-
       const gStart = g.start_date.substring(0, 10);
       const gEnd = g.goal_date.substring(0, 10);
-
-      // Two ranges overlap if one starts before the other ends and vice versa
-      if (start < gEnd && end > gStart) {
+      if (startDate < gEnd && endDate > gStart) {
         return `Overlaps with existing goal (${gStart} – ${gEnd})`;
       }
     }
-
     return '';
-  }
+  };
 }
