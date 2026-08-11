@@ -245,15 +245,18 @@ export class DatabaseService {
   }
 
   updateEntry(entry: Required<Pick<WeightEntry, 'id'>> & Partial<WeightEntry>): Observable<void> {
+    const hasNotes = 'notes' in entry;
+    const trimmedNotes = hasNotes ? (entry.notes?.trim() || null) : null;
+
     return this.whenReady(() =>
       from(
         this.db.run(
           `UPDATE weight_entries
              SET weight_kg = COALESCE(?, weight_kg),
                  logged_at = COALESCE(?, logged_at),
-                 notes     = COALESCE(?, notes)
+                 notes     = CASE WHEN ? = 1 THEN ? ELSE notes END
            WHERE id = ?`,
-          [entry.weight_kg ?? null, entry.logged_at ?? null, entry.notes ?? null, entry.id],
+          [entry.weight_kg ?? null, entry.logged_at ?? null, hasNotes ? 1 : 0, trimmedNotes, entry.id],
         ),
       ).pipe(
         switchMap(() => from(this.syncEntries())),
