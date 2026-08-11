@@ -94,7 +94,7 @@ export class DatabaseService {
     await this.db.execute(MIGRATIONS);
 
     if (!environment.production) {
-      // await this.seedMockData();
+      await this.seedMockData();
     }
 
     // Signal readiness and pre-load reactive state.
@@ -218,10 +218,11 @@ export class DatabaseService {
     }
 
     for (const [date, weight] of mockData) {
+      let notes = (Math.random() < 0.5) ? '' : 'Mock seed data (lean bulk)';
       await this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
         weight,
         date,
-        'Mock seed data (lean bulk)',
+        notes,
       ]);
     }
   }

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -13,19 +13,19 @@ import {
   IonItemOption,
   IonItemOptions,
   IonItemSliding,
-  IonLabel,
   IonList,
   IonToolbar,
   ModalController,
   ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, create, trash, arrowUndoOutline } from 'ionicons/icons';
+import { analyticsOutline, create, trash, arrowUndoOutline, documentTextOutline } from 'ionicons/icons';
 import { take } from 'rxjs';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
+import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 
 const LIST_PAGE_SIZE = 50;
 
@@ -48,13 +48,13 @@ interface HistoryEntry extends WeightEntry {
     IonItemSliding,
     IonItemOption,
     IonItemOptions,
-    IonLabel,
     IonIcon,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
     DeckCardOptionsDirective,
-  ],
+    PureFnPipe
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoryPage {
@@ -79,8 +79,17 @@ export class HistoryPage {
   readonly visibleListEntries = computed(() => this.listEntries().slice(0, this.listVisibleCount()));
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
+  private readonly datePipe = new DatePipe('en-US');
+  private readonly currentYear = new Date().getFullYear();
+
+  readonly formatEntryDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const format = date.getFullYear() === this.currentYear ? 'd MMM' : 'd MMM yyyy';
+    return this.datePipe.transform(date, format) ?? '';
+  };
+
   constructor() {
-    addIcons({ analyticsOutline, create, trash, arrowUndoOutline });
+    addIcons({ analyticsOutline, create, trash, arrowUndoOutline, documentTextOutline });
   }
 
   onInfiniteScroll(event: InfiniteScrollCustomEvent): void {

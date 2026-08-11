@@ -4,6 +4,10 @@ ion-content.chart-content::part(scroll) {
   padding-bottom: calc(var(--navbar-height) + 20px);
 }
 
+ion-content.ios.chart-content::part(scroll) {
+  padding-bottom: calc(var(--navbar-height) + 16px);
+}
+
 .empty-state {
   height: auto;
   padding: 32px 40px;

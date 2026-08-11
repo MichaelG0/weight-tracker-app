@@ -19,37 +19,28 @@
         <ion-list lines="none">
           @for (entry of visibleListEntries(); track entry.id) {
             <ion-item-sliding appDeckCardOptions>
-              <ion-item class="list-group-item">
+              <ion-item class="list-group-item" (click)="onEdit(entry)">
                 <div class="history-card-inner">
-                  <div class="weight-meta">
-                    <div class="weight-note">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></div>
-
-                    <div
-                      class="entry-change"
+                  <div class="row-primary">
+                    <span class="weight-value">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></span>
+                    <span
+                      class="change-badge"
                       [class.negative]="(entry.weightChangeKg ?? 0) < 0"
                       [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
                     >
-                      @if (entry.weightChangeKg === null) {
-                        <span>--</span>
-                      } @else if (entry.weightChangeKg === 0) {
-                        <span>No change</span>
-                      } @else {
-                        <span>{{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | number: '1.1-1') }} kg</span>
-                      }
-                    </div>
+                      @if (entry.weightChangeKg === null) { -- }
+                      @else if (entry.weightChangeKg === 0) { No change }
+                      @else { {{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | number: '1.1-1') }} }
+                    </span>
+                    <span class="entry-date">{{ entry.logged_at | pureFn: formatEntryDate }}</span>
                   </div>
-
-                  <div class="date-meta">
-                    <ion-label class="entry-date">{{ entry.logged_at | date: 'd MMM yyyy' }}</ion-label>
-                  </div>
+                  @if (entry.notes) {
+                    <div class="row-notes">{{ entry.notes }}</div>
+                  }
                 </div>
               </ion-item>
 
               <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
-                <ion-item-option color="primary" class="edit-btn" (click)="onEdit(entry)">
-                  <ion-icon slot="top" name="create"></ion-icon>
-                  <span>Edit</span>
-                </ion-item-option>
                 <ion-item-option color="danger" expandable (click)="onDelete(entry)">
                   <ion-icon slot="top" name="trash"></ion-icon>
                   <span>Delete</span>
