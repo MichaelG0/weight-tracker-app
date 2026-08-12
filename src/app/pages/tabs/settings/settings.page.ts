@@ -1,25 +1,80 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonToggle, IonIcon } from '@ionic/angular/standalone';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import {
+  IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
+  IonToggle, IonIcon, IonInput, IonSelect, IonSelectOption,
+} from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
+import { DatabaseService, UserSettings } from '../../../services/database.service';
 import { addIcons } from 'ionicons';
-import { moonOutline, personOutline, notificationsOutline, shieldCheckmarkOutline, logOutOutline } from 'ionicons/icons';
+import {
+  personOutline, moonOutline, maleFemaleOutline,
+  calendarOutline, resizeOutline, saveOutline, checkmarkCircleOutline,
+} from 'ionicons/icons';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-settings',
   templateUrl: 'settings.page.html',
   styleUrls: ['settings.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonToggle, IonIcon, GlassHeaderBackdropDirective],
+  imports: [
+    FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
+    IonToggle, IonIcon, IonInput, IonSelect, IonSelectOption, GlassHeaderBackdropDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingsPage {
-  themeService = inject(CssThemeService);
+export class SettingsPage implements OnInit {
+  private themeService = inject(CssThemeService);
+  private db = inject(DatabaseService);
+
+  name = '';
+  age: number | null = null;
+  gender = '';
+  heightCm: number | null = null;
+  saved = signal(false);
 
   constructor() {
-    addIcons({ moonOutline, personOutline, notificationsOutline, shieldCheckmarkOutline, logOutOutline });
+    addIcons({
+      personOutline, moonOutline, maleFemaleOutline,
+      calendarOutline, resizeOutline, saveOutline, checkmarkCircleOutline,
+    });
   }
 
-  toggleTheme(event: any) {
+  ngOnInit(): void {
+    this.db.settings$.pipe(take(1)).subscribe(settings => {
+      if (settings) {
+        this.name = settings.name ?? '';
+        this.age = settings.age ?? null;
+        this.gender = settings.gender ?? '';
+        this.heightCm = settings.height_cm ?? null;
+      }
+    });
+  }
+
+  toggleTheme(event: any): void {
     this.themeService.toggleTheme(event.detail.checked);
+  }
+
+  isDarkMode(): boolean {
+    return this.themeService.isDarkMode();
+  }
+
+  saveSettings(): void {
+    const settings: Omit<UserSettings, 'user_id'> = {
+      name: this.name || undefined,
+      age: this.age ?? undefined,
+      gender: this.gender || undefined,
+      height_cm: this.heightCm ?? 0,
+    };
+    this.db.saveSettings(settings).pipe(take(1)).subscribe(() => {
+      this.saved.set(true);
+      setTimeout(() => this.saved.set(false), 2000);
+    });
+  }
+
+  get initials(): string {
+    if (!this.name) return '?';
+    return this.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
   }
 }

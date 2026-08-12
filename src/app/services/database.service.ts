@@ -27,6 +27,7 @@ export interface Goal {
 
 export interface UserSettings {
   user_id: number;
+  name?: string;
   age?: number;
   gender?: string;
   height_cm: number;
@@ -44,6 +45,7 @@ const MIGRATIONS = `
 
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id        INTEGER PRIMARY KEY,
+    name           TEXT,
     age            INTEGER,
     gender         TEXT,
     height_cm      REAL
@@ -132,9 +134,9 @@ export class DatabaseService {
 
   private async seedMockData(): Promise<void> {
     await this.db.run(
-      `INSERT INTO user_settings (user_id, age, gender, height_cm)
-       VALUES (1, ?, ?, ?)`,
-      [31, 'M', 178],
+      `INSERT INTO user_settings (user_id, name, age, gender, height_cm)
+       VALUES (1, ?, ?, ?, ?)`,
+      ['Michael', 31, 'Male', 178],
     );
 
     const mockGoals: Omit<Goal, 'id'>[] = [
@@ -287,13 +289,14 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, age, gender, height_cm)
-             VALUES (1, ?, ?, ?)
+          `INSERT INTO user_settings (user_id, name, age, gender, height_cm)
+             VALUES (1, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
+             name      = excluded.name,
              age       = excluded.age,
              gender    = excluded.gender,
              height_cm = excluded.height_cm`,
-          [settings.age ?? null, settings.gender ?? null, settings.height_cm],
+          [settings.name ?? null, settings.age ?? null, settings.gender ?? null, settings.height_cm],
         ),
       ).pipe(
         switchMap(() => from(this.syncSettings())),

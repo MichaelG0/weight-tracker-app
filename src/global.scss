@@ -210,22 +210,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
         transform: scale(0.99);
       }
 
-      .icon-wrap {
-        align-items: center;
-        background: var(--ion-color-primary);
-        border-radius: 10px;
-        color: var(--ion-color-primary-contrast);
-        display: flex;
-        height: 36px;
-        justify-content: center;
-        margin-right: 16px;
-        width: 36px;
-
-        ion-icon {
-          font-size: 1.2rem;
-        }
-      }
-
       ion-label {
         font-weight: 600;
         letter-spacing: -0.01em;

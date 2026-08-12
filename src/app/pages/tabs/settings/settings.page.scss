@@ -1,61 +1,33 @@
-.profile-header {
-  align-items: center;
+.icon-wrap {
   display: flex;
-  flex-direction: column;
-  padding: 14px 0 20px;
+  align-items: center;
+  color: var(--ion-color-primary);
+  justify-content: center;
 
-  .avatar-wrap {
-    background: linear-gradient(140deg, var(--ion-color-primary) 0%, var(--ion-color-secondary) 100%);
-    border-radius: 50%;
-    padding: 4px;
-    margin-bottom: 16px;
-  }
-
-  .avatar-inner {
-    align-items: center;
-    background: var(--ion-background-color-deep);
-    border-radius: 50%;
-    color: var(--ion-text-color);
-    display: flex;
-    font-size: 1.5rem;
-    font-weight: 800;
-    height: 80px;
-    justify-content: center;
-    width: 80px;
-  }
-
-  h2 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin: 0;
-  }
-
-  p {
-    color: var(--ion-color-primary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 4px 0 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  ion-icon {
+    font-size: 1.2rem;
   }
 }
 
-.logout-wrap {
+.save-wrap {
   padding: 16px 18px 0;
 }
 
-.logout-btn {
+.save-btn {
   align-items: center;
-  background: rgba(var(--ion-color-danger-rgb), 0.1);
+  background: var(--ion-color-primary);
   border: 0;
   border-radius: 18px;
-  color: var(--ion-color-danger);
+  color: var(--ion-color-primary-contrast);
   display: flex;
   font-size: 1rem;
   font-weight: 700;
   height: 56px;
   justify-content: center;
   width: 100%;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 
   ion-icon {
     font-size: 1.3rem;

@@ -6,13 +6,38 @@
 
 <ion-content fullscreen class="tab-content">
   <div class="list-group-wrp">
-    <div class="profile-header">
-      <div class="avatar-wrap">
-        <div class="avatar-inner">MG</div>
-      </div>
-      <h2>Michael Guarino</h2>
-      <p>Premium Member</p>
-    </div>
+    <section class="list-group">
+      <p class="list-group-label">Personal Details</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="person-outline"></ion-icon>
+          </div>
+          <ion-input label="Name" labelPlacement="stacked" placeholder="Enter your name" [(ngModel)]="name"></ion-input>
+        </ion-item>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="male-female-outline"></ion-icon>
+          </div>
+          <ion-select label="Sex" labelPlacement="stacked" placeholder="Select" [(ngModel)]="gender">
+            <ion-select-option value="Male">Male</ion-select-option>
+            <ion-select-option value="Female">Female</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="calendar-outline"></ion-icon>
+          </div>
+          <ion-input label="Age" labelPlacement="stacked" type="number" placeholder="Years" [(ngModel)]="age"></ion-input>
+        </ion-item>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="resize-outline"></ion-icon>
+          </div>
+          <ion-input label="Height (cm)" labelPlacement="stacked" type="number" placeholder="cm" [(ngModel)]="heightCm"></ion-input>
+        </ion-item>
+      </ion-list>
+    </section>
 
     <section class="list-group">
       <p class="list-group-label">Appearance</p>
@@ -22,45 +47,17 @@
             <ion-icon name="moon-outline"></ion-icon>
           </div>
           <ion-label>Dark Mode</ion-label>
-          <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="toggleTheme($event)"></ion-toggle>
+          <ion-toggle slot="end" [checked]="isDarkMode()" (ionChange)="toggleTheme($event)"></ion-toggle>
         </ion-item>
       </ion-list>
     </section>
 
-    <section class="list-group">
-      <p class="list-group-label">Account</p>
-      <ion-list lines="none">
-        <ion-item class="list-group-item" button>
-          <div class="icon-wrap" slot="start">
-            <ion-icon name="person-outline"></ion-icon>
-          </div>
-          <ion-label>Personal Details</ion-label>
-        </ion-item>
-        <ion-item class="list-group-item" button>
-          <div class="icon-wrap" slot="start">
-            <ion-icon name="notifications-outline"></ion-icon>
-          </div>
-          <ion-label>Reminders</ion-label>
-        </ion-item>
-      </ion-list>
-    </section>
-
-    <section class="list-group">
-      <p class="list-group-label">Support</p>
-      <ion-list lines="none">
-        <ion-item class="list-group-item" button>
-          <div class="icon-wrap" slot="start">
-            <ion-icon name="shield-checkmark-outline"></ion-icon>
-          </div>
-          <ion-label>Privacy Policy</ion-label>
-        </ion-item>
-      </ion-list>
-    </section>
-
-    <div class="logout-wrap">
-      <button class="logout-btn">
-        <ion-icon name="log-out-outline"></ion-icon>
-        Logout
+    <div class="save-wrap">
+      <button class="save-btn" (click)="saveSettings()">
+        @if (saved()) {
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+        }
+        {{ saved() ? 'Saved!' : 'Save Settings' }}
       </button>
     </div>
   </div>
