@@ -21,6 +21,7 @@ import {
   IonItemOptions,
   IonItemOption,
   ModalController,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline } from 'ionicons/icons';
@@ -100,6 +101,7 @@ export class ProgressPage {
   private readonly db = inject(DatabaseService);
   private readonly cssTheme = inject(CssThemeService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly toastCtrl = inject(ToastController);
 
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
@@ -175,8 +177,32 @@ export class ProgressPage {
     }
   }
 
-  deleteGoal(id: number): void {
-    this.db.deleteGoal(id).pipe(take(1)).subscribe();
+  async deleteGoal(goal: Goal): Promise<void> {
+    this.db.deleteGoal(goal.id).pipe(take(1)).subscribe();
+
+    const toast = await this.toastCtrl.create({
+      message: 'Goal deleted',
+      duration: 5000,
+      swipeGesture: 'vertical',
+      position: 'bottom',
+      buttons: [
+        {
+          text: 'Undo',
+          role: 'cancel',
+          handler: () => {
+            this.db.addGoal({
+              start_weight_kg: goal.start_weight_kg,
+              goal_weight_kg: goal.goal_weight_kg,
+              start_date: goal.start_date,
+              goal_date: goal.goal_date,
+              label: goal.label,
+            }).pipe(take(1)).subscribe();
+          },
+        },
+      ],
+    });
+
+    await toast.present();
   }
 
   toggleShowDaily(): void {
