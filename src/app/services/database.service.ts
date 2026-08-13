@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Observable, ReplaySubject, defer, from, of } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { kgToUnit, unitToKg } from '../utils/unit-conversion.util';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -25,12 +26,17 @@ export interface Goal {
   label: GoalType;
 }
 
+export type WeightUnit = 'kg' | 'lbs' | 'st';
+export type HeightUnit = 'cm' | 'ft/in';
+
 export interface UserSettings {
   user_id: number;
   name?: string;
   age?: number;
   gender?: string;
   height_cm: number;
+  weight_unit?: WeightUnit;
+  height_unit?: HeightUnit;
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -48,7 +54,9 @@ const MIGRATIONS = `
     name           TEXT,
     age            INTEGER,
     gender         TEXT,
-    height_cm      REAL
+    height_cm      REAL,
+    weight_unit    TEXT DEFAULT 'kg',
+    height_unit    TEXT DEFAULT 'cm'
   );
 
   CREATE TABLE IF NOT EXISTS goals (
@@ -74,14 +82,37 @@ export class DatabaseService {
 
   // ── Reactive collections ──────────────────────────────────────────────────
   // Subscribe in components — updated automatically after every mutation.
+  // Weight values are emitted already converted to the user's preferred unit.
 
   private readonly _entries$ = new BehaviorSubject<WeightEntry[]>([]);
   private readonly _settings$ = new BehaviorSubject<UserSettings | null>(null);
   private readonly _goals$ = new BehaviorSubject<Goal[]>([]);
 
-  readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable();
+  readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable().pipe(map(entries => {
+    const unit = this.currentUnit;
+    return entries.map(e => ({
+      ...e,
+      weight_kg: kgToUnit(e.weight_kg, unit),
+    }));
+  }));
   readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable();
-  readonly goals$: Observable<Goal[]> = this._goals$.asObservable();
+  readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(map(goals => {
+    const unit = this.currentUnit;
+    return goals.map(g => ({
+      ...g,
+      start_weight_kg: kgToUnit(g.start_weight_kg, unit),
+      goal_weight_kg: kgToUnit(g.goal_weight_kg, unit),
+    }));
+  }));
+  readonly weightUnit$: Observable<WeightUnit> = this._settings$.pipe(
+    map(s => s?.weight_unit ?? 'kg'),
+  );
+
+  // ── Getters ──────────────────────────────────────────────────────
+
+  private get currentUnit(): WeightUnit {
+    return this._settings$.value?.weight_unit ?? 'kg';
+  }
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
 
@@ -206,7 +237,8 @@ export class DatabaseService {
       ['2026-07-19', 80.6], ['2026-07-20', 79.7], ['2026-07-21', 79.9], ['2026-07-22', 79.7], ['2026-07-24', 79.8],
       ['2026-07-25', 79.7], ['2026-07-26', 80.0], ['2026-07-27', 79.9], ['2026-07-28', 79.9], ['2026-07-29', 79.6],
       ['2026-07-30', 80.1], ['2026-07-31', 80.3], ['2026-08-01', 79.8], ['2026-08-02', 79.8], ['2026-08-03', 80.1],
-      ['2026-08-04', 80.2], ['2026-08-05', 79.9], ['2026-08-06', 79.7],
+      ['2026-08-04', 80.2], ['2026-08-05', 79.9], ['2026-08-06', 79.7], ['2026-08-07', 79.6], ['2026-08-08', 79.7],
+      ['2026-08-09', 79.8], ['2026-08-10', 80.3], ['2026-08-11', 80.1], ['2026-08-12', 79.2], ['2026-08-13', 79.3],
     ];
 
     // Increass iterations to generate additional randomized mock data.
@@ -235,7 +267,7 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
-          entry.weight_kg,
+          unitToKg(entry.weight_kg, this.currentUnit),
           entry.logged_at,
           entry.notes ?? null,
         ]),
@@ -249,6 +281,7 @@ export class DatabaseService {
   updateEntry(entry: Required<Pick<WeightEntry, 'id'>> & Partial<WeightEntry>): Observable<void> {
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? (entry.notes?.trim() || null) : null;
+    const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.currentUnit) : null;
 
     return this.whenReady(() =>
       from(
@@ -258,7 +291,7 @@ export class DatabaseService {
                  logged_at = COALESCE(?, logged_at),
                  notes     = CASE WHEN ? = 1 THEN ? ELSE notes END
            WHERE id = ?`,
-          [entry.weight_kg ?? null, entry.logged_at ?? null, hasNotes ? 1 : 0, trimmedNotes, entry.id],
+          [weightToStore, entry.logged_at ?? null, hasNotes ? 1 : 0, trimmedNotes, entry.id],
         ),
       ).pipe(
         switchMap(() => from(this.syncEntries())),
@@ -289,17 +322,20 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, name, age, gender, height_cm)
-             VALUES (1, ?, ?, ?, ?)
+          `INSERT INTO user_settings (user_id, name, age, gender, height_cm, weight_unit, height_unit)
+             VALUES (1, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
-             name      = excluded.name,
-             age       = excluded.age,
-             gender    = excluded.gender,
-             height_cm = excluded.height_cm`,
-          [settings.name ?? null, settings.age ?? null, settings.gender ?? null, settings.height_cm],
+             name        = excluded.name,
+             age         = excluded.age,
+             gender      = excluded.gender,
+             height_cm   = excluded.height_cm,
+             weight_unit = excluded.weight_unit,
+             height_unit = excluded.height_unit`,
+          [settings.name ?? null, settings.age ?? null, settings.gender ?? null, settings.height_cm, settings.weight_unit ?? 'kg', settings.height_unit ?? 'cm'],
         ),
       ).pipe(
         switchMap(() => from(this.syncSettings())),
+        switchMap(() => from(Promise.all([this.syncEntries(), this.syncGoals()]))),
         map(() => undefined),
       ),
     );
@@ -311,8 +347,8 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
-          goal.start_weight_kg,
-          goal.goal_weight_kg,
+          unitToKg(goal.start_weight_kg, this.currentUnit),
+          unitToKg(goal.goal_weight_kg, this.currentUnit),
           goal.start_date,
           goal.goal_date,
           goal.label ?? null,
@@ -335,7 +371,14 @@ export class DatabaseService {
                  goal_date       = COALESCE(?, goal_date),
                  label           = COALESCE(?, label)
            WHERE id = ?`,
-          [goal.start_weight_kg ?? null, goal.goal_weight_kg ?? null, goal.start_date ?? null, goal.goal_date ?? null, goal.label ?? null, goal.id],
+          [
+            goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.currentUnit) : null,
+            goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.currentUnit) : null,
+            goal.start_date ?? null,
+            goal.goal_date ?? null,
+            goal.label ?? null,
+            goal.id,
+          ],
         ),
       ).pipe(
         switchMap(() => from(this.syncGoals())),

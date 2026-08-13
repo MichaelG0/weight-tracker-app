@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -28,6 +28,7 @@ import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/d
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { take } from 'rxjs/operators';
+import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
 
 interface DashboardVm {
   currentWeight: number | null;
@@ -37,6 +38,7 @@ interface DashboardVm {
   goalWeight: number | null;
   startWeight: number | null;
   goalType: GoalType;
+  maintRange: number | null;
   maintOffset: number | null;
   maintPercent: number | null;
   progressPercent: number | null;
@@ -45,6 +47,7 @@ interface DashboardVm {
   recommendation: string;
   rateLabel: string;
   recentEntries: Array<{ label: string; weight: number }>;
+  unitLabel: string;
 }
 
 @Component({
@@ -80,12 +83,11 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   private readonly entries = toSignal(this.databaseService.entries$, { initialValue: [] });
-  private readonly settings = toSignal(this.databaseService.settings$, { initialValue: null });
   private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
+  private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
-  readonly vm = computed(() => {
+  readonly vm: Signal<DashboardVm> = computed(() => {
     const entries = this.entries();
-    const settings = this.settings();
     const goals = this.goals();
     const sorted = [...entries].sort((a, b) => +new Date(b.logged_at) - +new Date(a.logged_at));
 
@@ -95,13 +97,15 @@ export class DashboardPage {
     const goalWeight = activeGoal?.goal_weight_kg ?? null;
     const goalType = activeGoal?.label ?? 'weight loss';
 
+    let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
     if (goalType === 'maintenance' && currentWeight !== null && goalWeight !== null) {
-      maintOffset = currentWeight - goalWeight;
-      // Map [-0.9, 0.9] to [0%, 100%]
-      maintPercent = Math.max(0, Math.min(100, ((maintOffset + 0.9) / 1.8) * 100));
+      maintRange = kgToUnit(0.907186, this.unitLabel());
+      maintOffset = formatWeight(currentWeight - goalWeight, this.unitLabel());
+      // Map [maintRange, -maintRange] to [0%, 100%]
+      maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
     const avg7d = this.averageInWindow(sorted, 7);
@@ -119,6 +123,7 @@ export class DashboardPage {
       goalWeight,
       startWeight,
       goalType,
+      maintRange,
       maintOffset,
       maintPercent,
       progressPercent,
@@ -127,7 +132,8 @@ export class DashboardPage {
       recommendation: this.recommendation(currentWeight, weeklyRate),
       rateLabel: this.rateLabel(weeklyRate),
       recentEntries: this.recentEntries(sorted),
-    } as DashboardVm;
+      unitLabel: this.unitLabel(),
+    };
   });
 
   constructor() {
@@ -189,7 +195,7 @@ export class DashboardPage {
     }
 
     const total = inWindow.reduce((sum, e) => sum + e.weight_kg, 0);
-    return total / inWindow.length;
+    return formatWeight(total / inWindow.length, this.unitLabel());
   }
 
   private netChangeInWindow(entries: WeightEntry[], days: number): number | null {
@@ -203,7 +209,7 @@ export class DashboardPage {
       return null;
     }
 
-    return inWindow[inWindow.length - 1].weight_kg - inWindow[0].weight_kg;
+    return formatWeight(inWindow[inWindow.length - 1].weight_kg - inWindow[0].weight_kg, this.unitLabel());
   }
 
   private weeklyRate(entries: WeightEntry[], days: number): number | null {
@@ -282,7 +288,7 @@ export class DashboardPage {
       return 'Need more data';
     }
     const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${weeklyRate.toFixed(2)} kg/week`;
+    return `${sign}${weeklyRate.toFixed(2)} ${this.unitLabel()}/week`;
   }
 
   private recommendation(currentWeight: number | null, weeklyRate: number | null): string {
@@ -306,9 +312,7 @@ export class DashboardPage {
     if (!goals.length) return null;
     const now = Date.now();
     // Find the earliest goal whose date is still in the future
-    const future = goals
-      .filter(g => +new Date(g.goal_date) >= now)
-      .sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    const future = goals.filter(g => +new Date(g.goal_date) >= now).sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
     // Fall back to the latest goal if all are past
     return future[0] ?? goals.sort((a, b) => +new Date(b.goal_date) - +new Date(a.goal_date))[0];
   }

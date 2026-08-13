@@ -22,7 +22,7 @@
               <ion-item class="list-group-item" (click)="onEdit(entry)">
                 <div class="history-card-inner">
                   <div class="row-primary">
-                    <span class="weight-value">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">kg</span></span>
+                    <span class="weight-value">{{ entry.weight_kg | number: '1.1-1' }} <span class="unit">{{ unitLabel() }}</span></span>
                     <span
                       class="change-badge"
                       [class.negative]="(entry.weightChangeKg ?? 0) < 0"

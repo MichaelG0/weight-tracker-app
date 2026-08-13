@@ -40,6 +40,31 @@
     </section>
 
     <section class="list-group">
+      <p class="list-group-label">Units</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="barbell-outline"></ion-icon>
+          </div>
+          <ion-select label="Weight Unit" labelPlacement="stacked" placeholder="Select" [(ngModel)]="weightUnit">
+            <ion-select-option value="kg">Kilograms (kg)</ion-select-option>
+            <ion-select-option value="lbs">Pounds (lbs)</ion-select-option>
+            <ion-select-option value="st">Stones (st)</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="body-outline"></ion-icon>
+          </div>
+          <ion-select label="Height Unit" labelPlacement="stacked" placeholder="Select" [(ngModel)]="heightUnit">
+            <ion-select-option value="cm">Centimeters (cm)</ion-select-option>
+            <ion-select-option value="feet">Feet & Inches (ft/in)</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-list>
+    </section>
+
+    <section class="list-group">
       <p class="list-group-label">Appearance</p>
       <ion-list lines="none">
         <ion-item class="list-group-item">

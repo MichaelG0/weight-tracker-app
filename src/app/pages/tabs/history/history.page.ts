@@ -63,6 +63,7 @@ export class HistoryPage {
   private readonly toastCtrl = inject(ToastController);
   readonly listVisibleCount = signal(LIST_PAGE_SIZE);
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
+  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
   readonly sortedAll = computed(() => [...this.allEntries()].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)));
 
   readonly listEntries = computed<HistoryEntry[]>(() => {

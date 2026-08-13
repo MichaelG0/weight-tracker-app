@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, Input, OnInit } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   IonButton,
@@ -52,6 +53,7 @@ export class SetGoalModalComponent implements OnInit {
   isEditing = false;
   useCustomEndDate = false;
   weeklySpeed: number | null = null;
+  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private allEntries: WeightEntry[] = [];
   private allGoals: Goal[] = [];
@@ -225,9 +227,9 @@ export class SetGoalModalComponent implements OnInit {
   // ── Piped Methods ───────────────────────────────────────────────────────
 
   getSpeedLabel = (label: GoalType): string => {
-    if (label === 'weight loss') return 'Speed (%/week) — recommended: 0.5–1.0';
-    if (label === 'weight gain') return 'Speed (%/week) — recommended: 0.25–0.5';
-    return 'Speed (%/week)';
+    if (label === 'weight loss') return 'Rate (%/week) — recommended: 0.5–1.0';
+    if (label === 'weight gain') return 'Rate (%/week) — recommended: 0.25–0.5';
+    return 'Rate (%/week)';
   };
 
   getWeightDirectionError = (weight: number | null, startWeight: number | null, label: GoalType): string => {

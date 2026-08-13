@@ -111,6 +111,7 @@ export class ProgressPage {
 
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
   readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
+  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
@@ -128,6 +129,7 @@ export class ProgressPage {
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
+      const unitLbl = this.unitLabel();
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
@@ -136,7 +138,7 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(canvas, entries, goals, range, showDaily, showTrend);
+      this.renderChart(canvas, entries, goals, range, showDaily, showTrend, unitLbl);
     });
   }
 
@@ -229,6 +231,7 @@ export class ProgressPage {
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
+    unitLbl: string,
   ): void {
     const colors: ChartColors = this.getChartColors();
 
@@ -341,7 +344,7 @@ export class ProgressPage {
                 const x = items[0]?.parsed?.x;
                 return x ? new Date(x).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
               },
-              label: (ctx: any) => `  ${Number(ctx.parsed.y).toFixed(1)} kg`,
+              label: (ctx: any) => `  ${Number(ctx.parsed.y).toFixed(1)} ${unitLbl}`,
             },
           } as any,
           zoom: {

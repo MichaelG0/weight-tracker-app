@@ -107,7 +107,7 @@
             <ion-item class="goal-item" button (click)="editGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
-                <h3>{{ goal.goal_weight_kg }} kg</h3>
+                <h3>{{ goal.goal_weight_kg | number: '1.1-1' }} {{ unitLabel() }}</h3>
                 <p>{{ goal.goal_date | date: 'mediumDate' }}{{ goal.label ? ' · ' + goal.label : '' }}</p>
               </ion-label>
             </ion-item>

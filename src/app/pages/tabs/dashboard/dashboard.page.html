@@ -10,7 +10,7 @@
       <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
-            <h2>{{ vm.currentWeight !== null ? (vm.currentWeight | number: '1.1-1') + ' kg' : '--' }}</h2>
+            <h2>{{ vm.currentWeight !== null ? vm.currentWeight + ' ' + vm.unitLabel : '--' }}</h2>
             <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
               @if (vm.goalType === 'maintenance' && vm.maintPercent !== null) {
@@ -18,8 +18,8 @@
                   <div class="maint-center-mark"></div>
                   <div class="maint-indicator" [style.left.%]="vm.maintPercent" [class.danger]="vm.maintPercent <= 5 || vm.maintPercent >= 95"></div>
                   <div class="maint-bounds">
-                    <span>-0.9</span>
-                    <span>+0.9</span>
+                    <span>{{ vm.maintRange ? -vm.maintRange : '--'}}</span>
+                    <span>{{ vm.maintRange ? '+' + vm.maintRange : '--' }}</span>
                   </div>
                 </div>
               } @else {
@@ -27,10 +27,10 @@
               }
             </div>
             <div class="meta-row">
-              <span>Goal: {{ vm.goalWeight !== null ? (vm.goalWeight | number: '1.1-1') + ' kg' : 'Not set' }}</span>
+              <span>Goal: {{ vm.goalWeight !== null ? vm.goalWeight + ' ' + vm.unitLabel : 'Not set' }}</span>
               <span>
                 @if (vm.goalType === 'maintenance') {
-                  {{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + (vm.maintOffset | number:'1.1-1') + ' kg' : 'No data' }}
+                  {{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + vm.maintOffset + ' ' + vm.unitLabel : 'No data' }}
                 } @else {
                   {{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}
                 }
@@ -51,13 +51,13 @@
             <ion-col size="4">
               <ion-card class="stat-tile">
                 <p class="label">7-day average</p>
-                <h4>{{ vm.avg7d !== null ? (vm.avg7d | number: '1.1-1') + ' kg' : '--' }}</h4>
+                <h4>{{ vm.avg7d !== null ? vm.avg7d + ' ' + vm.unitLabel : '--' }}</h4>
               </ion-card>
             </ion-col>
             <ion-col size="4">
               <ion-card class="stat-tile">
                 <p class="label">30-day trend</p>
-                <h4>{{ vm.trend30d !== null ? (vm.trend30d | number: '1.1-1') + ' kg' : '--' }}</h4>
+                <h4>{{ vm.trend30d !== null ? vm.trend30d + ' ' + vm.unitLabel : '--' }}</h4>
               </ion-card>
             </ion-col>
             <ion-col size="4">
@@ -103,7 +103,7 @@
           @for (entry of vm.recentEntries; track entry.label) {
             <ion-item class="list-group-item">
               <ion-label>{{ entry.label }}</ion-label>
-              <ion-note slot="end" class="weight-note">{{ entry.weight | number: '1.1-1' }} kg</ion-note>
+              <ion-note slot="end" class="weight-note">{{ entry.weight }} {{ vm.unitLabel }}</ion-note>
             </ion-item>
           }
         </ion-list>

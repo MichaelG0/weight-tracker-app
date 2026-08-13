@@ -11,6 +11,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   IonButton,
@@ -29,7 +30,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
-import { WeightEntry } from 'src/app/services/database.service';
+import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -55,8 +56,12 @@ import { WeightEntry } from 'src/app/services/database.service';
 })
 export class LogWeightModalComponent implements OnInit, AfterViewInit {
   private readonly modalCtrl = inject(ModalController);
+  private readonly db = inject(DatabaseService);
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
+
+  readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
+  private readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private readonly entriesByDate = signal(new Map<string, WeightEntry>());
   @Input() protected set entries(value: WeightEntry[]) {
