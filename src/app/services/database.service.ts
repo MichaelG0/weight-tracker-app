@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Observable, ReplaySubject, defer, from, of } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { kgToUnit, unitToKg } from '../utils/unit-conversion.util';
+import { cmToFtIn, kgToUnit, ftInToCm, unitToKg } from '../utils/unit-conversion.util';
 
 // ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -29,12 +29,18 @@ export interface Goal {
 export type WeightUnit = 'kg' | 'lbs' | 'st';
 export type HeightUnit = 'cm' | 'ft/in';
 
+export interface HeightFtIn {
+  feet: number | null;
+  inches: number | null;
+}
+
 export interface UserSettings {
   user_id: number;
   name?: string;
   age?: number;
   gender?: string;
-  height_cm: number;
+  height_cm?: number;
+  heightFtIn?: HeightFtIn;
   weight_unit?: WeightUnit;
   height_unit?: HeightUnit;
 }
@@ -89,15 +95,23 @@ export class DatabaseService {
   private readonly _goals$ = new BehaviorSubject<Goal[]>([]);
 
   readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable().pipe(map(entries => {
-    const unit = this.currentUnit;
+    const unit = this.currentWeightUnit;
     return entries.map(e => ({
       ...e,
       weight_kg: kgToUnit(e.weight_kg, unit),
     }));
   }));
-  readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable();
+  readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(map(settings => {
+    const heightUnit = this.currentHeightUnit;
+    if (!settings) return null;
+    const converted: UserSettings = {
+      ...settings,
+      heightFtIn: settings.height_cm ? cmToFtIn(settings.height_cm) : undefined,
+    };
+    return converted;
+  }));
   readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(map(goals => {
-    const unit = this.currentUnit;
+    const unit = this.currentWeightUnit;
     return goals.map(g => ({
       ...g,
       start_weight_kg: kgToUnit(g.start_weight_kg, unit),
@@ -110,8 +124,12 @@ export class DatabaseService {
 
   // ── Getters ──────────────────────────────────────────────────────
 
-  private get currentUnit(): WeightUnit {
+  private get currentWeightUnit(): WeightUnit {
     return this._settings$.value?.weight_unit ?? 'kg';
+  }
+
+  private get currentHeightUnit(): HeightUnit {
+    return this._settings$.value?.height_unit ?? 'cm';
   }
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
@@ -267,7 +285,7 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
-          unitToKg(entry.weight_kg, this.currentUnit),
+          unitToKg(entry.weight_kg, this.currentWeightUnit),
           entry.logged_at,
           entry.notes ?? null,
         ]),
@@ -281,7 +299,7 @@ export class DatabaseService {
   updateEntry(entry: Required<Pick<WeightEntry, 'id'>> & Partial<WeightEntry>): Observable<void> {
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? (entry.notes?.trim() || null) : null;
-    const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.currentUnit) : null;
+    const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.currentWeightUnit) : null;
 
     return this.whenReady(() =>
       from(
@@ -319,6 +337,7 @@ export class DatabaseService {
 
   // Upserts the single settings row (user_id = 1).
   saveSettings(settings: Omit<UserSettings, 'user_id'>): Observable<void> {
+    const heightCm = settings.height_cm ?? (settings.heightFtIn ? ftInToCm(settings.heightFtIn) : null);
     return this.whenReady(() =>
       from(
         this.db.run(
@@ -331,7 +350,14 @@ export class DatabaseService {
              height_cm   = excluded.height_cm,
              weight_unit = excluded.weight_unit,
              height_unit = excluded.height_unit`,
-          [settings.name ?? null, settings.age ?? null, settings.gender ?? null, settings.height_cm, settings.weight_unit ?? 'kg', settings.height_unit ?? 'cm'],
+          [
+            settings.name ?? null,
+            settings.age ?? null,
+            settings.gender ?? null,
+            heightCm,
+            settings.weight_unit ?? 'kg',
+            settings.height_unit ?? 'cm'
+          ],
         ),
       ).pipe(
         switchMap(() => from(this.syncSettings())),
@@ -347,8 +373,8 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
-          unitToKg(goal.start_weight_kg, this.currentUnit),
-          unitToKg(goal.goal_weight_kg, this.currentUnit),
+          unitToKg(goal.start_weight_kg, this.currentWeightUnit),
+          unitToKg(goal.goal_weight_kg, this.currentWeightUnit),
           goal.start_date,
           goal.goal_date,
           goal.label ?? null,
@@ -372,8 +398,8 @@ export class DatabaseService {
                  label           = COALESCE(?, label)
            WHERE id = ?`,
           [
-            goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.currentUnit) : null,
-            goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.currentUnit) : null,
+            goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.currentWeightUnit) : null,
+            goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.currentWeightUnit) : null,
             goal.start_date ?? null,
             goal.goal_date ?? null,
             goal.label ?? null,

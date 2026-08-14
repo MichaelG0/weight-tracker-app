@@ -6,60 +6,104 @@
 
 <ion-content fullscreen class="tab-content">
   <div class="list-group-wrp">
-    <section class="list-group">
+    <section class="list-group personal-details-list-group">
       <p class="list-group-label">Personal Details</p>
       <ion-list lines="none">
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="person-outline"></ion-icon>
           </div>
-          <ion-input label="Name" labelPlacement="stacked" placeholder="Enter your name" [(ngModel)]="name"></ion-input>
+          <ion-input
+            label="Name"
+            labelPlacement="stacked"
+            placeholder="Enter your name"
+            [(ngModel)]="name"
+            (ionBlur)="saveSettings()"
+          ></ion-input>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="male-female-outline"></ion-icon>
           </div>
-          <ion-select label="Sex" labelPlacement="stacked" placeholder="Select" [(ngModel)]="gender">
-            <ion-select-option value="Male">Male</ion-select-option>
-            <ion-select-option value="Female">Female</ion-select-option>
-          </ion-select>
+          <ion-label>Sex</ion-label>
+          <div class="chip-group" slot="end">
+            <ion-chip [class.selected]="gender === 'Male'" (click)="setGender('Male')">Male</ion-chip>
+            <ion-chip [class.selected]="gender === 'Female'" (click)="setGender('Female')">Female</ion-chip>
+          </div>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
-          <ion-input label="Age" labelPlacement="stacked" type="number" placeholder="Years" [(ngModel)]="age"></ion-input>
+          <ion-input
+            label="Age"
+            labelPlacement="stacked"
+            type="number"
+            placeholder="Years"
+            [(ngModel)]="age"
+            (ionBlur)="saveSettings()"
+          ></ion-input>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="resize-outline"></ion-icon>
           </div>
-          <ion-input label="Height (cm)" labelPlacement="stacked" type="number" placeholder="cm" [(ngModel)]="heightCm"></ion-input>
+          @if (heightUnit === 'ft/in') {
+            <div class="ft-in-group">
+              <ion-input
+                label="Height (ft)"
+                labelPlacement="stacked"
+                type="number"
+                placeholder="ft"
+                [(ngModel)]="heightFt"
+                (ionBlur)="saveSettings()"
+              ></ion-input>
+              <ion-input
+                label="(in)"
+                labelPlacement="stacked"
+                type="number"
+                placeholder="in"
+                [(ngModel)]="heightIn"
+                (ionBlur)="saveSettings()"
+              ></ion-input>
+            </div>
+          } @else {
+            <ion-input
+              label="Height (cm)"
+              labelPlacement="stacked"
+              type="number"
+              placeholder="cm"
+              [(ngModel)]="heightCm"
+              (ionBlur)="saveSettings()"
+            ></ion-input>
+          }
         </ion-item>
       </ion-list>
     </section>
 
-    <section class="list-group">
+    <section class="list-group units-list-group">
       <p class="list-group-label">Units</p>
       <ion-list lines="none">
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="barbell-outline"></ion-icon>
           </div>
-          <ion-select label="Weight Unit" labelPlacement="stacked" placeholder="Select" [(ngModel)]="weightUnit">
-            <ion-select-option value="kg">Kilograms (kg)</ion-select-option>
-            <ion-select-option value="lbs">Pounds (lbs)</ion-select-option>
-            <ion-select-option value="st">Stones (st)</ion-select-option>
-          </ion-select>
+          <ion-label>Weight</ion-label>
+          <div class="chip-group" slot="end">
+            <ion-chip [class.selected]="weightUnit === 'kg'" (click)="setWeightUnit('kg')">kg</ion-chip>
+            <ion-chip [class.selected]="weightUnit === 'lbs'" (click)="setWeightUnit('lbs')">lbs</ion-chip>
+            <ion-chip [class.selected]="weightUnit === 'st'" (click)="setWeightUnit('st')">st</ion-chip>
+          </div>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
             <ion-icon name="body-outline"></ion-icon>
           </div>
-          <ion-select label="Height Unit" labelPlacement="stacked" placeholder="Select" [(ngModel)]="heightUnit">
-            <ion-select-option value="cm">Centimeters (cm)</ion-select-option>
-            <ion-select-option value="feet">Feet & Inches (ft/in)</ion-select-option>
-          </ion-select>
+          <ion-label>Height</ion-label>
+          <div class="chip-group" slot="end">
+            <ion-chip [class.selected]="heightUnit === 'cm'" (click)="setHeightUnit('cm')">cm</ion-chip>
+            <ion-chip [class.selected]="heightUnit === 'ft/in'" (click)="setHeightUnit('ft/in')">ft/in</ion-chip>
+          </div>
         </ion-item>
       </ion-list>
     </section>
@@ -71,19 +115,9 @@
           <div class="icon-wrap" slot="start">
             <ion-icon name="moon-outline"></ion-icon>
           </div>
-          <ion-label>Dark Mode</ion-label>
-          <ion-toggle slot="end" [checked]="isDarkMode()" (ionChange)="toggleTheme($event)"></ion-toggle>
+          <ion-toggle [checked]="isDarkMode()" (ionChange)="toggleTheme($event)"> Dark Mode </ion-toggle>
         </ion-item>
       </ion-list>
     </section>
-
-    <div class="save-wrap">
-      <button class="save-btn" (click)="saveSettings()">
-        @if (saved()) {
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-        }
-        {{ saved() ? 'Saved!' : 'Save Settings' }}
-      </button>
-    </div>
   </div>
 </ion-content>

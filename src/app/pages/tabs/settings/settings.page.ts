@@ -1,31 +1,59 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
-  IonToggle, IonIcon, IonInput, IonSelect, IonSelectOption,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonToggle,
+  IonIcon,
+  IonInput,
+  IonChip,
 } from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
 import { DatabaseService, UserSettings, WeightUnit, HeightUnit } from '../../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
-  personOutline, moonOutline, maleFemaleOutline,
-  calendarOutline, resizeOutline, saveOutline, checkmarkCircleOutline,
-  barbellOutline, bodyOutline,
+  personOutline,
+  moonOutline,
+  maleFemaleOutline,
+  calendarOutline,
+  resizeOutline,
+  saveOutline,
+  checkmarkCircleOutline,
+  barbellOutline,
+  bodyOutline,
 } from 'ionicons/icons';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { take } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
 
 @Component({
   selector: 'app-settings',
   templateUrl: 'settings.page.html',
   styleUrls: ['settings.page.scss'],
   imports: [
-    FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel,
-    IonToggle, IonIcon, IonInput, IonSelect, IonSelectOption, GlassHeaderBackdropDirective,
+    FormsModule,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonToggle,
+    IonIcon,
+    IonInput,
+    IonChip,
+    GlassHeaderBackdropDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingsPage implements OnInit {
+export class SettingsPage {
   private themeService = inject(CssThemeService);
   private db = inject(DatabaseService);
 
@@ -33,25 +61,33 @@ export class SettingsPage implements OnInit {
   age: number | null = null;
   gender = '';
   heightCm: number | null = null;
+  heightFt: number | null = null;
+  heightIn: number | null = null;
   weightUnit: WeightUnit = 'kg';
   heightUnit: HeightUnit = 'cm';
-  saved = signal(false);
 
   constructor() {
     addIcons({
-      personOutline, moonOutline, maleFemaleOutline,
-      calendarOutline, resizeOutline, saveOutline, checkmarkCircleOutline,
-      barbellOutline, bodyOutline,
+      personOutline,
+      moonOutline,
+      maleFemaleOutline,
+      calendarOutline,
+      resizeOutline,
+      saveOutline,
+      checkmarkCircleOutline,
+      barbellOutline,
+      bodyOutline,
     });
-  }
 
-  ngOnInit(): void {
-    this.db.settings$.pipe(take(1)).subscribe(settings => {
+    this.db.settings$.pipe(takeUntilDestroyed()).subscribe(settings => {
       if (settings) {
         this.name = settings.name ?? '';
         this.age = settings.age ?? null;
         this.gender = settings.gender ?? '';
         this.heightCm = settings.height_cm ?? null;
+        const ftIn = this.heightCm ? cmToFtIn(this.heightCm) : null;
+        this.heightFt = ftIn?.feet ?? null;
+        this.heightIn = ftIn?.inches ?? null;
         this.weightUnit = settings.weight_unit ?? 'kg';
         this.heightUnit = settings.height_unit ?? 'cm';
       }
@@ -71,18 +107,31 @@ export class SettingsPage implements OnInit {
       name: this.name || undefined,
       age: this.age ?? undefined,
       gender: this.gender || undefined,
-      height_cm: this.heightCm ?? 0,
       weight_unit: this.weightUnit,
       height_unit: this.heightUnit,
     };
-    this.db.saveSettings(settings).pipe(take(1)).subscribe(() => {
-      this.saved.set(true);
-      setTimeout(() => this.saved.set(false), 2000);
-    });
+
+    if (this.heightUnit === 'cm' && this.heightCm) {
+      settings.height_cm = this.heightCm;
+    } else if (this.heightUnit === 'ft/in' && (this.heightFt || this.heightIn)) {
+      settings.heightFtIn = { feet: this.heightFt, inches: this.heightIn };
+    }
+
+    this.db.saveSettings(settings).pipe(take(1)).subscribe();
   }
 
-  get initials(): string {
-    if (!this.name) return '?';
-    return this.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+  setGender(value: string): void {
+    this.gender = value;
+    this.saveSettings();
+  }
+
+  setWeightUnit(value: WeightUnit): void {
+    this.weightUnit = value;
+    this.saveSettings();
+  }
+
+  setHeightUnit(value: HeightUnit): void {
+    this.heightUnit = value;
+    this.saveSettings();
   }
 }

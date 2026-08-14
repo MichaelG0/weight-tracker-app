@@ -37,7 +37,7 @@
           step="0.1"
           name="startWeight"
           [(ngModel)]="formData.startWeight"
-          (ngModelChange)="onStartWeightChange()"
+          (ionChange)="onStartWeightChange()"
           required
           (keydown)="filterKey($event)"
         />
@@ -53,7 +53,7 @@
           labelPlacement="stacked"
           name="startDate"
           [(ngModel)]="formData.startDate"
-          (ngModelChange)="onSpeedChange()"
+          (ionChange)="onSpeedChange()"
           required
         ></ion-input>
       </ion-item>
@@ -68,7 +68,7 @@
           step="0.1"
           name="weight"
           [(ngModel)]="formData.weight"
-          (ngModelChange)="onSpeedChange()"
+          (ionChange)="onSpeedChange()"
           [readonly]="formData.label === 'maintenance'"
           required
           (keydown)="filterKey($event)"
@@ -92,7 +92,7 @@
             step="0.05"
             name="weeklySpeed"
             [(ngModel)]="weeklySpeed"
-            (ngModelChange)="onSpeedChange()"
+            (ionChange)="onSpeedChange()"
             required
             (keydown)="filterKey($event)"
             [disabled]="useCustomEndDate"
@@ -100,7 +100,7 @@
         </ion-item>
 
         <ion-item class="toggle-item">
-          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ngModelChange)="onCustomEndDateToggle()"
+          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ionChange)="onCustomEndDateToggle()"
             >Custom end date</ion-toggle
           >
         </ion-item>

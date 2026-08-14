@@ -1,4 +1,4 @@
-import { WeightUnit } from "../services/database.service";
+import { HeightUnit, WeightUnit, HeightFtIn } from "../services/database.service";
 
 export function kgToUnit(kg: number, unit: WeightUnit): number {
   switch (unit) {
@@ -23,4 +23,19 @@ export function formatWeight(value: number, unit: WeightUnit): number {
     default:
       return parseFloat(value.toFixed(1));
   }
+}
+
+export function cmToFtIn(cm: number): HeightFtIn {
+  if (!cm) return { feet: 0, inches: 0 };
+  const totalInches = Math.round(cm / 2.54);
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return { feet, inches };
+}
+
+export function ftInToCm(value: HeightFtIn): number {
+  if (!value || (!value.feet && !value.inches)) return 0;
+  const totalInches = (value.feet ?? 0) * 12 + (value.inches ?? 0);
+  const cm = totalInches * 2.54;
+  return parseFloat(cm.toFixed(0));
 }

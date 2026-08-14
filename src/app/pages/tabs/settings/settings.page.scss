@@ -1,3 +1,20 @@
+.list-group-wrp .list-group {
+  &.personal-details-list-group,
+  &.units-list-group {
+    .list-group-item {
+      --min-height: 56px;
+    }
+  }
+
+  .list-group-item {
+    font-weight: 600;
+
+    &:active {
+      transform: none;
+    }
+  }
+}
+
 .icon-wrap {
   display: flex;
   align-items: center;
@@ -9,33 +26,33 @@
   }
 }
 
-.save-wrap {
-  padding: 16px 18px 0;
+.chip-group {
+  display: flex;
+  gap: 6px;
+
+  ion-chip {
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    --background: var(--ion-color-step-200);
+    --color: var(--ion-text-color);
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+
+    &.selected {
+      --background: rgba(var(--ion-color-primary-rgb), 0.12);
+      --color: var(--ion-color-primary);
+      border-color: var(--ion-color-primary);
+    }
+  }
 }
 
-.save-btn {
-  align-items: center;
-  background: var(--ion-color-primary);
-  border: 0;
-  border-radius: 18px;
-  color: var(--ion-color-primary-contrast);
+.ft-in-group {
   display: flex;
-  font-size: 1rem;
-  font-weight: 700;
-  height: 56px;
-  justify-content: center;
-  width: 100%;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  gap: 8px;
+  flex: 1;
 
-  ion-icon {
-    font-size: 1.3rem;
-    margin-right: 8px;
-  }
-
-  &:active {
-    opacity: 0.7;
-    transform: scale(0.98);
+  ion-input {
+    flex: 1;
   }
 }
