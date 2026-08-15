@@ -82,7 +82,7 @@ export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
 
-  private readonly entries = toSignal(this.databaseService.entries$, { initialValue: [] });
+  private readonly entries = toSignal(this.databaseService.recentEntries$, { initialValue: [] });
   private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 

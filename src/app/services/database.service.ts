@@ -107,6 +107,9 @@ export class DatabaseService {
       return converted;
     }),
   );
+  readonly recentEntries$: Observable<WeightEntry[]> = this.entries$.pipe(
+    map(entries => entries.slice(-50)),
+  );
   readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(
     map(settings => {
       if (!settings) return null;
