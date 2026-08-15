@@ -1,11 +1,11 @@
 // ── Full-bleed chart ──────────────────────────────────────────────────────────
 
 ion-content.chart-content::part(scroll) {
-  padding-bottom: calc(var(--navbar-height) + 20px);
+  padding-bottom: calc(var(--navbar-height) + 14px);
 }
 
 ion-content.ios.chart-content::part(scroll) {
-  padding-bottom: calc(var(--navbar-height) + 16px);
+  padding-bottom: calc(var(--navbar-height) + 14px);
 }
 
 .empty-state {
@@ -83,59 +83,56 @@ ion-card.chart-card {
 
 // ── Trend chips ───────────────────────────────────────────────────────────────
 
-ion-card.trend-chips {
-  margin: 16px 18px 20px;
-  border-radius: 99px;
+section.trend-chips {
+  margin: 20px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  padding: 0;
+  gap: 8px;
 
-  ion-card-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
+  ion-chip {
+    --background: var(--list-item-background);
+    --color: var(--ion-color-step-600);
+    padding: 11px 18px;
+    margin: 0;
+    border-radius: 99px;
+    transition: all 0.2s ease-in-out;
+    display: flex;
     align-items: center;
-    padding: 5px 12px;
     gap: 8px;
-    
-    ion-chip {
-      --background: transparent;
-      --color: var(--ion-color-step-600);
-      padding: 8px 16px;
-      margin: 0;
-      border-radius: 99px;
-      transition: all 0.2s ease-in-out;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
+    font-weight: 700;
 
-      .chip-icon {
-        width: 18px;
-        height: 18px;
-        flex-shrink: 0;
+    .chip-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
 
-        &.trend {
-          width: 20px;
-        }
-      }
-
-      &.active {
-        &.daily-chip {
-          color: var(--ion-color-tertiary);
-          --background: rgba(var(--ion-color-tertiary-rgb), 0.12);
-        }
-
-        &.trend-chip {
-          color: var(--ion-color-secondary);
-          --background: rgba(var(--ion-color-secondary-rgb), 0.12);
-        }
+      &.trend {
+        width: 20px;
       }
     }
 
-    ion-button.info-btn {
-      margin: 0;
-      --border-radius: 100%;
-
-      ion-icon {
-        color: var(--ion-color-step-600);
+    &.active {
+      &.daily-chip {
+        color: var(--ion-color-tertiary);
+        --background: rgba(var(--ion-color-tertiary-rgb), 0.12);
       }
+
+      &.trend-chip {
+        color: var(--ion-color-secondary);
+        --background: rgba(var(--ion-color-secondary-rgb), 0.12);
+      }
+    }
+  }
+
+  ion-button.info-btn {
+    margin: 0;
+    --border-radius: 100%;
+
+    ion-icon {
+      font-size: 1.4rem;
+      color: var(--ion-color-step-600);
     }
   }
 }
