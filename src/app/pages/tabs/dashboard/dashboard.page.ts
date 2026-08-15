@@ -27,7 +27,6 @@ import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
-import { take } from 'rxjs/operators';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
 
 interface DashboardVm {
@@ -152,16 +151,6 @@ export class DashboardPage {
     });
 
     await modal.present();
-
-    const { data, role } = await modal.onWillDismiss();
-
-    if (role === 'confirm' && data) {
-      if (data.id != null) {
-        this.databaseService.updateEntry(data).pipe(take(1)).subscribe();
-      } else {
-        this.databaseService.addEntry(data).pipe(take(1)).subscribe();
-      }
-    }
   }
 
   private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {

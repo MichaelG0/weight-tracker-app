@@ -30,6 +30,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
+import { take } from 'rxjs/operators';
 import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 
 @Component({
@@ -60,8 +61,8 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
 
-  readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
   private readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
+  readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
 
   private readonly entriesByDate = signal(new Map<string, WeightEntry>());
   @Input() protected set entries(value: WeightEntry[]) {
@@ -179,14 +180,18 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    this.modalCtrl.dismiss(
-      {
-        ...(this.formData.existingEntryId ? { id: this.formData.existingEntryId } : {}),
-        weight_kg: this.formData.weight,
-        logged_at: this.formData.selectedDate,
-        notes: this.formData.notes || undefined,
-      },
-      'confirm',
-    );
+    const entry = {
+      weight_kg: this.formData.weight,
+      logged_at: this.formData.selectedDate,
+      notes: this.formData.notes || undefined,
+    };
+
+    if (this.formData.existingEntryId != null) {
+      this.db.updateEntry({ id: this.formData.existingEntryId, ...entry }).pipe(take(1)).subscribe();
+    } else {
+      this.db.addEntry(entry).pipe(take(1)).subscribe();
+    }
+
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 }

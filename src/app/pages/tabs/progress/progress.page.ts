@@ -36,6 +36,7 @@ import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
+import { todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
 Chart.register(zoomPlugin);
 
 export type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
@@ -134,9 +135,7 @@ export class ProgressPage {
       let filteredEntries = allEntries;
       let filteredGoals = goals;
       if (range !== 'full' && goals.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayMs = today.getTime();
+        const todayMs = todayLocalMidnightMs();
 
         const activeGoals = goals.filter(g => +new Date(g.start_date) <= todayMs);
         if (activeGoals.length > 0) {
@@ -508,9 +507,7 @@ export class ProgressPage {
     maintRange: number,
     unitLbl: WeightUnit,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayMs = today.getTime();
+    const todayMs = todayLocalMidnightMs();
 
     const weights = entries.map(e => e.weight_kg);
     for (const g of goals) {
