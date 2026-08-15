@@ -8,6 +8,14 @@ export function kgToUnit(kg: number, unit: WeightUnit): number {
   }
 }
 
+export function kgToUnitNoFixed(kg: number, unit: WeightUnit): number {
+  switch (unit) {
+    case 'lbs': return kg * 2.20462;
+    case 'st': return kg * 0.157473;
+    default: return kg;
+  }
+}
+
 export function unitToKg(value: number, unit: WeightUnit): number {
   switch (unit) {
     case 'lbs': return parseFloat((value / 2.20462).toFixed(1));

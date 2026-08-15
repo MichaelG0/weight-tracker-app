@@ -31,10 +31,11 @@ import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
-import { DatabaseService, Goal, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
+import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
 Chart.register(zoomPlugin);
 
 export type RangeMode = 'journey' | 'month' | 'to-goal';
@@ -106,7 +107,7 @@ export class ProgressPage {
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
   readonly rangeMode = signal<RangeMode>('journey');
-  readonly showDaily = signal<boolean>(false);
+  readonly showDaily = signal<boolean>(true);
   readonly showTrend = signal<boolean>(true);
 
   private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
@@ -117,8 +118,6 @@ export class ProgressPage {
   private pendingViewport: ViewportState | null = null;
 
   readonly sortedAll = computed(() => [...this.allEntries()].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)));
-
-  readonly listEntries = computed(() => [...this.sortedAll()].reverse());
 
   constructor() {
     addIcons({ analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline });
@@ -192,13 +191,16 @@ export class ProgressPage {
           text: 'Undo',
           role: 'cancel',
           handler: () => {
-            this.db.addGoal({
-              start_weight_kg: goal.start_weight_kg,
-              goal_weight_kg: goal.goal_weight_kg,
-              start_date: goal.start_date,
-              goal_date: goal.goal_date,
-              label: goal.label,
-            }).pipe(take(1)).subscribe();
+            this.db
+              .addGoal({
+                start_weight_kg: goal.start_weight_kg,
+                goal_weight_kg: goal.goal_weight_kg,
+                start_date: goal.start_date,
+                goal_date: goal.goal_date,
+                label: goal.label,
+              })
+              .pipe(take(1))
+              .subscribe();
           },
         },
       ],
@@ -231,20 +233,20 @@ export class ProgressPage {
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
-    unitLbl: string,
+    unitLbl: WeightUnit,
   ): void {
     const colors: ChartColors = this.getChartColors();
 
     const dots: Pt[] = entries.map(e => ({ x: +new Date(e.logged_at), y: e.weight_kg }));
     const trendLine: Pt[] = this.hackersDietAvg(entries);
-    const guideDatasets = this.buildGuideDatasets(entries, goals, trendLine, colors);
+    const guideDatasets = this.buildGuideDatasets(goals, colors, unitLbl);
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
-    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range);
+    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, unitLbl);
 
     const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
-    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs);
-    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 7 * 86400000 : Date.now() + 86400000;
+    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
+    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : Date.now() + 1 * 86400000;
 
     const config = {
       type: 'line',
@@ -322,7 +324,7 @@ export class ProgressPage {
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: any) => `${Number(v).toFixed(1)}`,
+              callback: (v: number) => (unitLbl === 'st' ? v.toFixed(2) : v.toFixed(1)),
             },
           },
         },
@@ -349,7 +351,7 @@ export class ProgressPage {
           } as any,
           zoom: {
             limits: {
-              x: { min: xMinLimit, max: xMaxLimit },
+              x: { min: xMinLimit, max: xMaxLimit, minRange: 5 * 86400000 },
             },
             zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
             pan: { enabled: true, mode: 'x' },
@@ -416,10 +418,11 @@ export class ProgressPage {
     return pts;
   }
 
-  private buildGuideDatasets(entries: WeightEntry[], goals: Goal[], trendLine: Pt[], colors: ChartColors): any[] {
+  private buildGuideDatasets(goals: Goal[], colors: ChartColors, unitLbl: WeightUnit): any[] {
     if (!goals.length) return [];
 
     const sortedGoals = [...goals].sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date));
+    const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const datasets: any[] = [];
 
     for (const goal of sortedGoals) {
@@ -431,11 +434,17 @@ export class ProgressPage {
 
       let dataPts: Pt[];
       if (goal.label === 'maintenance') {
-        dataPts = [{ x: startDateMs, y: goal.goal_weight_kg }, { x: goalDateMs, y: goal.goal_weight_kg }];
+        dataPts = [
+          { x: startDateMs, y: goal.goal_weight_kg },
+          { x: goalDateMs, y: goal.goal_weight_kg },
+        ];
         // Add band boundaries
         datasets.push({
           label: 'Guide Upper',
-          data: [{ x: startDateMs, y: goal.goal_weight_kg + 0.9 }, { x: goalDateMs, y: goal.goal_weight_kg + 0.9 }],
+          data: [
+            { x: startDateMs, y: goal.goal_weight_kg + maintRange },
+            { x: goalDateMs, y: goal.goal_weight_kg + maintRange },
+          ],
           borderColor: 'transparent',
           borderWidth: 0,
           pointRadius: 0,
@@ -445,7 +454,10 @@ export class ProgressPage {
         });
         datasets.push({
           label: 'Guide Lower',
-          data: [{ x: startDateMs, y: goal.goal_weight_kg - 0.9 }, { x: goalDateMs, y: goal.goal_weight_kg - 0.9 }],
+          data: [
+            { x: startDateMs, y: goal.goal_weight_kg - maintRange },
+            { x: goalDateMs, y: goal.goal_weight_kg - maintRange },
+          ],
           borderColor: 'transparent',
           borderWidth: 0,
           pointRadius: 0,
@@ -479,10 +491,18 @@ export class ProgressPage {
     goals: Goal[],
     lastGoalDateMs: number | null,
     range: RangeMode,
+    unitLbl: WeightUnit,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
-    const now = Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+
     const weights = entries.map(e => e.weight_kg);
-    for (const g of goals) weights.push(g.goal_weight_kg);
+
+    for (const g of goals) {
+      weights.push(g.goal_weight_kg);
+      weights.push(g.start_weight_kg);
+    }
 
     let xMin: number;
     let xMax: number;
@@ -491,19 +511,34 @@ export class ProgressPage {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
-      xMax = now;
+      xMax = todayMs;
     } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0 && lastGoalDateMs !== null) {
       xMin = +new Date(entries[0].logged_at);
       xMax = lastGoalDateMs;
     } else {
-      xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : now - 30 * 86400000;
-      xMax = now;
+      xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : todayMs - 30 * 86400000;
+      xMax = todayMs;
     }
 
-    const mn = weights.length ? Math.min(...weights) : 70;
-    const mx = weights.length ? Math.max(...weights) : 90;
-    const pad = Math.max((mx - mn) * 0.05, 0.125);
-    return { xMin, xMax, yMin: mn - pad, yMax: mx + pad };
+    // Ensure the visible range is at least 5 days
+    if (xMax - xMin < 5 * 86400000) {
+      xMin = xMin - 0.25 * 86400000;
+      xMax = xMin + 5 * 86400000;
+    }
+
+    let yMin = weights.length ? Math.min(...weights) : 70;
+    let yMax = weights.length ? Math.max(...weights) : 90;
+    const minYrange = kgToUnitNoFixed(2, unitLbl);
+
+    // Minimum 2kg range
+    if (yMax - yMin < minYrange) {
+      yMin = (yMin + yMax) / 2 - minYrange / 2;
+      yMax = yMin + minYrange;
+    }
+
+    const yPad = (yMax - yMin) * 0.05; // 5% padding 
+
+    return { xMin, xMax, yMin: yMin - yPad, yMax: yMax + yPad };
   }
 
   // ── Chart Colors ─────────────────────────────────────────────────────────────
