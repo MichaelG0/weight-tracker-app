@@ -13,7 +13,7 @@
             <h2>{{ vm.currentWeight !== null ? vm.currentWeight + ' ' + vm.unitLabel : '--' }}</h2>
             <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
-              @if (vm.goalType === 'maintenance' && vm.maintPercent !== null) {
+              @if (vm.goalType === 'Maintenance' && vm.maintPercent !== null) {
                 <div class="maint-track">
                   <div class="maint-center-mark"></div>
                   <div class="maint-indicator" [style.left.%]="vm.maintPercent" [class.danger]="vm.maintPercent <= 5 || vm.maintPercent >= 95"></div>
@@ -29,7 +29,7 @@
             <div class="meta-row">
               <span>Goal: {{ vm.goalWeight !== null ? vm.goalWeight + ' ' + vm.unitLabel : 'Not set' }}</span>
               <span>
-                @if (vm.goalType === 'maintenance') {
+                @if (vm.goalType === 'Maintenance') {
                   {{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + vm.maintOffset + ' ' + vm.unitLabel : 'No data' }}
                 } @else {
                   {{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}

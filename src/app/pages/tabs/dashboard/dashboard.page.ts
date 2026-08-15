@@ -94,13 +94,13 @@ export class DashboardPage {
     const startWeight = sorted.length ? sorted[sorted.length - 1].weight_kg : null;
     const activeGoal = this.findActiveGoal(goals);
     const goalWeight = activeGoal?.goal_weight_kg ?? null;
-    const goalType = activeGoal?.label ?? 'weight loss';
+    const goalType = activeGoal?.label ?? 'Weight Loss';
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
-    if (goalType === 'maintenance' && currentWeight !== null && goalWeight !== null) {
+    if (goalType === 'Maintenance' && currentWeight !== null && goalWeight !== null) {
       maintRange = kgToUnit(0.907186, this.unitLabel());
       maintOffset = formatWeight(currentWeight - goalWeight, this.unitLabel());
       // Map [maintRange, -maintRange] to [0%, 100%]

@@ -52,7 +52,7 @@ export class SetGoalModalComponent implements OnInit {
 
   isEditing = false;
   useCustomEndDate = false;
-  weeklySpeed: number | null = null;
+  weeklyRate = 0.5;
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private allEntries: WeightEntry[] = [];
@@ -63,7 +63,7 @@ export class SetGoalModalComponent implements OnInit {
     weight: null as number | null,
     startDate: '',
     endDate: '',
-    label: 'weight loss' as GoalType,
+    label: 'Weight Loss' as GoalType,
   };
 
   constructor() {
@@ -81,9 +81,7 @@ export class SetGoalModalComponent implements OnInit {
 
     // Grab latest entries for the hacker's diet EMA (only need recent entries for a stable trend)
     this.db.entries$.pipe(take(1)).subscribe(entries => {
-      this.allEntries = [...entries]
-        .sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at))
-        .slice(-50);
+      this.allEntries = [...entries].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)).slice(-50);
 
       if (!this.isEditing) {
         this.refreshStartWeight();
@@ -97,6 +95,15 @@ export class SetGoalModalComponent implements OnInit {
       this.formData.startDate = this.goal.start_date.substring(0, 10);
       this.formData.endDate = this.goal.goal_date.substring(0, 10);
       this.formData.label = this.goal.label;
+
+      if (this.goal.goal_date && this.goal.start_weight_kg && this.goal.goal_weight_kg) {
+        const days = (new Date(this.goal.goal_date).getTime() - new Date(this.goal.start_date).getTime()) / (1000 * 60 * 60 * 24);
+        const weeks = days / 7;
+        const totalChange = Math.abs(this.goal.goal_weight_kg - this.goal.start_weight_kg);
+        if (weeks > 0 && totalChange > 0) {
+          this.weeklyRate = parseFloat(((totalChange / weeks / this.goal.start_weight_kg) * 100).toFixed(2));
+        }
+      }
     }
   }
 
@@ -118,21 +125,23 @@ export class SetGoalModalComponent implements OnInit {
     this.onGoalTypeChange();
   }
 
-  onGoalTypeChange(): void {
-    if (this.formData.label === 'maintenance') {
+  private onGoalTypeChange(): void {
+    if (this.formData.label === 'Maintenance') {
       this.formData.weight = this.formData.startWeight;
+    } else if (!this.goal) {
+      if (this.formData.label === 'Weight Gain') {
+        this.weeklyRate = 0.25;
+      } else {
+        this.weeklyRate = 0.5;
+      }
     }
     this.recalculateEndDate();
   }
 
   onStartWeightChange(): void {
-    if (this.formData.label === 'maintenance') {
+    if (this.formData.label === 'Maintenance') {
       this.formData.weight = this.formData.startWeight;
     }
-    this.recalculateEndDate();
-  }
-
-  onSpeedChange(): void {
     this.recalculateEndDate();
   }
 
@@ -142,13 +151,13 @@ export class SetGoalModalComponent implements OnInit {
     }
   }
 
-  private recalculateEndDate(): void {
-    if (this.useCustomEndDate || this.formData.label === 'maintenance') return;
-    if (!this.weeklySpeed || !this.formData.startWeight || !this.formData.weight || !this.formData.startDate) return;
-    if (this.weeklySpeed <= 0) return;
+  recalculateEndDate(): void {
+    if (this.useCustomEndDate || this.formData.label === 'Maintenance') return;
+    if (!this.weeklyRate || !this.formData.startWeight || !this.formData.weight || !this.formData.startDate) return;
+    if (this.weeklyRate <= 0) return;
 
     const totalChange = Math.abs(this.formData.weight - this.formData.startWeight);
-    const weeklyChange = this.formData.startWeight * (this.weeklySpeed / 100);
+    const weeklyChange = this.formData.startWeight * (this.weeklyRate / 100);
     const weeks = totalChange / weeklyChange;
     const days = Math.ceil(weeks * 7);
 
@@ -160,16 +169,16 @@ export class SetGoalModalComponent implements OnInit {
   get isFormValid(): boolean {
     if (!this.formData.weight || !this.formData.startDate || !this.formData.endDate || !this.formData.startWeight) return false;
 
-    if (!this.useCustomEndDate && this.formData.label !== 'maintenance' && !this.weeklySpeed) return false;
+    if (!this.useCustomEndDate && this.formData.label !== 'Maintenance' && !this.weeklyRate) return false;
 
     if (this.formData.startDate >= this.formData.endDate) return false;
 
     const w = this.formData.weight;
     const s = this.formData.startWeight;
 
-    if (this.formData.label === 'weight loss' && w >= s) return false;
-    if (this.formData.label === 'weight gain' && w <= s) return false;
-    if (this.formData.label === 'maintenance' && w !== s) return false;
+    if (this.formData.label === 'Weight Loss' && w >= s) return false;
+    if (this.formData.label === 'Weight Gain' && w <= s) return false;
+    if (this.formData.label === 'Maintenance' && w !== s) return false;
 
     // Overlap check
     if (this.getOverlapError(this.formData.startDate, this.formData.endDate)) return false;
@@ -227,18 +236,18 @@ export class SetGoalModalComponent implements OnInit {
   // ── Piped Methods ───────────────────────────────────────────────────────
 
   getSpeedLabel = (label: GoalType): string => {
-    if (label === 'weight loss') return 'Rate (%/week) — recommended: 0.5–1.0';
-    if (label === 'weight gain') return 'Rate (%/week) — recommended: 0.25–0.5';
+    if (label === 'Weight Loss') return 'Rate (%/week) — recommended: 0.5–1.0';
+    if (label === 'Weight Gain') return 'Rate (%/week) — recommended: 0.25–0.5';
     return 'Rate (%/week)';
   };
 
   getWeightDirectionError = (weight: number | null, startWeight: number | null, label: GoalType): string => {
     if (!weight || !startWeight) return '';
-    if (label === 'weight loss' && weight >= startWeight) {
-      return 'Target weight must be lower than start weight for weight loss';
+    if (label === 'Weight Loss' && weight >= startWeight) {
+      return 'Target weight must be lower than start weight for Weight Loss';
     }
-    if (label === 'weight gain' && weight <= startWeight) {
-      return 'Target weight must be higher than start weight for weight gain';
+    if (label === 'Weight Gain' && weight <= startWeight) {
+      return 'Target weight must be higher than start weight for Weight Gain';
     }
     return '';
   };

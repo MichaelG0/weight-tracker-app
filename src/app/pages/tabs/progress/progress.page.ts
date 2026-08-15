@@ -446,7 +446,7 @@ export class ProgressPage {
       const startPt: Pt = { x: startDateMs, y: goal.start_weight_kg };
 
       let dataPts: Pt[];
-      if (goal.label === 'maintenance') {
+      if (goal.label === 'Maintenance') {
         dataPts = [
           { x: startDateMs, y: goal.goal_weight_kg },
           { x: goalDateMs, y: goal.goal_weight_kg },
@@ -512,7 +512,7 @@ export class ProgressPage {
     const weights = entries.map(e => e.weight_kg);
     for (const g of goals) {
       weights.push(g.start_weight_kg);
-      if (g.label === 'maintenance') {
+      if (g.label === 'Maintenance') {
         weights.push(g.goal_weight_kg + maintRange, g.goal_weight_kg - maintRange);
       } else {
         weights.push(g.goal_weight_kg);
