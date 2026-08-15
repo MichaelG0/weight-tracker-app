@@ -10,7 +10,7 @@
       <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
-            <h2>{{ vm.currentWeight !== null ? vm.currentWeight + ' ' + vm.unitLabel : '--' }}</h2>
+            <h2>{{ vm.trendWeight !== null ? vm.trendWeight + ' ' + vm.unitLabel : '--' }}</h2>
             <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
               @if (vm.goalType === 'Maintenance' && vm.maintPercent !== null) {
@@ -50,8 +50,8 @@
           <ion-row>
             <ion-col size="4">
               <ion-card class="stat-tile">
-                <p class="label">7-day average</p>
-                <h4>{{ vm.avg7d !== null ? vm.avg7d + ' ' + vm.unitLabel : '--' }}</h4>
+                <p class="label">BW %/week</p>
+                <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
               </ion-card>
             </ion-col>
             <ion-col size="4">

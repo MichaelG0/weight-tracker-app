@@ -28,10 +28,10 @@ import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/d
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
+import { todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
-  currentWeight: number | null;
-  avg7d: number | null;
+  trendWeight: number | null;
   weeklyRate: number | null;
   trend30d: number | null;
   goalWeight: number | null;
@@ -41,6 +41,7 @@ interface DashboardVm {
   maintOffset: number | null;
   maintPercent: number | null;
   progressPercent: number | null;
+  bwPercentPerWeek: string | null;
   expectedGoalDate: string | null;
   consistency: string;
   recommendation: string;
@@ -88,11 +89,11 @@ export class DashboardPage {
   readonly vm: Signal<DashboardVm> = computed(() => {
     const entries = this.entries();
     const goals = this.goals();
-    const sorted = [...entries].sort((a, b) => +new Date(b.logged_at) - +new Date(a.logged_at));
+    const reversed = [...entries].reverse();
 
-    const currentWeight = sorted[0]?.weight_kg ?? null;
-    const startWeight = sorted.length ? sorted[sorted.length - 1].weight_kg : null;
+    const trendWeight = this.hackersDietAverage(entries);
     const activeGoal = this.findActiveGoal(goals);
+    const startWeight = activeGoal?.start_weight_kg ?? null;
     const goalWeight = activeGoal?.goal_weight_kg ?? null;
     const goalType = activeGoal?.label ?? 'Weight Loss';
 
@@ -100,23 +101,22 @@ export class DashboardPage {
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
-    if (goalType === 'Maintenance' && currentWeight !== null && goalWeight !== null) {
+    if (goalType === 'Maintenance' && trendWeight !== null && goalWeight !== null) {
       maintRange = kgToUnit(0.907186, this.unitLabel());
-      maintOffset = formatWeight(currentWeight - goalWeight, this.unitLabel());
+      maintOffset = formatWeight(trendWeight - goalWeight, this.unitLabel());
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
-    const avg7d = this.averageInWindow(sorted, 7);
-    const trend30d = this.netChangeInWindow(sorted, 30);
-    const weeklyRate = this.weeklyRate(sorted, 30);
-    const progressPercent = this.progressPercent(startWeight, currentWeight, goalWeight);
-    const expectedGoalDate = this.expectedGoalDate(currentWeight, goalWeight, weeklyRate);
-    const consistency = this.consistencyLabel(sorted);
+    const trend30d = this.netChangeInWindow(reversed, 30);
+    const weeklyRate = this.weeklyRate(reversed, 30);
+    const progressPercent = this.progressPercent(startWeight, trendWeight, goalWeight);
+    const expectedGoalDate = this.expectedGoalDate(trendWeight, goalWeight, weeklyRate);
+    const bwPercentPerWeek = this.bwPercentPerWeek(trendWeight, weeklyRate);
+    const consistency = this.consistencyLabel(reversed);
 
     return {
-      currentWeight,
-      avg7d,
+      trendWeight,
       weeklyRate,
       trend30d,
       goalWeight,
@@ -126,11 +126,12 @@ export class DashboardPage {
       maintOffset,
       maintPercent,
       progressPercent,
+      bwPercentPerWeek,
       expectedGoalDate,
       consistency,
-      recommendation: this.recommendation(currentWeight, weeklyRate),
+      recommendation: this.recommendation(trendWeight, weeklyRate),
       rateLabel: this.rateLabel(weeklyRate),
-      recentEntries: this.recentEntries(sorted),
+      recentEntries: this.recentEntries(reversed),
       unitLabel: this.unitLabel(),
     };
   });
@@ -174,17 +175,24 @@ export class DashboardPage {
     });
   }
 
-  private averageInWindow(entries: WeightEntry[], days: number): number | null {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const inWindow = entries.filter(e => new Date(e.logged_at) >= cutoff);
+  private hackersDietAverage(entries: WeightEntry[]): number | null {
+    if (!entries.length) return null;
 
-    if (!inWindow.length) {
-      return null;
+    const alpha = 0.1;
+    let ewma = entries[0].weight_kg;
+
+    for (let i = 1; i < entries.length; i++) {
+      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
     }
 
-    const total = inWindow.reduce((sum, e) => sum + e.weight_kg, 0);
-    return formatWeight(total / inWindow.length, this.unitLabel());
+    return formatWeight(ewma, this.unitLabel());
+  }
+
+  private bwPercentPerWeek(trendWeight: number | null, weeklyRate: number | null): string | null {
+    if (trendWeight == null || weeklyRate == null || Math.abs(trendWeight) < 0.01) return null;
+    const pct = (weeklyRate / trendWeight) * 100;
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${pct.toFixed(2)}%`;
   }
 
   private netChangeInWindow(entries: WeightEntry[], days: number): number | null {
@@ -258,11 +266,11 @@ export class DashboardPage {
     const goalDate = new Date();
     goalDate.setDate(goalDate.getDate() + days);
 
-    return goalDate.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    if (goalDate.getFullYear() !== new Date().getFullYear()) {
+      opts.year = '2-digit';
+    }
+    return goalDate.toLocaleDateString(undefined, opts);
   }
 
   private consistencyLabel(entries: WeightEntry[]): string {
@@ -299,9 +307,9 @@ export class DashboardPage {
 
   private findActiveGoal(goals: Goal[]): Goal | null {
     if (!goals.length) return null;
-    const now = Date.now();
+    const today = todayLocalMidnightMs();
     // Find the earliest goal whose date is still in the future
-    const future = goals.filter(g => +new Date(g.goal_date) >= now).sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    const future = goals.filter(g => +new Date(g.goal_date) >= today).sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
     // Fall back to the latest goal if all are past
     return future[0] ?? goals.sort((a, b) => +new Date(b.goal_date) - +new Date(a.goal_date))[0];
   }
