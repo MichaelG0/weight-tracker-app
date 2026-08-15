@@ -239,9 +239,10 @@ export class ProgressPage {
 
     const dots: Pt[] = entries.map(e => ({ x: +new Date(e.logged_at), y: e.weight_kg }));
     const trendLine: Pt[] = this.hackersDietAvg(entries);
-    const guideDatasets = this.buildGuideDatasets(goals, colors, unitLbl);
+    const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
+    const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
-    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, unitLbl);
+    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
 
     const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
@@ -418,11 +419,10 @@ export class ProgressPage {
     return pts;
   }
 
-  private buildGuideDatasets(goals: Goal[], colors: ChartColors, unitLbl: WeightUnit): any[] {
+  private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
     if (!goals.length) return [];
 
     const sortedGoals = [...goals].sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date));
-    const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const datasets: any[] = [];
 
     for (const goal of sortedGoals) {
@@ -491,6 +491,7 @@ export class ProgressPage {
     goals: Goal[],
     lastGoalDateMs: number | null,
     range: RangeMode,
+    maintRange: number,
     unitLbl: WeightUnit,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
     const today = new Date();
@@ -498,10 +499,13 @@ export class ProgressPage {
     const todayMs = today.getTime();
 
     const weights = entries.map(e => e.weight_kg);
-
     for (const g of goals) {
-      weights.push(g.goal_weight_kg);
       weights.push(g.start_weight_kg);
+      if (g.label === 'maintenance') {
+        weights.push(g.goal_weight_kg + maintRange, g.goal_weight_kg - maintRange);
+      } else {
+        weights.push(g.goal_weight_kg);
+      }
     }
 
     let xMin: number;
@@ -522,21 +526,22 @@ export class ProgressPage {
 
     // Ensure the visible range is at least 5 days
     if (xMax - xMin < 5 * 86400000) {
-      xMin = xMin - 0.25 * 86400000;
+      xMin -= 0.25 * 86400000;
       xMax = xMin + 5 * 86400000;
     }
 
     let yMin = weights.length ? Math.min(...weights) : 70;
     let yMax = weights.length ? Math.max(...weights) : 90;
-    const minYrange = kgToUnitNoFixed(2, unitLbl);
 
     // Minimum 2kg range
+    const minYrange = kgToUnitNoFixed(2, unitLbl);
     if (yMax - yMin < minYrange) {
-      yMin = (yMin + yMax) / 2 - minYrange / 2;
-      yMax = yMin + minYrange;
+      const mid = (yMin + yMax) / 2;
+      yMin = mid - minYrange / 2;
+      yMax = mid + minYrange / 2;
     }
 
-    const yPad = (yMax - yMin) * 0.05; // 5% padding 
+    const yPad = (yMax - yMin) * 0.05; // 5% padding
 
     return { xMin, xMax, yMin: yMin - yPad, yMax: yMax + yPad };
   }
