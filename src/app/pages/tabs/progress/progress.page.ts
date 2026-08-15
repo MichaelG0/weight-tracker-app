@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   IonHeader,
@@ -38,7 +38,7 @@ import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-ba
 import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
 Chart.register(zoomPlugin);
 
-export type RangeMode = 'journey' | 'month' | 'to-goal';
+export type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
 interface Pt {
   x: number;
   y: number;
@@ -110,20 +110,18 @@ export class ProgressPage {
   readonly showDaily = signal<boolean>(true);
   readonly showTrend = signal<boolean>(true);
 
-  private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
+  readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
   readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
 
-  readonly sortedAll = computed(() => [...this.allEntries()].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)));
-
   constructor() {
     addIcons({ analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline });
 
     effect(() => {
-      const entries = this.sortedAll();
+      const allEntries = this.allEntries();
       const goals = this.goals();
       const range = this.rangeMode();
       const showDaily = this.showDaily();
@@ -132,12 +130,28 @@ export class ProgressPage {
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
-      if (!canvas || entries.length === 0) {
+      // Filter entries and goals: cut off before the most recent goal's start date (unless 'full')
+      let filteredEntries = allEntries;
+      let filteredGoals = goals;
+      if (range !== 'full' && goals.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayMs = today.getTime();
+
+        const activeGoals = goals.filter(g => +new Date(g.start_date) <= todayMs);
+        if (activeGoals.length > 0) {
+          const cutoff = Math.max(...activeGoals.map(g => +new Date(g.start_date)));
+          filteredEntries = allEntries.filter(e => +new Date(e.logged_at) >= cutoff);
+          filteredGoals = goals.filter(g => +new Date(g.start_date) >= cutoff);
+        }
+      }
+
+      if (!canvas || filteredEntries.length === 0) {
         this.destroyChart();
         return;
       }
 
-      this.renderChart(canvas, entries, goals, range, showDaily, showTrend, unitLbl);
+      this.renderChart(canvas, filteredEntries, filteredGoals, range, showDaily, showTrend, unitLbl);
     });
   }
 
@@ -516,9 +530,13 @@ export class ProgressPage {
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
       xMax = todayMs;
-    } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0 && lastGoalDateMs !== null) {
+    } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0) {
       xMin = +new Date(entries[0].logged_at);
-      xMax = lastGoalDateMs;
+      const futureGoalDates = goals.map(g => +new Date(g.goal_date)).filter(d => d > todayMs);
+      xMax = futureGoalDates.length > 0 ? Math.min(...futureGoalDates) : (lastGoalDateMs ?? todayMs);
+    } else if (range === 'full') {
+      xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : todayMs - 30 * 86400000;
+      xMax = todayMs;
     } else {
       xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : todayMs - 30 * 86400000;
       xMax = todayMs;

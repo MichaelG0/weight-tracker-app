@@ -5,7 +5,7 @@
 </ion-header>
 
 <ion-content fullscreen class="chart-content">
-  @if (sortedAll().length === 0) {
+  @if (allEntries().length === 0) {
     <div class="empty-state">
       <div class="empty-icon-wrap">
         <ion-icon name="analytics-outline"></ion-icon>
@@ -30,6 +30,9 @@
             </ion-segment-button>
             <ion-segment-button value="to-goal">
               <ion-label>To Goal</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="full">
+              <ion-label>Full</ion-label>
             </ion-segment-button>
           </ion-segment>
         </div>
