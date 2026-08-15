@@ -279,7 +279,7 @@ export class ProgressPage {
                   borderDash: [2, 3],
                   pointRadius: 3,
                   pointHitRadius: 26,
-                  pointHoverRadius: 8,
+                  pointHoverRadius: 7,
                   pointBorderColor: colors['scaleDotBorder'],
                   pointBorderWidth: 2,
                   hoverBackgroundColor: colors['scaleDotHover'],
@@ -300,6 +300,8 @@ export class ProgressPage {
                   borderColor: colors['trendLine'],
                   borderWidth: 3,
                   pointRadius: 0,
+                  pointHoverRadius: 5,
+                  hoverBorderWidth: 2,
                   tension: 0.35,
                   fill: false,
                   order: 1,
@@ -351,16 +353,24 @@ export class ProgressPage {
             borderColor: colors['tooltipBorder'],
             borderWidth: 1,
             padding: 12,
+            caretPadding: 20,
             mode: 'nearest',
             axis: 'x',
             intersect: false,
-            filter: (item: any) => item.dataset.label !== 'Guide',
+            filter: (item: any) => item.dataset.label !== 'Guide Upper' && item.dataset.label !== 'Guide Lower',
             callbacks: {
               title: (items: any[]) => {
                 const x = items[0]?.parsed?.x;
                 return x ? new Date(x).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
               },
-              label: (ctx: any) => `  ${Number(ctx.parsed.y).toFixed(1)} ${unitLbl}`,
+              label: (ctx: any) => {
+                const val = Number(ctx.parsed.y).toFixed(1);
+                if (ctx.dataset.label === 'Guide') {
+                  const tag = ctx.dataIndex === 0 ? 'Start' : 'Goal';
+                  return `  ${tag}: ${val} ${unitLbl}`;
+                }
+                return `  ${val} ${unitLbl}`;
+              },
             },
           } as any,
           zoom: {
@@ -489,7 +499,11 @@ export class ProgressPage {
         borderColor: colors['guideLine'],
         borderWidth: 1.5,
         borderDash: [8, 5],
-        pointRadius: 0,
+        pointRadius: 2,
+        pointHitRadius: 20,
+        pointBackgroundColor: colors['guideLine'],
+        pointBorderColor: colors['guideLine'],
+        pointHoverRadius: 6,
         tension: 0,
         fill: false,
         order: 4,
