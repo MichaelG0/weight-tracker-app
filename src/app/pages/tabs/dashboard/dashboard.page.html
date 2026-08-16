@@ -48,24 +48,60 @@
         <p class="list-group-label">Statistics</p>
         <ion-grid class="stats-grid">
           <ion-row>
-            <ion-col size="4">
-              <ion-card class="stat-tile">
-                <p class="label">BW %/week</p>
-                <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
-              </ion-card>
-            </ion-col>
-            <ion-col size="4">
-              <ion-card class="stat-tile">
-                <p class="label">30-day trend</p>
-                <h4>{{ vm.trend30d !== null ? vm.trend30d + ' ' + vm.unitLabel : '--' }}</h4>
-              </ion-card>
-            </ion-col>
-            <ion-col size="4">
-              <ion-card class="stat-tile">
-                <p class="label">Expected goal</p>
-                <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
-              </ion-card>
-            </ion-col>
+            @if (vm.goalType !== 'Maintenance') {
+              <ion-col size="4">
+                <ion-card class="stat-tile" (click)="toggleStat(0)">
+                  @if (!statFlip()[0]) {
+                    <p class="label">BW %/week</p>
+                    <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
+                  } @else {
+                    <p class="label">{{ vm.unitLabel }}/week</p>
+                    <h4>{{ vm.absoluteRatePerWeek !== null ? vm.absoluteRatePerWeek + ' ' + vm.unitLabel : '--' }}</h4>
+                  }
+                </ion-card>
+              </ion-col>
+              <ion-col size="4">
+                <ion-card class="stat-tile" (click)="toggleStat(1)">
+                  @if (!statFlip()[1]) {
+                    <p class="label">Remaining</p>
+                    <h4>{{ vm.remaining !== null ? vm.remaining + ' ' + vm.unitLabel : '--' }}</h4>
+                  } @else {
+                    <p class="label">Progress</p>
+                    <h4>{{ vm.totalProgress !== null ? vm.totalProgress + ' ' + vm.unitLabel : '--' }}</h4>
+                  }
+                </ion-card>
+              </ion-col>
+              <ion-col size="4">
+                <ion-card class="stat-tile" (click)="toggleStat(2)">
+                  @if (!statFlip()[2]) {
+                    <p class="label">Expected goal</p>
+                    <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
+                  } @else {
+                    <p class="label">To goal</p>
+                    <h4>{{ vm.daysToGoal ?? '--' }}</h4>
+                  }
+                </ion-card>
+              </ion-col>
+            } @else {
+              <ion-col size="4">
+                <ion-card class="stat-tile">
+                  <p class="label">Weekly drift</p>
+                  <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
+                </ion-card>
+              </ion-col>
+              <ion-col size="4">
+                <ion-card class="stat-tile">
+                  <p class="label">Stability</p>
+                  <h4>{{ vm.stabilityLabel ?? '--' }}</h4>
+                </ion-card>
+              </ion-col>
+              <ion-col size="4">
+                <ion-card class="stat-tile">
+                  <p class="label">Maintained</p>
+                  <h4>{{ vm.daysMaintained !== null ? vm.daysMaintained + ' days' : '--' }}</h4>
+                </ion-card>
+              </ion-col>
+            }
           </ion-row>
         </ion-grid>
       </section>

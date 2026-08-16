@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, Signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -32,8 +32,6 @@ import { todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
   trendWeight: number | null;
-  weeklyRate: number | null;
-  trend30d: number | null;
   goalWeight: number | null;
   startWeight: number | null;
   goalType: GoalType;
@@ -42,7 +40,13 @@ interface DashboardVm {
   maintPercent: number | null;
   progressPercent: number | null;
   bwPercentPerWeek: string | null;
+  absoluteRatePerWeek: string | null;
+  remaining: string | null;
+  totalProgress: string | null;
   expectedGoalDate: string | null;
+  daysToGoal: string | null;
+  daysMaintained: number | null;
+  stabilityLabel: string | null;
   consistency: string;
   recommendation: string;
   rateLabel: string;
@@ -82,6 +86,7 @@ export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
 
+  readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
   private readonly entries = toSignal(this.databaseService.recentEntries$, { initialValue: [] });
   private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
@@ -108,17 +113,20 @@ export class DashboardPage {
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
-    const trend30d = this.netChangeInWindow(reversed, 30);
-    const weeklyRate = this.weeklyRate(reversed, 30);
+    const weeklyRate = this.weeklyRate(entries, trendWeight);
     const progressPercent = this.progressPercent(startWeight, trendWeight, goalWeight);
     const expectedGoalDate = this.expectedGoalDate(trendWeight, goalWeight, weeklyRate);
     const bwPercentPerWeek = this.bwPercentPerWeek(trendWeight, weeklyRate);
+    const absoluteRatePerWeek = this.absoluteRatePerWeek(weeklyRate);
+    const remaining = this.remaining(trendWeight, goalWeight);
+    const totalProgress = this.totalProgress(startWeight, trendWeight);
+    const daysToGoal = this.daysToGoal(trendWeight, goalWeight, weeklyRate);
+    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null;
+    const stabilityLabel = this.stabilityLabel(reversed);
     const consistency = this.consistencyLabel(reversed);
 
     return {
       trendWeight,
-      weeklyRate,
-      trend30d,
       goalWeight,
       startWeight,
       goalType,
@@ -127,9 +135,15 @@ export class DashboardPage {
       maintPercent,
       progressPercent,
       bwPercentPerWeek,
+      absoluteRatePerWeek,
+      remaining,
+      totalProgress,
       expectedGoalDate,
+      daysToGoal,
+      daysMaintained,
+      stabilityLabel,
       consistency,
-      recommendation: this.recommendation(trendWeight, weeklyRate),
+      recommendation: this.recommendation(trendWeight, weeklyRate, goalType, goalWeight),
       rateLabel: this.rateLabel(weeklyRate),
       recentEntries: this.recentEntries(reversed),
       unitLabel: this.unitLabel(),
@@ -154,6 +168,13 @@ export class DashboardPage {
     await modal.present();
   }
 
+  toggleStat(index: 0 | 1 | 2): void {
+    const current = this.statFlip();
+    const updated = [...current] as [boolean, boolean, boolean];
+    updated[index] = !updated[index];
+    this.statFlip.set(updated);
+  }
+
   private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {
     return entries.slice(0, 3).map((entry, index) => ({
       label: this.entryLabel(entry.logged_at, index),
@@ -162,11 +183,13 @@ export class DashboardPage {
   }
 
   private entryLabel(isoDate: string, index: number): string {
-    if (index === 0) {
+    const today = todayLocalMidnightMs();
+    const entryDate = new Date(isoDate);
+
+    if (entryDate.getTime() >= today) {
       return 'Today';
-    }
-    if (index === 1) {
-      return 'Previous';
+    } else if (entryDate.getTime() >= today - 86400000) {
+      return 'Yesterday';
     }
 
     return new Date(isoDate).toLocaleDateString('en-GB', {
@@ -195,41 +218,100 @@ export class DashboardPage {
     return `${sign}${pct.toFixed(2)}%`;
   }
 
-  private netChangeInWindow(entries: WeightEntry[], days: number): number | null {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const inWindow = entries
-      .filter(e => new Date(e.logged_at) >= cutoff)
-      .sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at));
-
-    if (inWindow.length < 2) {
-      return null;
-    }
-
-    return formatWeight(inWindow[inWindow.length - 1].weight_kg - inWindow[0].weight_kg, this.unitLabel());
+  private absoluteRatePerWeek(weeklyRate: number | null): string | null {
+    if (weeklyRate == null) return null;
+    const sign = weeklyRate > 0 ? '+' : '';
+    return `${sign}${weeklyRate.toFixed(2)}`;
   }
 
-  private weeklyRate(entries: WeightEntry[], days: number): number | null {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const inWindow = entries
-      .filter(e => new Date(e.logged_at) >= cutoff)
-      .sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at));
-
-    if (inWindow.length < 2) {
-      return null;
-    }
-
-    const first = inWindow[0];
-    const last = inWindow[inWindow.length - 1];
-    const elapsedDays = Math.max(1, Math.round((+new Date(last.logged_at) - +new Date(first.logged_at)) / 86400000));
-
-    return ((last.weight_kg - first.weight_kg) / elapsedDays) * 7;
+  private remaining(trendWeight: number | null, goalWeight: number | null): string | null {
+    if (trendWeight == null || goalWeight == null) return null;
+    const diff = Math.abs(goalWeight - trendWeight);
+    return diff < 0.01 ? '0' : diff.toFixed(1);
   }
 
-  private progressPercent(startWeight: number | null, currentWeight: number | null, goalWeight: number | null): number | null {
-    if (startWeight == null || currentWeight == null || goalWeight == null) {
+  private totalProgress(startWeight: number | null, trendWeight: number | null): string | null {
+    if (startWeight == null || trendWeight == null) return null;
+    const diff = trendWeight - startWeight;
+    const sign = diff > 0 ? '+' : '';
+    return `${sign}${diff.toFixed(1)}`;
+  }
+
+  private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
+    if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
+    const remaining = goalWeight - trendWeight;
+    if (Math.abs(remaining) < 0.01) return '0';
+    if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
+    if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
+    const weeks = Math.abs(remaining / weeklyRate);
+    return `${Math.ceil(weeks * 7)} days`;
+  }
+
+  private weeklyRate(entries: WeightEntry[], currentTrend: number | null): number | null {
+    if (currentTrend == null || entries.length < 2) return null;
+
+    const cutoff = todayLocalMidnightMs() - 7 * 86400000;
+    const alpha = 0.1;
+
+    let ewma = entries[0].weight_kg;
+    let ewma7dAgo: number | null = +new Date(entries[0].logged_at) <= cutoff ? ewma : null;
+
+    for (let i = 1; i < entries.length; i++) {
+      if (+new Date(entries[i].logged_at) > cutoff) break;
+      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
+      ewma7dAgo = ewma;
+    }
+
+    if (ewma7dAgo == null) return null;
+
+    return currentTrend - ewma7dAgo;
+  }
+
+  private daysMaintained(entries: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
+    if (!entries.length || goal == null || maintRange == null) return null;
+
+    const goalStart = +new Date(goal.start_date);
+    const alpha = 0.1;
+    let ewma = entries[0].weight_kg;
+
+    // Build trend only from goal start date onward
+    const trendByDate: Array<{ date: number; inRange: boolean }> = [];
+
+    if (+new Date(entries[0].logged_at) >= goalStart) {
+      trendByDate.push({
+        date: +new Date(entries[0].logged_at),
+        inRange: Math.abs(formatWeight(ewma, this.unitLabel()) - goal.goal_weight_kg) <= maintRange,
+      });
+    }
+
+    for (let i = 1; i < entries.length; i++) {
+      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
+      if (+new Date(entries[i].logged_at) >= goalStart) {
+        trendByDate.push({
+          date: +new Date(entries[i].logged_at),
+          inRange: Math.abs(formatWeight(ewma, this.unitLabel()) - goal.goal_weight_kg) <= maintRange,
+        });
+      }
+    }
+
+    if (!trendByDate.length) return null;
+
+    // If the most recent entry is out of range, streak is 0
+    if (!trendByDate[trendByDate.length - 1].inRange) return 0;
+
+    // Walk backward from latest entry to find the first out-of-range point
+    let streakStart = trendByDate.length - 1;
+    for (let i = trendByDate.length - 1; i >= 0; i--) {
+      if (!trendByDate[i].inRange) break;
+      streakStart = i;
+    }
+
+    const startDate = trendByDate[streakStart].date;
+    return Math.max(0, Math.round((todayLocalMidnightMs() - startDate) / 86400000));
+  }
+
+  private progressPercent(startWeight: number | null, trendWeight: number | null, goalWeight: number | null): number | null {
+    if (startWeight == null || trendWeight == null || goalWeight == null) {
       return null;
     }
 
@@ -238,29 +320,18 @@ export class DashboardPage {
       return 100;
     }
 
-    const progressed = currentWeight - startWeight;
+    const progressed = trendWeight - startWeight;
     const pct = (progressed / totalDelta) * 100;
     return Math.min(100, Math.max(0, pct));
   }
 
-  private expectedGoalDate(currentWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
-    if (currentWeight == null || goalWeight == null || weeklyRate == null) {
-      return null;
-    }
-
-    const remaining = goalWeight - currentWeight;
-    if (Math.abs(remaining) < 0.01) {
-      return 'Reached';
-    }
-
-    if (Math.abs(weeklyRate) < 0.01) {
-      return null;
-    }
-
-    if (Math.sign(remaining) !== Math.sign(weeklyRate)) {
-      return null;
-    }
-
+  private expectedGoalDate(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
+    if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
+    const remaining = goalWeight - trendWeight;
+    if (Math.abs(remaining) < 0.01) return 'Reached';
+    if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
+    if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
+    
     const weeks = Math.abs(remaining / weeklyRate);
     const days = Math.ceil(weeks * 7);
     const goalDate = new Date();
@@ -271,6 +342,23 @@ export class DashboardPage {
       opts.year = '2-digit';
     }
     return goalDate.toLocaleDateString(undefined, opts);
+  }
+
+  private stabilityLabel(entries: WeightEntry[]): string | null {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const recent = entries.filter(e => new Date(e.logged_at) >= cutoff);
+    if (recent.length < 2) return null;
+    const weights = recent.map(e => e.weight_kg);
+    const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
+    const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
+    const sd = Math.sqrt(variance);
+    const threshold = kgToUnit(1.5, this.unitLabel());
+    const score = Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
+    if (score >= 90) return 'Very stable';
+    if (score >= 75) return 'Stable';
+    if (score >= 50) return 'Some variation';
+    return 'Fluctuating';
   }
 
   private consistencyLabel(entries: WeightEntry[]): string {
@@ -288,21 +376,73 @@ export class DashboardPage {
     return `${sign}${weeklyRate.toFixed(2)} ${this.unitLabel()}/week`;
   }
 
-  private recommendation(currentWeight: number | null, weeklyRate: number | null): string {
-    if (currentWeight == null || weeklyRate == null) {
+  private recommendation(trendWeight: number | null, weeklyRate: number | null, goalType: GoalType, goalWeight: number | null): string {
+    if (trendWeight == null || weeklyRate == null) {
       return 'Log weight at least 3 times this week to unlock recommendations.';
     }
 
-    const bwRatePercent = Math.abs((weeklyRate / currentWeight) * 100);
-    if (bwRatePercent > 1.0) {
-      return 'Loss rate is high. Consider eating slightly more to protect recovery and lean mass.';
+    const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
+    const isGaining = weeklyRate > 0.01;
+    const isLosing = weeklyRate < -0.01;
+    const reachedGoal = goalWeight != null && Math.abs(trendWeight - goalWeight) < 0.3;
+
+    if (reachedGoal && goalType !== 'Maintenance') {
+      return 'You have reached your goal weight. Consider setting a maintenance or new target.';
     }
 
-    if (bwRatePercent < 0.25) {
-      return 'Progress is slower than target. Try a small calorie reduction or increase daily steps.';
-    }
+    switch (goalType) {
+      case 'Weight Loss': {
+        if (isGaining) {
+          return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.';
+        }
+        if (bwPct > 1.0) {
+          return 'Loss rate exceeds 1% BW/week. Slow down slightly to preserve lean mass and training performance.';
+        }
+        if (bwPct >= 0.5) {
+          return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
+        }
+        if (bwPct >= 0.25) {
+          return 'Losing steadily. If progress stalls, a small calorie reduction or extra daily steps can help.';
+        }
+        if (isLosing) {
+          return 'Progress is slower than optimal. Try reducing intake by ~100–200 kcal or adding 2,000 daily steps.';
+        }
+        return 'Weight is flat. Create a modest deficit — cut ~250 kcal or increase activity to get things moving.';
+      }
 
-    return 'Current trend is in a sustainable range. Keep calories and training consistent this week.';
+      case 'Weight Gain': {
+        if (isLosing) {
+          return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.';
+        }
+        if (bwPct > 1.0) {
+          return 'Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~200 kcal.';
+        }
+        if (bwPct >= 0.5) {
+          return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.';
+        }
+        if (bwPct >= 0.2) {
+          return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
+        }
+        if (isGaining) {
+          return 'Gaining slowly. If strength is not progressing, try adding ~150 kcal from protein or carbs.';
+        }
+        return 'Weight is flat. Increase intake — an extra 200–300 kcal should move the scale.';
+      }
+
+      case 'Maintenance': {
+        if (bwPct > 0.5) {
+          return isGaining
+            ? 'Drifting above maintenance. Reduce portion sizes slightly or add some low-intensity movement.'
+            : 'Drifting below maintenance. Add a small snack or slightly larger meals to stabilize.';
+        }
+        if (bwPct > 0.2) {
+          return isGaining
+            ? 'Slight upward drift. Stay mindful of weekend intake — a small adjustment now prevents larger corrections later.'
+            : 'Slight downward drift. Ensure you are eating enough to support training and recovery.';
+        }
+        return 'Weight is stable. Keep doing what works — consistency is the goal here.';
+      }
+    }
   }
 
   private findActiveGoal(goals: Goal[]): Goal | null {

@@ -1,3 +1,11 @@
+ion-card {
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
 .weight-note {
   color: var(--ion-color-primary);
   font-weight: 700;
@@ -8,6 +16,10 @@
   overflow: hidden;
   position: relative;
   border-radius: 24px;
+
+  &:active {
+    transform: none;
+  }
 
   &::after {
     background: radial-gradient(circle, rgba(var(--ion-color-primary-rgb), 0.15), transparent 70%);
@@ -49,6 +61,7 @@
     font-weight: 800;
     margin-bottom: 18px;
     padding: 6px 12px;
+    border-radius: 10px;
     position: relative;
     z-index: 1;
   }
@@ -152,10 +165,25 @@
   }
 }
 
+@keyframes tap-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
 .stat-tile {
   margin: 0;
   padding: 14px;
   box-shadow: none;
+
+  &:active {
+    transform: none;
+    animation: tap-bounce 0.2s ease;
+  }
+
+  > * {
+    pointer-events: none;
+  }
 
   .label {
     color: var(--ion-color-step-600);

@@ -258,10 +258,10 @@ export class ProgressPage {
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
     const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
 
-    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : Date.now() - 30 * 86400000;
+    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : todayLocalMidnightMs() - 30 * 86400000;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
     const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
-    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : Date.now() + 1 * 86400000;
+    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : todayLocalMidnightMs() + 1 * 86400000;
 
     const config = {
       type: 'line',

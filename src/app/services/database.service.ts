@@ -108,7 +108,7 @@ export class DatabaseService {
     }),
   );
   readonly recentEntries$: Observable<WeightEntry[]> = this.entries$.pipe(
-    map(entries => entries.slice(-50)),
+    map(entries => entries.slice(-90)),
   );
   readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(
     map(settings => {
@@ -271,6 +271,7 @@ export class DatabaseService {
       ['2026-07-30', 80.1], ['2026-07-31', 80.3], ['2026-08-01', 79.8], ['2026-08-02', 79.8], ['2026-08-03', 80.1],
       ['2026-08-04', 80.2], ['2026-08-05', 79.9], ['2026-08-06', 79.7], ['2026-08-07', 79.6], ['2026-08-08', 79.7],
       ['2026-08-09', 79.8], ['2026-08-10', 80.3], ['2026-08-11', 80.1], ['2026-08-12', 79.2], ['2026-08-13', 79.3],
+      ['2026-08-14', 79.6], ['2026-08-15', 79.3], ['2026-08-16', 79.6],
     ];
 
     // Increase iterations to generate additional randomized mock data.
