@@ -59,6 +59,7 @@ interface ChartColors {
   scaleDotBorder: string;
   scaleDotBorderHover: string;
   trendLine: string;
+  trendDotBorderHover: string;
   axisGrid: string;
   axisBorder: string;
   axisTick: string;
@@ -301,6 +302,7 @@ export class ProgressPage {
                   borderWidth: 3,
                   pointRadius: 0,
                   pointHoverRadius: 5,
+                  hoverBorderColor: colors['trendDotBorderHover'],
                   hoverBorderWidth: 2,
                   tension: 0.35,
                   fill: false,
@@ -503,7 +505,7 @@ export class ProgressPage {
         pointHitRadius: 20,
         pointBackgroundColor: colors['guideLine'],
         pointBorderColor: colors['guideLine'],
-        pointHoverRadius: 6,
+        pointHoverRadius: 5,
         tension: 0,
         fill: false,
         order: 4,
@@ -587,6 +589,7 @@ export class ProgressPage {
       scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '6, 182, 212'),
       scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 1, '6, 182, 212'),
       trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
+      trendDotBorderHover: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
       axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),
       axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.65, '15, 23, 42'),
