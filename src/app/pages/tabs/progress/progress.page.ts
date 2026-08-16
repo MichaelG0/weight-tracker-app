@@ -32,6 +32,7 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
 import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
+import { TrendService } from 'src/app/services/trend.service';
 
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
@@ -102,6 +103,7 @@ const LIST_PAGE_SIZE = 250;
 })
 export class ProgressPage {
   private readonly db = inject(DatabaseService);
+  private readonly trendService = inject(TrendService);
   private readonly cssTheme = inject(CssThemeService);
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
@@ -252,7 +254,7 @@ export class ProgressPage {
     const colors: ChartColors = this.getChartColors();
 
     const dots: Pt[] = entries.map(e => ({ x: +new Date(e.logged_at), y: e.weight_kg }));
-    const trendLine: Pt[] = this.hackersDietAvg(entries);
+    const trendLine: Pt[] = this.getTrendLine(entries);
     const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
@@ -419,29 +421,13 @@ export class ProgressPage {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  private hackersDietAvg(entries: WeightEntry[]): Pt[] {
-    if (!entries || entries.length === 0) return [];
-
-    const ALPHA = 0.1; // 10% smoothing factor
-    const pts: Pt[] = [];
-
-    // 2. The first day's trend is simply the first day's logged weight
-    let currentTrend = entries[0].weight_kg;
-
-    for (const entry of entries) {
-      const timestamp = new Date(entry.logged_at).getTime();
-      const currentWeight = entry.weight_kg;
-
-      // 3. Apply the Hacker's Diet formula
-      currentTrend = currentTrend + ALPHA * (currentWeight - currentTrend);
-
-      pts.push({
-        x: timestamp,
-        y: currentTrend,
-      });
-    }
-
-    return pts;
+  private getTrendLine(entries: WeightEntry[]): Pt[] {
+    if (!entries.length) return [];
+    const allPoints = this.trendService.points();
+    const startDate = +new Date(entries[0].logged_at);
+    return allPoints
+      .filter(p => p.date >= startDate)
+      .map(p => ({ x: p.date, y: p.trend }));
   }
 
   private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {

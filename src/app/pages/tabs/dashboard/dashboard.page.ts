@@ -25,6 +25,7 @@ import {
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
+import { TrendService, TrendPoint } from 'src/app/services/trend.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -84,6 +85,7 @@ interface DashboardVm {
 })
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
+  private readonly trendService = inject(TrendService);
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
@@ -95,8 +97,10 @@ export class DashboardPage {
     const entries = this.entries();
     const goals = this.goals();
     const reversed = [...entries].reverse();
+    const trendPoints = this.trendService.points();
 
-    const trendWeight = this.hackersDietAverage(entries);
+    const rawTrend = this.trendService.currentTrend();
+    const trendWeight = rawTrend !== null ? formatWeight(rawTrend, this.unitLabel()) : null;
     const activeGoal = this.findActiveGoal(goals);
     const startWeight = activeGoal?.start_weight_kg ?? null;
     const goalWeight = activeGoal?.goal_weight_kg ?? null;
@@ -106,22 +110,22 @@ export class DashboardPage {
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
-    if (goalType === 'Maintenance' && trendWeight !== null && goalWeight !== null) {
+    if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
       maintRange = kgToUnit(0.907186, this.unitLabel());
-      maintOffset = formatWeight(trendWeight - goalWeight, this.unitLabel());
+      maintOffset = formatWeight(rawTrend - goalWeight, this.unitLabel());
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
-    const weeklyRate = this.weeklyRate(entries, trendWeight);
-    const progressPercent = this.progressPercent(startWeight, trendWeight, goalWeight);
-    const expectedGoalDate = this.expectedGoalDate(trendWeight, goalWeight, weeklyRate);
-    const bwPercentPerWeek = this.bwPercentPerWeek(trendWeight, weeklyRate);
+    const weeklyRate = this.weeklyRate(rawTrend);
+    const progressPercent = this.progressPercent(startWeight, rawTrend, goalWeight);
+    const expectedGoalDate = this.expectedGoalDate(rawTrend, goalWeight, weeklyRate);
+    const bwPercentPerWeek = this.bwPercentPerWeek(rawTrend, weeklyRate);
     const absoluteRatePerWeek = this.absoluteRatePerWeek(weeklyRate);
-    const remaining = this.remaining(trendWeight, goalWeight);
-    const totalProgress = this.totalProgress(startWeight, trendWeight);
-    const daysToGoal = this.daysToGoal(trendWeight, goalWeight, weeklyRate);
-    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null;
+    const remaining = this.remaining(rawTrend, goalWeight);
+    const totalProgress = this.totalProgress(startWeight, rawTrend);
+    const daysToGoal = this.daysToGoal(rawTrend, goalWeight, weeklyRate);
+    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(trendPoints, activeGoal, maintRange) : null;
     const stabilityLabel = this.stabilityLabel(reversed);
     const consistency = this.consistencyLabel(reversed);
 
@@ -143,7 +147,7 @@ export class DashboardPage {
       daysMaintained,
       stabilityLabel,
       consistency,
-      recommendation: this.recommendation(trendWeight, weeklyRate, goalType, goalWeight),
+      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight),
       rateLabel: this.rateLabel(weeklyRate),
       recentEntries: this.recentEntries(reversed),
       unitLabel: this.unitLabel(),
@@ -198,19 +202,6 @@ export class DashboardPage {
     });
   }
 
-  private hackersDietAverage(entries: WeightEntry[]): number | null {
-    if (!entries.length) return null;
-
-    const alpha = 0.1;
-    let ewma = entries[0].weight_kg;
-
-    for (let i = 1; i < entries.length; i++) {
-      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
-    }
-
-    return formatWeight(ewma, this.unitLabel());
-  }
-
   private bwPercentPerWeek(trendWeight: number | null, weeklyRate: number | null): string | null {
     if (trendWeight == null || weeklyRate == null || Math.abs(trendWeight) < 0.01) return null;
     const pct = (weeklyRate / trendWeight) * 100;
@@ -247,67 +238,31 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
-  private weeklyRate(entries: WeightEntry[], currentTrend: number | null): number | null {
-    if (currentTrend == null || entries.length < 2) return null;
-
-    const cutoff = todayLocalMidnightMs() - 7 * 86400000;
-    const alpha = 0.1;
-
-    let ewma = entries[0].weight_kg;
-    let ewma7dAgo: number | null = +new Date(entries[0].logged_at) <= cutoff ? ewma : null;
-
-    for (let i = 1; i < entries.length; i++) {
-      if (+new Date(entries[i].logged_at) > cutoff) break;
-      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
-      ewma7dAgo = ewma;
-    }
-
-    if (ewma7dAgo == null) return null;
-
-    return currentTrend - ewma7dAgo;
+  private weeklyRate(currentTrend: number | null): number | null {
+    if (currentTrend == null) return null;
+    const trend7dAgo = this.trendService.trendAt(todayLocalMidnightMs() - 7 * 86400000);
+    if (trend7dAgo == null) return null;
+    return currentTrend - trend7dAgo;
   }
 
-  private daysMaintained(entries: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
-    if (!entries.length || goal == null || maintRange == null) return null;
+  private daysMaintained(trendPoints: TrendPoint[], goal: Goal | null, maintRange: number | null): number | null {
+    if (!trendPoints.length || goal == null || maintRange == null) return null;
 
     const goalStart = +new Date(goal.start_date);
-    const alpha = 0.1;
-    let ewma = entries[0].weight_kg;
+    const pts = trendPoints.filter(p => p.date >= goalStart);
+    if (!pts.length) return null;
 
-    // Build trend only from goal start date onward
-    const trendByDate: Array<{ date: number; inRange: boolean }> = [];
+    // If the most recent point is out of range, streak is 0
+    if (Math.abs(pts[pts.length - 1].trend - goal.goal_weight_kg) > maintRange) return 0;
 
-    if (+new Date(entries[0].logged_at) >= goalStart) {
-      trendByDate.push({
-        date: +new Date(entries[0].logged_at),
-        inRange: Math.abs(formatWeight(ewma, this.unitLabel()) - goal.goal_weight_kg) <= maintRange,
-      });
-    }
-
-    for (let i = 1; i < entries.length; i++) {
-      ewma = ewma * (1 - alpha) + entries[i].weight_kg * alpha;
-      if (+new Date(entries[i].logged_at) >= goalStart) {
-        trendByDate.push({
-          date: +new Date(entries[i].logged_at),
-          inRange: Math.abs(formatWeight(ewma, this.unitLabel()) - goal.goal_weight_kg) <= maintRange,
-        });
-      }
-    }
-
-    if (!trendByDate.length) return null;
-
-    // If the most recent entry is out of range, streak is 0
-    if (!trendByDate[trendByDate.length - 1].inRange) return 0;
-
-    // Walk backward from latest entry to find the first out-of-range point
-    let streakStart = trendByDate.length - 1;
-    for (let i = trendByDate.length - 1; i >= 0; i--) {
-      if (!trendByDate[i].inRange) break;
+    // Walk backward to find the first out-of-range point
+    let streakStart = pts.length - 1;
+    for (let i = pts.length - 1; i >= 0; i--) {
+      if (Math.abs(pts[i].trend - goal.goal_weight_kg) > maintRange) break;
       streakStart = i;
     }
 
-    const startDate = trendByDate[streakStart].date;
-    return Math.max(0, Math.round((todayLocalMidnightMs() - startDate) / 86400000));
+    return Math.max(0, Math.round((todayLocalMidnightMs() - pts[streakStart].date) / 86400000));
   }
 
   private progressPercent(startWeight: number | null, trendWeight: number | null, goalWeight: number | null): number | null {
