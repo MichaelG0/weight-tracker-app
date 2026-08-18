@@ -8,6 +8,7 @@ import {
   inject,
   Input,
   OnInit,
+  Signal,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -31,7 +32,7 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
-import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
+import { TrendPoint, DatabaseService } from 'src/app/services/database.service';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -64,15 +65,14 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
   private readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
   readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
 
-  private readonly entriesByDate = signal(new Map<string, WeightEntry>());
-  @Input() protected set entries(value: WeightEntry[]) {
-    const map = new Map<string, WeightEntry>();
-    for (const entry of value) {
-      const dateKey = entry.logged_at.substring(0, 10);
+  private readonly entriesByDate: Signal<Map<string, TrendPoint>> = computed(() => {
+    const map = new Map<string, TrendPoint>();
+    for (const entry of this.db.entries()) {
+      const dateKey = entry.date.substring(0, 10);
       map.set(dateKey, entry);
     }
-    this.entriesByDate.set(map);
-  }
+    return map;
+  });
   readonly highlightedDates = computed(() =>
     [...this.entriesByDate().keys()].map(date => ({
       date,
@@ -81,7 +81,7 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
     })),
   );
   readonly maxDate = new Date().toISOString();
-  readonly formData = {
+  @Input() readonly formData = {
     existingEntryId: null as number | null,
     weight: null as number | null,
     selectedDate: new Date().toISOString(),
@@ -146,7 +146,7 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
 
     if (existing) {
       this.formData.existingEntryId = existing.id;
-      this.formData.weight = existing.weight_kg;
+      this.formData.weight = existing.weight;
       this.formData.notes = existing.notes ?? '';
     } else {
       this.formData.existingEntryId = null;

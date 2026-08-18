@@ -91,8 +91,8 @@
               </ion-col>
               <ion-col size="4">
                 <ion-card class="stat-tile">
-                  <p class="label">Stability</p>
-                  <h4>{{ vm.stabilityLabel ?? '--' }}</h4>
+                  <p class="label">Target offset</p>
+                  <h4>{{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + vm.maintOffset + ' ' + vm.unitLabel : '0' }}</h4>
                 </ion-card>
               </ion-col>
               <ion-col size="4">

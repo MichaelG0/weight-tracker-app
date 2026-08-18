@@ -21,7 +21,7 @@ import {
 import { addIcons } from 'ionicons';
 import { analyticsOutline, create, trashOutline, documentTextOutline } from 'ionicons/icons';
 import { take } from 'rxjs';
-import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, TrendPoint } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
@@ -29,7 +29,7 @@ import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 
 const LIST_PAGE_SIZE = 50;
 
-interface HistoryEntry extends WeightEntry {
+interface HistoryEntry extends TrendPoint {
   weightChangeKg: number | null;
 }
 
@@ -62,16 +62,15 @@ export class HistoryPage {
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
   readonly listVisibleCount = signal(LIST_PAGE_SIZE);
-  private readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   readonly listEntries = computed<HistoryEntry[]>(() => {
-    const desc = [...this.allEntries()].reverse();
+    const desc = [...this.db.entries()].reverse();
     return desc.map((entry, index) => {
       const olderEntry = desc[index + 1];
       return {
         ...entry,
-        weightChangeKg: olderEntry ? entry.weight_kg - olderEntry.weight_kg : null,
+        weightChangeKg: olderEntry ? entry.weight - olderEntry.weight : null,
       };
     });
   });
@@ -101,11 +100,10 @@ export class HistoryPage {
     const modal = await this.modalCtrl.create({
       component: LogWeightModalComponent,
       componentProps: {
-        entries: this.allEntries(),
         formData: {
           existingEntryId: entry.id,
-          weight: entry.weight_kg,
-          selectedDate: entry.logged_at,
+          weight: entry.weight,
+          selectedDate: entry.date,
           notes: entry.notes ?? '',
         },
       },
@@ -115,16 +113,6 @@ export class HistoryPage {
     });
 
     await modal.present();
-
-    const { data, role } = await modal.onWillDismiss();
-
-    if (role === 'confirm' && data) {
-      if (data.id != null) {
-        this.db.updateEntry(data).pipe(take(1)).subscribe();
-      } else {
-        this.db.addEntry(data).pipe(take(1)).subscribe();
-      }
-    }
   }
 
   async onDelete(entry: HistoryEntry): Promise<void> {
@@ -143,8 +131,8 @@ export class HistoryPage {
           role: 'cancel',
           handler: () => {
             this.db.addEntry({
-              weight_kg: entry.weight_kg,
-              logged_at: entry.logged_at,
+              weight_kg: entry.weight,
+              logged_at: String(entry.date),
               notes: entry.notes,
             }).pipe(take(1)).subscribe();
           },

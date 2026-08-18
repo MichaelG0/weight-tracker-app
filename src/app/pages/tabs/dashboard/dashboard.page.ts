@@ -24,8 +24,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
-import { TrendService, TrendPoint } from 'src/app/services/trend.service';
+import { DatabaseService, Goal, GoalType, TrendPoint } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -85,21 +84,18 @@ interface DashboardVm {
 })
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
-  private readonly trendService = inject(TrendService);
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
-  private readonly entries = toSignal(this.databaseService.recentEntries$, { initialValue: [] });
   private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
   readonly vm: Signal<DashboardVm> = computed(() => {
-    const entries = this.entries();
-    const goals = this.goals();
+    const entries = this.databaseService.entries();
     const reversed = [...entries].reverse();
-    const trendPoints = this.trendService.points();
+    const goals = this.goals();
 
-    const rawTrend = this.trendService.currentTrend();
+    const rawTrend = this.databaseService.currentTrend();
     const trendWeight = rawTrend !== null ? formatWeight(rawTrend, this.unitLabel()) : null;
     const activeGoal = this.findActiveGoal(goals);
     const startWeight = activeGoal?.start_weight_kg ?? null;
@@ -125,7 +121,7 @@ export class DashboardPage {
     const remaining = this.remaining(rawTrend, goalWeight);
     const totalProgress = this.totalProgress(startWeight, rawTrend);
     const daysToGoal = this.daysToGoal(rawTrend, goalWeight, weeklyRate);
-    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(trendPoints, activeGoal, maintRange) : null;
+    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null;
     const stabilityLabel = this.stabilityLabel(reversed);
     const consistency = this.consistencyLabel(reversed);
 
@@ -161,9 +157,6 @@ export class DashboardPage {
   async openLogWeight(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: LogWeightModalComponent,
-      componentProps: {
-        entries: this.entries(),
-      },
       breakpoints: [0, 0.85, 1],
       initialBreakpoint: 0.85,
       handleBehavior: 'cycle',
@@ -179,10 +172,10 @@ export class DashboardPage {
     this.statFlip.set(updated);
   }
 
-  private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {
+  private recentEntries(entries: TrendPoint[]): Array<{ label: string; weight: number }> {
     return entries.slice(0, 3).map((entry, index) => ({
-      label: this.entryLabel(entry.logged_at, index),
-      weight: entry.weight_kg,
+      label: this.entryLabel(entry.date, index),
+      weight: entry.weight,
     }));
   }
 
@@ -240,7 +233,7 @@ export class DashboardPage {
 
   private weeklyRate(currentTrend: number | null): number | null {
     if (currentTrend == null) return null;
-    const trend7dAgo = this.trendService.trendAt(todayLocalMidnightMs() - 7 * 86400000);
+    const trend7dAgo = this.databaseService.trendAt(todayLocalMidnightMs() - 7 * 86400000);
     if (trend7dAgo == null) return null;
     return currentTrend - trend7dAgo;
   }
@@ -249,7 +242,7 @@ export class DashboardPage {
     if (!trendPoints.length || goal == null || maintRange == null) return null;
 
     const goalStart = +new Date(goal.start_date);
-    const pts = trendPoints.filter(p => p.date >= goalStart);
+    const pts = trendPoints.filter(p => p.dateMs >= goalStart);
     if (!pts.length) return null;
 
     // If the most recent point is out of range, streak is 0
@@ -262,7 +255,7 @@ export class DashboardPage {
       streakStart = i;
     }
 
-    return Math.max(0, Math.round((todayLocalMidnightMs() - pts[streakStart].date) / 86400000));
+    return Math.max(0, Math.round((todayLocalMidnightMs() - pts[streakStart].dateMs) / 86400000));
   }
 
   private progressPercent(startWeight: number | null, trendWeight: number | null, goalWeight: number | null): number | null {
@@ -299,12 +292,12 @@ export class DashboardPage {
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
-  private stabilityLabel(entries: WeightEntry[]): string | null {
+  private stabilityLabel(reversedEntries: TrendPoint[]): string | null {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 7);
-    const recent = entries.filter(e => new Date(e.logged_at) >= cutoff);
+    const recent = reversedEntries.filter(e => new Date(e.date) >= cutoff);
     if (recent.length < 2) return null;
-    const weights = recent.map(e => e.weight_kg);
+    const weights = recent.map(e => e.weight);
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
     const sd = Math.sqrt(variance);
@@ -316,10 +309,10 @@ export class DashboardPage {
     return 'Fluctuating';
   }
 
-  private consistencyLabel(entries: WeightEntry[]): string {
+  private consistencyLabel(reversedEntries: TrendPoint[]): string {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 7);
-    const weeklyEntries = entries.filter(e => new Date(e.logged_at) >= cutoff);
+    const weeklyEntries = reversedEntries.filter(e => new Date(e.date) >= cutoff);
     return `${weeklyEntries.length} / 7 check-ins`;
   }
 

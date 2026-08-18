@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { computed, Injectable, Signal } from '@angular/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Observable, ReplaySubject, from } from 'rxjs';
@@ -6,8 +6,9 @@ import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, kgToUnit, ftInToCm, unitToKg } from '../utils/unit-conversion.util';
 import { toLocalMidnightString } from '../utils/date-converter.util';
+import { toSignal } from '@angular/core/rxjs-interop';
 
-// ─── Models ──────────────────────────────────────────────────────────────────
+// ─── Entities ──────────────────────────────────────────────────────────────────
 
 export interface WeightEntry {
   id: number;
@@ -16,8 +17,6 @@ export interface WeightEntry {
   notes?: string;
 }
 
-export type GoalType = 'Weight Gain' | 'Weight Loss' | 'Maintenance';
-
 export interface Goal {
   id: number;
   start_weight_kg: number;
@@ -25,14 +24,6 @@ export interface Goal {
   start_date: string; // ISO-8601
   goal_date: string; // ISO-8601
   label: GoalType;
-}
-
-export type WeightUnit = 'kg' | 'lbs' | 'st';
-export type HeightUnit = 'cm' | 'ft/in';
-
-export interface HeightFtIn {
-  feet: number | null;
-  inches: number | null;
 }
 
 export interface UserSettings {
@@ -46,13 +37,34 @@ export interface UserSettings {
   height_unit?: HeightUnit;
 }
 
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+export type GoalType = 'Weight Gain' | 'Weight Loss' | 'Maintenance';
+
+export type WeightUnit = 'kg' | 'lbs' | 'st';
+export type HeightUnit = 'cm' | 'ft/in';
+
+export interface HeightFtIn {
+  feet: number | null;
+  inches: number | null;
+}
+
+export interface TrendPoint {
+  id: number;
+  date: string; // ISO-8601
+  dateMs: number; // timestamp ms
+  weight: number; // scale weight in user unit
+  trend: number; // EWMA in user unit
+  notes?: string;
+}
+
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const MIGRATIONS = `
   CREATE TABLE IF NOT EXISTS weight_entries (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     weight_kg  REAL NOT NULL,
-    logged_at  TEXT NOT NULL,
+    logged_at  TEXT NOT NULL UNIQUE,
     notes      TEXT
   );
 
@@ -76,6 +88,8 @@ const MIGRATIONS = `
   );
 `;
 
+const ALPHA = 0.1;
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
@@ -95,21 +109,42 @@ export class DatabaseService {
   private readonly _settings$ = new BehaviorSubject<UserSettings | null>(null);
   private readonly _goals$ = new BehaviorSubject<Goal[]>([]);
 
-  readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable().pipe(
+  /** All entries with their computed EWMA trend value, sorted oldest → newest. */
+  private readonly entries$: Observable<TrendPoint[]> = this._entries$.asObservable().pipe(
     map(entries => {
+      if (!entries.length) return [];
+      console.log('Calculating trend for entries:', entries);
+
       const unit = this.currentWeightUnit;
-      const converted = entries
-        .sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at))
-        .map(e => ({
-          ...e,
-          weight_kg: kgToUnit(e.weight_kg, unit),
-        }));
-      return converted;
+      const ordered = entries.sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at));
+
+      const pts: TrendPoint[] = [];
+      let ewma = kgToUnit(entries[0].weight_kg, unit);
+
+      for (const entry of ordered) {
+        const convertedWeight = kgToUnit(entry.weight_kg, unit);
+        ewma = ewma + ALPHA * (convertedWeight - ewma);
+        pts.push({
+          id: entry.id,
+          date: entry.logged_at,
+          dateMs: +new Date(entry.logged_at),
+          weight: convertedWeight,
+          trend: ewma,
+          notes: entry.notes,
+        });
+      }
+
+      console.log('Computed trend points:', pts);
+
+      return pts;
     }),
   );
-  readonly recentEntries$: Observable<WeightEntry[]> = this.entries$.pipe(
-    map(entries => entries.slice(-90)),
-  );
+  readonly entries: Signal<TrendPoint[]> = toSignal(this.entries$, { initialValue: [] });
+  readonly recentEntries: Signal<TrendPoint[]> = computed(() => this.entries().slice(-90));
+  readonly currentTrend: Signal<number | null> = computed(() => {
+    const pts = this.entries();
+    return pts.length ? pts[pts.length - 1].trend : null;
+  });
   readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(
     map(settings => {
       if (!settings) return null;
@@ -297,6 +332,7 @@ export class DatabaseService {
   // ── Weight entries ────────────────────────────────────────────────────────
 
   addEntry(entry: Omit<WeightEntry, 'id'>): Observable<void> {
+    console.log('Adding entry:', entry);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
@@ -312,6 +348,7 @@ export class DatabaseService {
   }
 
   updateEntry(entry: Required<Pick<WeightEntry, 'id'>> & Partial<WeightEntry>): Observable<void> {
+    console.log('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
     const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.currentWeightUnit) : null;
@@ -346,6 +383,29 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntry) ?? null)),
     );
+  }
+
+  /** Trend value at or before a given timestamp. */
+  trendAt(timestampMs: number): number | null {
+    const pts = this.entries();
+    if (!pts.length || timestampMs < pts[0].dateMs) return null;
+
+    // Binary search for the last index where pt.date <= timestampMs.
+    let lo = 0;
+    let hi = pts.length - 1;
+    let result = -1;
+
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (pts[mid].dateMs <= timestampMs) {
+        result = mid;
+        lo = mid + 1; // keep searching right for a later valid index
+      } else {
+        hi = mid - 1;
+      }
+    }
+
+    return result === -1 ? null : pts[result].trend;
   }
 
   // ── User settings ─────────────────────────────────────────────────────────
@@ -385,6 +445,7 @@ export class DatabaseService {
   // ── Goals ──────────────────────────────────────────────────────────────────
 
   addGoal(goal: Omit<Goal, 'id'>): Observable<void> {
+    console.log('Adding goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
@@ -402,6 +463,7 @@ export class DatabaseService {
   }
 
   updateGoal(goal: Required<Pick<Goal, 'id'>> & Partial<Goal>): Observable<void> {
+    console.log('Updating goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(

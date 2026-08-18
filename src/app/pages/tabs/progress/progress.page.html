@@ -97,14 +97,14 @@
     <ion-card-content>
       <div class="goals-header">
         <p class="goals-label">Goals</p>
-        <ion-button fill="clear" size="small" (click)="addGoal()">
+        <ion-button fill="clear" size="small" (click)="openSetGoal()">
           <ion-icon slot="icon-only" name="add-outline"></ion-icon>
         </ion-button>
       </div>
       <ion-list lines="none">
         @for (goal of goals(); track goal.id) {
           <ion-item-sliding #slidingItem appDeckCardOptions>
-            <ion-item class="goal-item" button (click)="editGoal(goal)">
+            <ion-item class="goal-item" button (click)="openSetGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
                 <h3>{{ goal.goal_weight_kg | number: '1.1-1' }} {{ unitLabel() }}</h3>
@@ -119,7 +119,7 @@
             </ion-item-options>
           </ion-item-sliding>
         } @empty {
-          <ion-item class="goal-item" button (click)="addGoal()">
+          <ion-item class="goal-item" button (click)="openSetGoal()">
             <ion-icon name="add-outline" slot="start" class="goal-flag"></ion-icon>
             <ion-label>Set your first goal</ion-label>
           </ion-item>

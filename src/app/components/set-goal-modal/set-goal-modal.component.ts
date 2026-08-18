@@ -18,9 +18,10 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
+import { formatWeight } from 'src/app/utils/unit-conversion.util';
 
 @Component({
   selector: 'app-set-goal-modal',
@@ -55,8 +56,8 @@ export class SetGoalModalComponent implements OnInit {
   weeklyRate = 0.5;
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
-  private allEntries: WeightEntry[] = [];
-  private allGoals: Goal[] = [];
+  // Load existing goals for overlap validation
+  private allGoals = toSignal(this.db.goals$, { initialValue: [] });
 
   readonly formData = {
     startWeight: null as number | null,
@@ -71,22 +72,11 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Load existing goals for overlap validation
-    this.db.goals$.pipe(take(1)).subscribe(goals => {
-      this.allGoals = goals;
-      if (!this.isEditing) {
-        this.formData.startDate = this.getDefaultStartDate();
-      }
-    });
+    this.refreshStartWeight();
 
-    // Grab latest entries for the hacker's diet EMA (only need recent entries for a stable trend)
-    this.db.entries$.pipe(take(1)).subscribe(entries => {
-      this.allEntries = [...entries].sort((a, b) => +new Date(a.logged_at) - +new Date(b.logged_at)).slice(-50);
-
-      if (!this.isEditing) {
-        this.refreshStartWeight();
-      }
-    });
+    if (!this.isEditing) {
+      this.formData.startDate = this.getDefaultStartDate();
+    }
 
     if (this.goal) {
       this.isEditing = true;
@@ -108,15 +98,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   refreshStartWeight(): void {
-    if (this.allEntries.length === 0) return;
-
-    const ALPHA = 0.1;
-    let currentTrend = this.allEntries[0].weight_kg;
-    for (const entry of this.allEntries) {
-      currentTrend = currentTrend + ALPHA * (entry.weight_kg - currentTrend);
-    }
-
-    this.formData.startWeight = parseFloat(currentTrend.toFixed(1));
+    this.formData.startWeight = formatWeight(this.db.currentTrend() ?? 0, this.unitLabel());
     this.onStartWeightChange();
   }
 
@@ -214,10 +196,15 @@ export class SetGoalModalComponent implements OnInit {
     };
 
     if (this.isEditing && this.goal) {
-      result.id = this.goal.id;
+      this.db
+        .updateGoal({ id: this.goal.id, ...result })
+        .pipe(take(1))
+        .subscribe();
+    } else {
+      this.db.addGoal(result).pipe(take(1)).subscribe();
     }
 
-    this.modalCtrl.dismiss(result, 'confirm');
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
@@ -225,10 +212,10 @@ export class SetGoalModalComponent implements OnInit {
   private getDefaultStartDate(): string {
     const today = new Date().toISOString().substring(0, 10);
 
-    if (this.allGoals.length === 0) return today;
+    if (this.allGoals().length === 0) return today;
 
     // Default to end date of the latest goal
-    const sorted = [...this.allGoals].sort((a, b) => a.goal_date.localeCompare(b.goal_date));
+    const sorted = [...this.allGoals()].sort((a, b) => a.goal_date.localeCompare(b.goal_date));
     const lastEnd = sorted[sorted.length - 1].goal_date.substring(0, 10);
     return lastEnd > today ? lastEnd : today;
   }
@@ -262,7 +249,7 @@ export class SetGoalModalComponent implements OnInit {
 
   getOverlapError = (startDate: string, endDate: string): string => {
     if (!startDate || !endDate) return '';
-    for (const g of this.allGoals) {
+    for (const g of this.allGoals()) {
       if (this.isEditing && this.goal && g.id === this.goal.id) continue;
       const gStart = g.start_date.substring(0, 10);
       const gEnd = g.goal_date.substring(0, 10);

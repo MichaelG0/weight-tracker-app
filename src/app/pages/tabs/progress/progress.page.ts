@@ -31,8 +31,7 @@ import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
-import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
-import { TrendService } from 'src/app/services/trend.service';
+import { DatabaseService, Goal, TrendPoint, WeightUnit } from 'src/app/services/database.service';
 
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
@@ -103,7 +102,6 @@ const LIST_PAGE_SIZE = 250;
 })
 export class ProgressPage {
   private readonly db = inject(DatabaseService);
-  private readonly trendService = inject(TrendService);
   private readonly cssTheme = inject(CssThemeService);
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
@@ -114,7 +112,7 @@ export class ProgressPage {
   readonly showDaily = signal<boolean>(true);
   readonly showTrend = signal<boolean>(true);
 
-  readonly allEntries = toSignal(this.db.entries$, { initialValue: [] as WeightEntry[] });
+  readonly allEntries = this.db.entries;
   readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
@@ -143,7 +141,7 @@ export class ProgressPage {
         const activeGoals = goals.filter(g => +new Date(g.start_date) <= todayMs);
         if (activeGoals.length > 0) {
           const cutoff = Math.max(...activeGoals.map(g => +new Date(g.start_date)));
-          filteredEntries = allEntries.filter(e => +new Date(e.logged_at) >= cutoff);
+          filteredEntries = allEntries.filter(e => +new Date(e.date) >= cutoff);
           filteredGoals = goals.filter(g => +new Date(g.start_date) >= cutoff);
         }
       }
@@ -163,22 +161,7 @@ export class ProgressPage {
 
   // ── Goal management ─────────────────────────────────────────────────────────
 
-  async addGoal(): Promise<void> {
-    const modal = await this.modalCtrl.create({
-      component: SetGoalModalComponent,
-      breakpoints: [0, 0.85, 1],
-      initialBreakpoint: 0.85,
-      handleBehavior: 'cycle',
-    });
-    await modal.present();
-
-    const { data, role } = await modal.onWillDismiss();
-    if (role === 'confirm' && data) {
-      this.db.addGoal(data).pipe(take(1)).subscribe();
-    }
-  }
-
-  async editGoal(goal: Goal): Promise<void> {
+  async openSetGoal(goal?: Goal): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
       componentProps: { goal },
@@ -187,11 +170,6 @@ export class ProgressPage {
       handleBehavior: 'cycle',
     });
     await modal.present();
-
-    const { data, role } = await modal.onWillDismiss();
-    if (role === 'confirm' && data && data.id != null) {
-      this.db.updateGoal(data).pipe(take(1)).subscribe();
-    }
   }
 
   async deleteGoal(goal: Goal): Promise<void> {
@@ -244,7 +222,7 @@ export class ProgressPage {
 
   private renderChart(
     canvas: HTMLCanvasElement,
-    entries: WeightEntry[],
+    entries: TrendPoint[],
     goals: Goal[],
     range: RangeMode,
     showDaily: boolean,
@@ -253,14 +231,14 @@ export class ProgressPage {
   ): void {
     const colors: ChartColors = this.getChartColors();
 
-    const dots: Pt[] = entries.map(e => ({ x: +new Date(e.logged_at), y: e.weight_kg }));
+    const dots: Pt[] = entries.map(e => ({ x: +new Date(e.date), y: e.weight }));
     const trendLine: Pt[] = this.getTrendLine(entries);
     const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
     const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
 
-    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].logged_at) : todayLocalMidnightMs() - 30 * 86400000;
+    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].date) : todayLocalMidnightMs() - 30 * 86400000;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
     const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
     const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : todayLocalMidnightMs() + 1 * 86400000;
@@ -421,13 +399,12 @@ export class ProgressPage {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  private getTrendLine(entries: WeightEntry[]): Pt[] {
+  private getTrendLine(entries: TrendPoint[]): Pt[] {
     if (!entries.length) return [];
-    const allPoints = this.trendService.points();
-    const startDate = +new Date(entries[0].logged_at);
-    return allPoints
-      .filter(p => p.date >= startDate)
-      .map(p => ({ x: p.date, y: p.trend }));
+    const startDate = +new Date(entries[0].date);
+    return entries
+      .filter(p => p.dateMs >= startDate)
+      .map(p => ({ x: p.dateMs, y: p.trend }));
   }
 
   private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
@@ -502,7 +479,7 @@ export class ProgressPage {
   }
 
   private getBounds(
-    entries: WeightEntry[],
+    entries: TrendPoint[],
     goals: Goal[],
     lastGoalDateMs: number | null,
     range: RangeMode,
@@ -511,7 +488,7 @@ export class ProgressPage {
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
     const todayMs = todayLocalMidnightMs();
 
-    const weights = entries.map(e => e.weight_kg);
+    const weights = entries.map(e => e.weight);
     for (const g of goals) {
       weights.push(g.start_weight_kg);
       if (g.label === 'Maintenance') {
@@ -530,14 +507,14 @@ export class ProgressPage {
       xMin = +cutoff;
       xMax = todayMs;
     } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0) {
-      xMin = +new Date(entries[0].logged_at);
+      xMin = +new Date(entries[0].date);
       const futureGoalDates = goals.map(g => +new Date(g.goal_date)).filter(d => d > todayMs);
       xMax = futureGoalDates.length > 0 ? Math.min(...futureGoalDates) : (lastGoalDateMs ?? todayMs);
     } else if (range === 'full') {
-      xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : todayMs - 30 * 86400000;
+      xMin = entries.length > 0 ? +new Date(entries[0].date) : todayMs - 30 * 86400000;
       xMax = todayMs;
     } else {
-      xMin = entries.length > 0 ? +new Date(entries[0].logged_at) : todayMs - 30 * 86400000;
+      xMin = entries.length > 0 ? +new Date(entries[0].date) : todayMs - 30 * 86400000;
       xMax = todayMs;
     }
 
