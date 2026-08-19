@@ -10,14 +10,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
 
-export interface WeightEntry {
+export interface WeightEntryDB {
   id: number;
   weight_kg: number;
   logged_at: string; // ISO-8601
   notes?: string;
 }
 
-export interface Goal {
+export interface GoalDB {
   id: number;
   start_weight_kg: number;
   goal_weight_kg: number;
@@ -26,7 +26,7 @@ export interface Goal {
   label: GoalType;
 }
 
-export interface UserSettings {
+export interface UserSettingsDB {
   user_id: number;
   name?: string;
   age?: number;
@@ -49,7 +49,7 @@ export interface HeightFtIn {
   inches: number | null;
 }
 
-export interface TrendPoint {
+export interface WeightEntry {
   id: number;
   date: string; // ISO-8601
   dateMs: number; // timestamp ms
@@ -107,12 +107,12 @@ export class DatabaseService {
   // Subscribe in components — updated automatically after every mutation.
   // Weight values are emitted already converted to the user's preferred unit.
 
-  private readonly _entries$ = new BehaviorSubject<WeightEntry[]>([]);
-  private readonly _settings$ = new BehaviorSubject<UserSettings | null>(null);
-  private readonly _goals$ = new BehaviorSubject<Goal[]>([]);
+  private readonly _entries$ = new BehaviorSubject<WeightEntryDB[]>([]);
+  private readonly _settings$ = new BehaviorSubject<UserSettingsDB | null>(null);
+  private readonly _goals$ = new BehaviorSubject<GoalDB[]>([]);
 
   /** All entries with their computed EWMA trend value, sorted oldest → newest. */
-  private readonly entries$: Observable<TrendPoint[]> = this._entries$.asObservable().pipe(
+  private readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable().pipe(
     map(entries => {
       if (!entries.length) return [];
 
@@ -120,7 +120,7 @@ export class DatabaseService {
       // Alphabetical string comparison is way faster and yields the exact same chronological result
       const ordered = entries.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
-      const pts: TrendPoint[] = [];
+      const pts: WeightEntry[] = [];
       let ewma = kgToUnit(entries[0].weight_kg, unit);
 
       for (const entry of ordered) {
@@ -139,23 +139,23 @@ export class DatabaseService {
       return pts;
     }),
   );
-  readonly entries: Signal<TrendPoint[]> = toSignal(this.entries$, { initialValue: [] });
-  readonly recentEntries: Signal<TrendPoint[]> = computed(() => this.entries().slice(-90));
+  readonly entries: Signal<WeightEntry[]> = toSignal(this.entries$, { initialValue: [] });
+  readonly recentEntries: Signal<WeightEntry[]> = computed(() => this.entries().slice(-90));
   readonly currentTrend: Signal<number | null> = computed(() => {
     const pts = this.entries();
     return pts.length ? pts[pts.length - 1].trend : null;
   });
-  readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(
+  readonly settings$: Observable<UserSettingsDB | null> = this._settings$.asObservable().pipe(
     map(settings => {
       if (!settings) return null;
-      const converted: UserSettings = {
+      const converted: UserSettingsDB = {
         ...settings,
         heightFtIn: settings.height_cm ? cmToFtIn(settings.height_cm) : undefined,
       };
       return converted;
     }),
   );
-  readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(
+  readonly goals$: Observable<GoalDB[]> = this._goals$.asObservable().pipe(
     map(goals => {
       const unit = this.currentWeightUnit;
       const converted = goals.map(g => ({
@@ -212,7 +212,7 @@ export class DatabaseService {
 
   private async syncEntries(): Promise<void> {
     const r = await this.db.query(`SELECT * FROM weight_entries ORDER BY logged_at DESC`);
-    this._entries$.next((r.values ?? []) as WeightEntry[]);
+    this._entries$.next((r.values ?? []) as WeightEntryDB[]);
   }
 
   private async syncSettings(): Promise<void> {
@@ -222,7 +222,7 @@ export class DatabaseService {
 
   private async syncGoals(): Promise<void> {
     const r = await this.db.query(`SELECT * FROM goals ORDER BY goal_date ASC`);
-    this._goals$.next((r.values ?? []) as Goal[]);
+    this._goals$.next((r.values ?? []) as GoalDB[]);
   }
 
   // ── Mock data ──────────────────────────────────────────────────────────────
@@ -234,7 +234,7 @@ export class DatabaseService {
       ['Michael', 31, 'Male', 178],
     );
 
-    const mockGoals: Omit<Goal, 'id'>[] = [
+    const mockGoals: Omit<GoalDB, 'id'>[] = [
       { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', label: 'Weight Gain' },
       { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', label: 'Maintenance' },
       { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-10-11', label: 'Weight Loss' },
@@ -331,7 +331,7 @@ export class DatabaseService {
 
   // ── Weight entries ────────────────────────────────────────────────────────
 
-  addEntry(entry: Omit<WeightEntry, 'id'>): Observable<void> {
+  addEntry(entry: Omit<WeightEntryDB, 'id'>): Observable<void> {
     console.log('Adding entry:', entry);
     return this.whenReady(() =>
       from(
@@ -347,7 +347,7 @@ export class DatabaseService {
     );
   }
 
-  updateEntry(entry: Required<Pick<WeightEntry, 'id'>> & Partial<WeightEntry>): Observable<void> {
+  updateEntry(entry: Required<Pick<WeightEntryDB, 'id'>> & Partial<WeightEntryDB>): Observable<void> {
     console.log('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
@@ -379,9 +379,9 @@ export class DatabaseService {
     );
   }
 
-  getEntry(id: number): Observable<WeightEntry | null> {
+  getEntry(id: number): Observable<WeightEntryDB | null> {
     return this.whenReady(() =>
-      from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntry) ?? null)),
+      from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntryDB) ?? null)),
     );
   }
 
@@ -411,7 +411,7 @@ export class DatabaseService {
   // ── User settings ─────────────────────────────────────────────────────────
 
   // Upserts the single settings row (user_id = 1).
-  saveSettings(settings: Omit<UserSettings, 'user_id'>): Observable<void> {
+  saveSettings(settings: Omit<UserSettingsDB, 'user_id'>): Observable<void> {
     const heightCm = settings.height_cm ?? (settings.heightFtIn ? ftInToCm(settings.heightFtIn) : null);
     return this.whenReady(() =>
       from(
@@ -444,7 +444,7 @@ export class DatabaseService {
 
   // ── Goals ──────────────────────────────────────────────────────────────────
 
-  addGoal(goal: Omit<Goal, 'id'>): Observable<void> {
+  addGoal(goal: Omit<GoalDB, 'id'>): Observable<void> {
     console.log('Adding goal:', goal);
     return this.whenReady(() =>
       from(
@@ -462,7 +462,7 @@ export class DatabaseService {
     );
   }
 
-  updateGoal(goal: Required<Pick<Goal, 'id'>> & Partial<Goal>): Observable<void> {
+  updateGoal(goal: Required<Pick<GoalDB, 'id'>> & Partial<GoalDB>): Observable<void> {
     console.log('Updating goal:', goal);
     return this.whenReady(() =>
       from(

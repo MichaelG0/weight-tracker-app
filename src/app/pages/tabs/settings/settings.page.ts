@@ -14,7 +14,7 @@ import {
   IonChip,
 } from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
-import { DatabaseService, UserSettings, WeightUnit, HeightUnit } from '../../../services/database.service';
+import { DatabaseService, UserSettingsDB, WeightUnit, HeightUnit } from '../../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
   personOutline,
@@ -103,7 +103,7 @@ export class SettingsPage {
   }
 
   saveSettings(): void {
-    const settings: Omit<UserSettings, 'user_id'> = {
+    const settings: Omit<UserSettingsDB, 'user_id'> = {
       name: this.name || undefined,
       age: this.age ?? undefined,
       gender: this.gender || undefined,

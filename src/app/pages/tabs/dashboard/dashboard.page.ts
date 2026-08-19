@@ -24,7 +24,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, TrendPoint } from 'src/app/services/database.service';
+import { DatabaseService, GoalDB, GoalType, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -87,7 +87,7 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
-  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
+  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as GoalDB[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
   readonly vm: Signal<DashboardVm> = computed(() => {
@@ -172,7 +172,7 @@ export class DashboardPage {
     this.statFlip.set(updated);
   }
 
-  private recentEntries(entries: TrendPoint[]): Array<{ label: string; weight: number }> {
+  private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {
     return entries.slice(0, 3).map(entry => ({
       label: this.entryLabel(entry.dateMs),
       weight: entry.weight,
@@ -237,7 +237,7 @@ export class DashboardPage {
     return currentTrend - trend7dAgo;
   }
 
-  private daysMaintained(trendPoints: TrendPoint[], goal: Goal | null, maintRange: number | null): number | null {
+  private daysMaintained(trendPoints: WeightEntry[], goal: GoalDB | null, maintRange: number | null): number | null {
     if (!trendPoints.length || goal == null || maintRange == null) return null;
 
     const goalStart = +new Date(goal.start_date);
@@ -291,7 +291,7 @@ export class DashboardPage {
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
-  private stabilityLabel(reversedEntries: TrendPoint[]): string | null {
+  private stabilityLabel(reversedEntries: WeightEntry[]): string | null {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
     const recent = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
@@ -307,7 +307,7 @@ export class DashboardPage {
     return 'Fluctuating';
   }
 
-  private consistencyLabel(reversedEntries: TrendPoint[]): string {
+  private consistencyLabel(reversedEntries: WeightEntry[]): string {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
     const weeklyEntries = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     return `${weeklyEntries.length} / 7 check-ins`;
@@ -390,7 +390,7 @@ export class DashboardPage {
     }
   }
 
-  private findActiveGoal(goals: Goal[]): Goal | null {
+  private findActiveGoal(goals: GoalDB[]): GoalDB | null {
     if (!goals.length) return null;
     const today = todayLocalMidnightMs();
     // Find the earliest goal whose date is still in the future

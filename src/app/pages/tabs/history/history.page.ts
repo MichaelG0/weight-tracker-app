@@ -21,7 +21,7 @@ import {
 import { addIcons } from 'ionicons';
 import { analyticsOutline, create, trashOutline, documentTextOutline } from 'ionicons/icons';
 import { take } from 'rxjs';
-import { DatabaseService, TrendPoint } from 'src/app/services/database.service';
+import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
@@ -30,7 +30,7 @@ import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 const LIST_PAGE_SIZE = 50;
 
-interface HistoryEntry extends TrendPoint {
+interface HistoryEntry extends WeightEntry {
   weightChangeKg: number | null;
 }
 

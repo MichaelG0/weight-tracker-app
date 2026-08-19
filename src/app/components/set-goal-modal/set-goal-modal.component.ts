@@ -18,7 +18,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType } from 'src/app/services/database.service';
+import { DatabaseService, GoalDB, GoalType } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -50,7 +50,7 @@ export class SetGoalModalComponent implements OnInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
 
-  @Input() goal?: Goal;
+  @Input() goal?: GoalDB;
 
   isEditing = false;
   useCustomEndDate = false;
@@ -183,7 +183,7 @@ export class SetGoalModalComponent implements OnInit {
   submit(): void {
     if (!this.isFormValid) return;
 
-    const result: Partial<Goal> & {
+    const result: Partial<GoalDB> & {
       start_weight_kg: number;
       goal_weight_kg: number;
       start_date: string;

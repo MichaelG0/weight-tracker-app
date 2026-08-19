@@ -31,7 +31,7 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
-import { TrendPoint, DatabaseService } from 'src/app/services/database.service';
+import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
 
 @Component({
@@ -65,8 +65,8 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
   private readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
   readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
 
-  private readonly entriesByDate: Signal<Map<string, TrendPoint>> = computed(() => {
-    const map = new Map<string, TrendPoint>();
+  private readonly entriesByDate: Signal<Map<string, WeightEntry>> = computed(() => {
+    const map = new Map<string, WeightEntry>();
     for (const entry of this.db.entries()) {
       const dateKey = entry.date.substring(0, 10);
       map.set(dateKey, entry);

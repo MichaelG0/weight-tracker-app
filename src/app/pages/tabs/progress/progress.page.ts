@@ -31,7 +31,7 @@ import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
-import { DatabaseService, Goal, TrendPoint, WeightUnit } from 'src/app/services/database.service';
+import { DatabaseService, GoalDB, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
@@ -113,7 +113,7 @@ export class ProgressPage {
   readonly showTrend = signal<boolean>(true);
 
   readonly allEntries = this.db.entries;
-  readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
+  readonly goals = toSignal(this.db.goals$, { initialValue: [] as GoalDB[] });
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private chart: Chart | null = null;
@@ -161,7 +161,7 @@ export class ProgressPage {
 
   // ── Goal management ─────────────────────────────────────────────────────────
 
-  async openSetGoal(goal?: Goal): Promise<void> {
+  async openSetGoal(goal?: GoalDB): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
       componentProps: { goal },
@@ -172,7 +172,7 @@ export class ProgressPage {
     await modal.present();
   }
 
-  async deleteGoal(goal: Goal): Promise<void> {
+  async deleteGoal(goal: GoalDB): Promise<void> {
     this.db.deleteGoal(goal.id).pipe(take(1)).subscribe();
 
     const toast = await this.toastCtrl.create({
@@ -222,8 +222,8 @@ export class ProgressPage {
 
   private renderChart(
     canvas: HTMLCanvasElement,
-    entries: TrendPoint[],
-    goals: Goal[],
+    entries: WeightEntry[],
+    goals: GoalDB[],
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
@@ -406,7 +406,7 @@ export class ProgressPage {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  private getTrendLine(entries: TrendPoint[]): Pt[] {
+  private getTrendLine(entries: WeightEntry[]): Pt[] {
     if (!entries.length) return [];
     const startDate = entries[0].dateMs;
     return entries
@@ -414,7 +414,7 @@ export class ProgressPage {
       .map(p => ({ x: p.dateMs, y: p.trend }));
   }
 
-  private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
+  private buildGuideDatasets(goals: GoalDB[], colors: ChartColors, maintRange: number): any[] {
     if (!goals.length) return [];
 
     const sortedGoals = [...goals].sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date));
@@ -486,8 +486,8 @@ export class ProgressPage {
   }
 
   private getBounds(
-    entries: TrendPoint[],
-    goals: Goal[],
+    entries: WeightEntry[],
+    goals: GoalDB[],
     lastGoalDateMs: number | null,
     range: RangeMode,
     maintRange: number,
