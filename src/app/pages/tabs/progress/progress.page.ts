@@ -31,7 +31,7 @@ import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
-import { DatabaseService, GoalDB, WeightEntry, WeightUnit } from 'src/app/services/database.service';
+import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
@@ -113,7 +113,7 @@ export class ProgressPage {
   readonly showTrend = signal<boolean>(true);
 
   readonly allEntries = this.db.entries;
-  readonly goals = toSignal(this.db.goals$, { initialValue: [] as GoalDB[] });
+  readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private chart: Chart | null = null;
@@ -138,11 +138,11 @@ export class ProgressPage {
       if (range !== 'full' && goals.length > 0) {
         const todayMs = todayLocalMidnightMs();
 
-        const activeGoals = goals.filter(g => +new Date(g.start_date) <= todayMs);
+        const activeGoals = goals.filter(g => g.startDateMs <= todayMs);
         if (activeGoals.length > 0) {
-          const cutoff = Math.max(...activeGoals.map(g => +new Date(g.start_date)));
+          const cutoff = Math.max(...activeGoals.map(g => g.startDateMs));
           filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
-          filteredGoals = goals.filter(g => +new Date(g.start_date) >= cutoff);
+          filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
         }
       }
 
@@ -161,7 +161,7 @@ export class ProgressPage {
 
   // ── Goal management ─────────────────────────────────────────────────────────
 
-  async openSetGoal(goal?: GoalDB): Promise<void> {
+  async openSetGoal(goal?: Goal): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
       componentProps: { goal },
@@ -172,7 +172,7 @@ export class ProgressPage {
     await modal.present();
   }
 
-  async deleteGoal(goal: GoalDB): Promise<void> {
+  async deleteGoal(goal: Goal): Promise<void> {
     this.db.deleteGoal(goal.id).pipe(take(1)).subscribe();
 
     const toast = await this.toastCtrl.create({
@@ -187,11 +187,11 @@ export class ProgressPage {
           handler: () => {
             this.db
               .addGoal({
-                start_weight_kg: goal.start_weight_kg,
-                goal_weight_kg: goal.goal_weight_kg,
-                start_date: goal.start_date,
-                goal_date: goal.goal_date,
-                label: goal.label,
+                start_weight_kg: goal.startWeight,
+                goal_weight_kg: goal.goalWeight,
+                start_date: goal.startDate,
+                goal_date: goal.goalDate,
+                type: goal.type,
               })
               .pipe(take(1))
               .subscribe();
@@ -223,7 +223,7 @@ export class ProgressPage {
   private renderChart(
     canvas: HTMLCanvasElement,
     entries: WeightEntry[],
-    goals: GoalDB[],
+    goals: Goal[],
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
@@ -235,11 +235,11 @@ export class ProgressPage {
     const trendLine: Pt[] = this.getTrendLine(entries);
     const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
-    const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
+    const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
     const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
 
     const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayLocalMidnightMs() - 30 * 86400000;
-    const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
+    const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => g.startDateMs)) : Infinity;
     const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
     const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : todayLocalMidnightMs() + 1 * 86400000;
 
@@ -414,31 +414,31 @@ export class ProgressPage {
       .map(p => ({ x: p.dateMs, y: p.trend }));
   }
 
-  private buildGuideDatasets(goals: GoalDB[], colors: ChartColors, maintRange: number): any[] {
+  private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
     if (!goals.length) return [];
 
-    const sortedGoals = [...goals].sort((a, b) => +new Date(a.start_date) - +new Date(b.start_date));
+    const sortedGoals = [...goals].sort((a, b) => a.startDateMs - b.startDateMs);
     const datasets: any[] = [];
 
     for (const goal of sortedGoals) {
-      const startDateMs = +new Date(goal.start_date);
-      const goalDateMs = +new Date(goal.goal_date);
+      const startDateMs = goal.startDateMs;
+      const goalDateMs = goal.goalDateMs;
       if (!Number.isFinite(goalDateMs) || !Number.isFinite(startDateMs)) continue;
 
-      const startPt: Pt = { x: startDateMs, y: goal.start_weight_kg };
+      const startPt: Pt = { x: startDateMs, y: goal.startWeight };
 
       let dataPts: Pt[];
-      if (goal.label === 'Maintenance') {
+      if (goal.type === 'Maintenance') {
         dataPts = [
-          { x: startDateMs, y: goal.goal_weight_kg },
-          { x: goalDateMs, y: goal.goal_weight_kg },
+          { x: startDateMs, y: goal.goalWeight },
+          { x: goalDateMs, y: goal.goalWeight },
         ];
         // Add band boundaries
         datasets.push({
           label: 'Guide Upper',
           data: [
-            { x: startDateMs, y: goal.goal_weight_kg + maintRange },
-            { x: goalDateMs, y: goal.goal_weight_kg + maintRange },
+            { x: startDateMs, y: goal.goalWeight + maintRange },
+            { x: goalDateMs, y: goal.goalWeight + maintRange },
           ],
           borderColor: 'transparent',
           borderWidth: 0,
@@ -450,8 +450,8 @@ export class ProgressPage {
         datasets.push({
           label: 'Guide Lower',
           data: [
-            { x: startDateMs, y: goal.goal_weight_kg - maintRange },
-            { x: goalDateMs, y: goal.goal_weight_kg - maintRange },
+            { x: startDateMs, y: goal.goalWeight - maintRange },
+            { x: goalDateMs, y: goal.goalWeight - maintRange },
           ],
           borderColor: 'transparent',
           borderWidth: 0,
@@ -462,7 +462,7 @@ export class ProgressPage {
           order: 6,
         });
       } else {
-        dataPts = [startPt, { x: goalDateMs, y: goal.goal_weight_kg }];
+        dataPts = [startPt, { x: goalDateMs, y: goal.goalWeight }];
       }
 
       datasets.push({
@@ -487,7 +487,7 @@ export class ProgressPage {
 
   private getBounds(
     entries: WeightEntry[],
-    goals: GoalDB[],
+    goals: Goal[],
     lastGoalDateMs: number | null,
     range: RangeMode,
     maintRange: number,
@@ -497,11 +497,11 @@ export class ProgressPage {
 
     const weights = entries.map(e => e.weight);
     for (const g of goals) {
-      weights.push(g.start_weight_kg);
-      if (g.label === 'Maintenance') {
-        weights.push(g.goal_weight_kg + maintRange, g.goal_weight_kg - maintRange);
+      weights.push(g.startWeight);
+      if (g.type === 'Maintenance') {
+        weights.push(g.goalWeight + maintRange, g.goalWeight - maintRange);
       } else {
-        weights.push(g.goal_weight_kg);
+        weights.push(g.goalWeight);
       }
     }
 
@@ -515,7 +515,7 @@ export class ProgressPage {
       xMax = todayMs;
     } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0) {
       xMin = entries[0].dateMs;
-      const futureGoalDates = goals.map(g => +new Date(g.goal_date)).filter(d => d > todayMs);
+      const futureGoalDates = goals.map(g => g.goalDateMs).filter(d => d > todayMs);
       xMax = futureGoalDates.length > 0 ? Math.min(...futureGoalDates) : (lastGoalDateMs ?? todayMs);
     } else if (range === 'full') {
       xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;

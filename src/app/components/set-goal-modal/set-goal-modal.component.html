@@ -14,15 +14,15 @@
     <ion-list lines="none" class="goal-form-list">
       <div class="goal-type-chips">
         <ion-chip
-          [class.selected]="formData.label === 'Weight Loss'"
+          [class.selected]="formData.type === 'Weight Loss'"
           (click)="selectGoalType('Weight Loss')"
         >Weight Loss</ion-chip>
         <ion-chip
-          [class.selected]="formData.label === 'Weight Gain'"
+          [class.selected]="formData.type === 'Weight Gain'"
           (click)="selectGoalType('Weight Gain')"
         >Weight Gain</ion-chip>
         <ion-chip
-          [class.selected]="formData.label === 'Maintenance'"
+          [class.selected]="formData.type === 'Maintenance'"
           (click)="selectGoalType('Maintenance')"
         >Maintenance</ion-chip>
       </div>
@@ -60,7 +60,7 @@
         ></ion-input>
       </ion-item>
 
-      <ion-item [class.input-disabled]="formData.label === 'Maintenance'">
+      <ion-item [class.input-disabled]="formData.type === 'Maintenance'">
         <ion-input
           type="number"
           inputmode="decimal"
@@ -72,25 +72,25 @@
           [(ngModel)]="formData.weight"
           (ionChange)="recalculateEndDate()"
           (ionInput)="recalculateEndDate()"
-          [readonly]="formData.label === 'Maintenance'"
+          [readonly]="formData.type === 'Maintenance'"
           required
           (keydown)="filterKey($event)"
         ></ion-input>
       </ion-item>
 
-      @if (formData.weight | pureFn:getWeightDirectionError:formData.startWeight:formData.label; as wdError) {
+      @if (formData.weight | pureFn:getWeightDirectionError:formData.startWeight:formData.type; as wdError) {
         @if (goalForm.controls['weight']?.touched && goalForm.controls['weight']?.dirty) {
           <p class="error-msg">{{ wdError }}</p>
         }
       }
 
-      @if (formData.label !== 'Maintenance') {
+      @if (formData.type !== 'Maintenance') {
         <ion-item>
           <ion-input
             type="number"
             inputmode="decimal"
             placeholder="0.0"
-            [label]="formData.label | pureFn:getSpeedLabel"
+            [label]="formData.type | pureFn:getSpeedLabel"
             labelPlacement="stacked"
             step="0.05"
             name="weeklyRate"
@@ -110,14 +110,14 @@
         </ion-item>
       }
 
-      <ion-item [class.input-disabled]="!useCustomEndDate && formData.label !== 'Maintenance'">
+      <ion-item [class.input-disabled]="!useCustomEndDate && formData.type !== 'Maintenance'">
         <ion-input
           type="date"
           label="End Date"
           labelPlacement="stacked"
           name="endDate"
           [(ngModel)]="formData.endDate"
-          [readonly]="!useCustomEndDate && formData.label !== 'Maintenance'"
+          [readonly]="!useCustomEndDate && formData.type !== 'Maintenance'"
           required
         ></ion-input>
       </ion-item>

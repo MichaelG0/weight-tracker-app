@@ -24,7 +24,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, GoalDB, GoalType, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -87,7 +87,7 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
-  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as GoalDB[] });
+  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
   readonly vm: Signal<DashboardVm> = computed(() => {
@@ -98,9 +98,9 @@ export class DashboardPage {
     const rawTrend = this.databaseService.currentTrend();
     const trendWeight = rawTrend !== null ? formatWeight(rawTrend, this.unitLabel()) : null;
     const activeGoal = this.findActiveGoal(goals);
-    const startWeight = activeGoal?.start_weight_kg ?? null;
-    const goalWeight = activeGoal?.goal_weight_kg ?? null;
-    const goalType = activeGoal?.label ?? 'Weight Loss';
+    const startWeight = activeGoal?.startWeight ?? null;
+    const goalWeight = activeGoal?.goalWeight ?? null;
+    const goalType = activeGoal?.type ?? 'Weight Loss';
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
@@ -237,20 +237,19 @@ export class DashboardPage {
     return currentTrend - trend7dAgo;
   }
 
-  private daysMaintained(trendPoints: WeightEntry[], goal: GoalDB | null, maintRange: number | null): number | null {
+  private daysMaintained(trendPoints: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
     if (!trendPoints.length || goal == null || maintRange == null) return null;
 
-    const goalStart = +new Date(goal.start_date);
-    const pts = trendPoints.filter(p => p.dateMs >= goalStart);
+    const pts = trendPoints.filter(p => p.dateMs >= goal.startDateMs);
     if (!pts.length) return null;
 
     // If the most recent point is out of range, streak is 0
-    if (Math.abs(pts[pts.length - 1].trend - goal.goal_weight_kg) > maintRange) return 0;
+    if (Math.abs(pts[pts.length - 1].trend - goal.goalWeight) > maintRange) return 0;
 
     // Walk backward to find the first out-of-range point
     let streakStart = pts.length - 1;
     for (let i = pts.length - 1; i >= 0; i--) {
-      if (Math.abs(pts[i].trend - goal.goal_weight_kg) > maintRange) break;
+      if (Math.abs(pts[i].trend - goal.goalWeight) > maintRange) break;
       streakStart = i;
     }
 
@@ -390,12 +389,12 @@ export class DashboardPage {
     }
   }
 
-  private findActiveGoal(goals: GoalDB[]): GoalDB | null {
+  private findActiveGoal(goals: Goal[]): Goal | null {
     if (!goals.length) return null;
     const today = todayLocalMidnightMs();
     // Find the earliest goal whose date is still in the future
-    const future = goals.filter(g => +new Date(g.goal_date) >= today).sort((a, b) => +new Date(a.goal_date) - +new Date(b.goal_date));
+    const future = goals.filter(g => g.goalDateMs >= today).sort((a, b) => a.goalDateMs - b.goalDateMs);
     // Fall back to the latest goal if all are past
-    return future[0] ?? goals.sort((a, b) => +new Date(b.goal_date) - +new Date(a.goal_date))[0];
+    return future[0] ?? goals.sort((a, b) => b.goalDateMs - a.goalDateMs)[0];
   }
 }

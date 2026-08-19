@@ -23,7 +23,7 @@ export interface GoalDB {
   goal_weight_kg: number;
   start_date: string; // ISO-8601
   goal_date: string; // ISO-8601
-  label: GoalType;
+  type: GoalType;
 }
 
 export interface UserSettingsDB {
@@ -52,10 +52,21 @@ export interface HeightFtIn {
 export interface WeightEntry {
   id: number;
   date: string; // ISO-8601
-  dateMs: number; // timestamp ms
+  dateMs: number; // local ms
   weight: number; // scale weight in user unit
   trend: number; // EWMA in user unit
   notes?: string;
+}
+
+export interface Goal {
+  id: number;
+  startWeight: number;
+  goalWeight: number;
+  startDate: string; // ISO-8601
+  startDateMs: number; // local ms
+  goalDate: string; // ISO-8601
+  goalDateMs: number; // local ms
+  type: GoalType;
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -84,7 +95,7 @@ const MIGRATIONS = `
     goal_weight_kg REAL NOT NULL,
     start_date     TEXT NOT NULL,
     goal_date      TEXT NOT NULL,
-    label          TEXT
+    type           TEXT NOT NULL
   );
 `;
 
@@ -155,15 +166,23 @@ export class DatabaseService {
       return converted;
     }),
   );
-  readonly goals$: Observable<GoalDB[]> = this._goals$.asObservable().pipe(
-    map(goals => {
+  readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(
+    map(goalsDB => {
       const unit = this.currentWeightUnit;
-      const converted = goals.map(g => ({
-        ...g,
-        start_weight_kg: kgToUnit(g.start_weight_kg, unit),
-        goal_weight_kg: kgToUnit(g.goal_weight_kg, unit),
+
+      const goals: Goal[] = goalsDB.map(g => ({
+        id: g.id,
+        startWeight: kgToUnit(g.start_weight_kg, unit),
+        goalWeight: kgToUnit(g.goal_weight_kg, unit),
+        startDate: g.start_date,
+        startDateMs: +new Date(g.start_date),
+        goalDate: g.goal_date,
+        goalDateMs: +new Date(g.goal_date),
+        type: g.type,
       }));
-      return converted;
+
+      console.log('goals$', goals);
+      return goals;
     }),
   );
   readonly weightUnit$: Observable<WeightUnit> = this._settings$.pipe(map(s => s?.weight_unit ?? 'kg'));
@@ -235,19 +254,19 @@ export class DatabaseService {
     );
 
     const mockGoals: Omit<GoalDB, 'id'>[] = [
-      { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', label: 'Weight Gain' },
-      { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', label: 'Maintenance' },
-      { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-10-11', label: 'Weight Loss' },
-      { start_weight_kg: 76, goal_weight_kg: 79, start_date: '2026-10-11', goal_date: '2027-04-11', label: 'Weight Gain' },
+      { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', type: 'Weight Gain' },
+      { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', type: 'Maintenance' },
+      { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-10-11', type: 'Weight Loss' },
+      { start_weight_kg: 76, goal_weight_kg: 79, start_date: '2026-10-11', goal_date: '2027-04-11', type: 'Weight Gain' },
     ];
 
     for (const goal of mockGoals) {
-      await this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
+      await this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
         goal.start_weight_kg,
         goal.goal_weight_kg,
         toLocalMidnightString(new Date(goal.start_date)),
         toLocalMidnightString(new Date(goal.goal_date)),
-        goal.label,
+        goal.type,
       ]);
     }
 
@@ -448,12 +467,12 @@ export class DatabaseService {
     console.log('Adding goal:', goal);
     return this.whenReady(() =>
       from(
-        this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, label) VALUES (?, ?, ?, ?, ?)`, [
+        this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
           unitToKg(goal.start_weight_kg, this.currentWeightUnit),
           unitToKg(goal.goal_weight_kg, this.currentWeightUnit),
           toLocalMidnightString(goal.start_date),
           toLocalMidnightString(goal.goal_date),
-          goal.label ?? null,
+          goal.type ?? null,
         ]),
       ).pipe(
         switchMap(() => from(this.syncGoals())),
@@ -472,14 +491,14 @@ export class DatabaseService {
                  goal_weight_kg  = COALESCE(?, goal_weight_kg),
                  start_date      = COALESCE(?, start_date),
                  goal_date       = COALESCE(?, goal_date),
-                 label           = COALESCE(?, label)
+                 type            = COALESCE(?, type)
            WHERE id = ?`,
           [
             goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.currentWeightUnit) : null,
             goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.currentWeightUnit) : null,
             goal.start_date != null ? toLocalMidnightString(goal.start_date) : null,
             goal.goal_date != null ? toLocalMidnightString(goal.goal_date) : null,
-            goal.label ?? null,
+            goal.type ?? null,
             goal.id,
           ],
         ),

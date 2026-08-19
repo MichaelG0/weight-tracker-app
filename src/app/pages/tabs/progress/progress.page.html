@@ -107,8 +107,8 @@
             <ion-item class="goal-item" button (click)="openSetGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
-                <h3>{{ goal.goal_weight_kg | number: '1.1-1' }} {{ unitLabel() }}</h3>
-                <p>{{ goal.goal_date | date: 'mediumDate' }}{{ goal.label ? ' · ' + goal.label : '' }}</p>
+                <h3>{{ goal.goalWeight | number: '1.1-1' }} {{ unitLabel() }}</h3>
+                <p>{{ goal.goalDate | date: 'mediumDate' }}{{ goal.type ? ' · ' + goal.type : '' }}</p>
               </ion-label>
             </ion-item>
             <ion-item-options side="end" (ionSwipe)="deleteGoal(goal)">

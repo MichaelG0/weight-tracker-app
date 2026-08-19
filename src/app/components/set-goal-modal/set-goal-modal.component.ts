@@ -18,7 +18,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
-import { DatabaseService, GoalDB, GoalType } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalDB, GoalType } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -50,7 +50,7 @@ export class SetGoalModalComponent implements OnInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
 
-  @Input() goal?: GoalDB;
+  @Input() goal?: Goal;
 
   isEditing = false;
   useCustomEndDate = false;
@@ -65,7 +65,7 @@ export class SetGoalModalComponent implements OnInit {
     weight: null as number | null,
     startDate: '',
     endDate: '',
-    label: 'Weight Loss' as GoalType,
+    type: 'Weight Loss' as GoalType,
   };
 
   constructor() {
@@ -81,18 +81,18 @@ export class SetGoalModalComponent implements OnInit {
 
     if (this.goal) {
       this.isEditing = true;
-      this.formData.startWeight = this.goal.start_weight_kg;
-      this.formData.weight = this.goal.goal_weight_kg;
-      this.formData.startDate = this.goal.start_date.substring(0, 10);
-      this.formData.endDate = this.goal.goal_date.substring(0, 10);
-      this.formData.label = this.goal.label;
+      this.formData.startWeight = this.goal.startWeight;
+      this.formData.weight = this.goal.goalWeight;
+      this.formData.startDate = this.goal.startDate.substring(0, 10);
+      this.formData.endDate = this.goal.goalDate.substring(0, 10);
+      this.formData.type = this.goal.type;
 
-      if (this.goal.goal_date && this.goal.start_weight_kg && this.goal.goal_weight_kg) {
-        const days = (new Date(this.goal.goal_date).getTime() - new Date(this.goal.start_date).getTime()) / (1000 * 60 * 60 * 24);
+      if (this.goal.goalDateMs && this.goal.startWeight && this.goal.goalWeight) {
+        const days = (this.goal.goalDateMs - this.goal.startDateMs) / (1000 * 60 * 60 * 24);
         const weeks = days / 7;
-        const totalChange = Math.abs(this.goal.goal_weight_kg - this.goal.start_weight_kg);
+        const totalChange = Math.abs(this.goal.goalWeight - this.goal.startWeight);
         if (weeks > 0 && totalChange > 0) {
-          this.weeklyRate = parseFloat(((totalChange / weeks / this.goal.start_weight_kg) * 100).toFixed(2));
+          this.weeklyRate = parseFloat(((totalChange / weeks / this.goal.startWeight) * 100).toFixed(2));
         }
       }
     }
@@ -104,15 +104,15 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   selectGoalType(type: GoalType): void {
-    this.formData.label = type;
+    this.formData.type = type;
     this.onGoalTypeChange();
   }
 
   private onGoalTypeChange(): void {
-    if (this.formData.label === 'Maintenance') {
+    if (this.formData.type === 'Maintenance') {
       this.formData.weight = this.formData.startWeight;
     } else if (!this.goal) {
-      if (this.formData.label === 'Weight Gain') {
+      if (this.formData.type === 'Weight Gain') {
         this.weeklyRate = 0.25;
       } else {
         this.weeklyRate = 0.5;
@@ -122,7 +122,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   onStartWeightChange(): void {
-    if (this.formData.label === 'Maintenance') {
+    if (this.formData.type === 'Maintenance') {
       this.formData.weight = this.formData.startWeight;
     }
     this.recalculateEndDate();
@@ -135,7 +135,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   recalculateEndDate(): void {
-    if (this.useCustomEndDate || this.formData.label === 'Maintenance') return;
+    if (this.useCustomEndDate || this.formData.type === 'Maintenance') return;
     if (!this.weeklyRate || !this.formData.startWeight || !this.formData.weight || !this.formData.startDate) return;
     if (this.weeklyRate <= 0) return;
 
@@ -153,16 +153,16 @@ export class SetGoalModalComponent implements OnInit {
   get isFormValid(): boolean {
     if (!this.formData.weight || !this.formData.startDate || !this.formData.endDate || !this.formData.startWeight) return false;
 
-    if (!this.useCustomEndDate && this.formData.label !== 'Maintenance' && !this.weeklyRate) return false;
+    if (!this.useCustomEndDate && this.formData.type !== 'Maintenance' && !this.weeklyRate) return false;
 
     if (this.formData.startDate >= this.formData.endDate) return false;
 
     const w = this.formData.weight;
     const s = this.formData.startWeight;
 
-    if (this.formData.label === 'Weight Loss' && w >= s) return false;
-    if (this.formData.label === 'Weight Gain' && w <= s) return false;
-    if (this.formData.label === 'Maintenance' && w !== s) return false;
+    if (this.formData.type === 'Weight Loss' && w >= s) return false;
+    if (this.formData.type === 'Weight Gain' && w <= s) return false;
+    if (this.formData.type === 'Maintenance' && w !== s) return false;
 
     // Overlap check
     if (this.getOverlapError(this.formData.startDate, this.formData.endDate)) return false;
@@ -188,13 +188,13 @@ export class SetGoalModalComponent implements OnInit {
       goal_weight_kg: number;
       start_date: string;
       goal_date: string;
-      label: GoalType;
+      type: GoalType;
     } = {
       start_weight_kg: this.formData.startWeight!,
       goal_weight_kg: this.formData.weight!,
       start_date: this.formData.startDate,
       goal_date: this.formData.endDate,
-      label: this.formData.label,
+      type: this.formData.type,
     };
 
     if (this.isEditing && this.goal) {
@@ -217,8 +217,8 @@ export class SetGoalModalComponent implements OnInit {
     if (this.allGoals().length === 0) return today;
 
     // Default to end date of the latest goal
-    const sorted = [...this.allGoals()].sort((a, b) => a.goal_date.localeCompare(b.goal_date));
-    const lastEnd = sorted[sorted.length - 1].goal_date.substring(0, 10);
+    const sorted = [...this.allGoals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
+    const lastEnd = sorted[sorted.length - 1].goalDate.substring(0, 10);
     return lastEnd > today ? lastEnd : today;
   }
 
@@ -253,8 +253,8 @@ export class SetGoalModalComponent implements OnInit {
     if (!startDate || !endDate) return '';
     for (const g of this.allGoals()) {
       if (this.isEditing && this.goal && g.id === this.goal.id) continue;
-      const gStart = g.start_date.substring(0, 10);
-      const gEnd = g.goal_date.substring(0, 10);
+      const gStart = g.startDate.substring(0, 10);
+      const gEnd = g.goalDate.substring(0, 10);
       if (startDate < gEnd && endDate > gStart) {
         return `Overlaps with existing goal (${gStart} – ${gEnd})`;
       }
