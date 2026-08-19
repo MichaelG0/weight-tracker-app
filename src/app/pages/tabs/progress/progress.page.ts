@@ -35,12 +35,12 @@ import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightDate, todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
-import { FormatDatePipe } from "../../../pipes/format-date.pipe";
+import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 import 'hammerjs';
 Chart.register(zoomPlugin);
 
-export type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
+type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
 interface Pt {
   x: number;
   y: number;
@@ -70,8 +70,6 @@ interface ChartColors {
   tooltipBorder: string;
 }
 
-const LIST_PAGE_SIZE = 250;
-
 @Component({
   selector: 'app-progress',
   templateUrl: 'progress.page.html',
@@ -98,8 +96,8 @@ const LIST_PAGE_SIZE = 250;
     IonItemOption,
     DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
-    FormatDatePipe
-],
+    FormatDatePipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressPage {
@@ -110,9 +108,15 @@ export class ProgressPage {
 
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
-  readonly rangeMode = signal<RangeMode>('journey');
-  readonly showDaily = signal<boolean>(true);
-  readonly showTrend = signal<boolean>(true);
+  readonly rangeMode = signal<RangeMode>(
+    (localStorage.getItem('progress.rangeMode') as RangeMode) || 'journey'
+  );
+  readonly showDaily = signal<boolean>(
+    localStorage.getItem('progress.showDaily') !== 'false'
+  );
+  readonly showTrend = signal<boolean>(
+    localStorage.getItem('progress.showTrend') !== 'false'
+  );
 
   readonly allEntries = this.db.entries;
   readonly goals = this.db.goals;
@@ -158,6 +162,7 @@ export class ProgressPage {
   }
 
   setRange(range: RangeMode): void {
+    localStorage.setItem('progress.rangeMode', range);
     this.rangeMode.set(range);
   }
 
@@ -207,12 +212,18 @@ export class ProgressPage {
 
   toggleShowDaily(): void {
     this.pendingViewport = this.getCurrentViewport();
-    this.showDaily.update(v => !v);
+    this.showDaily.update(v => {
+      localStorage.setItem('progress.showDaily', String(!v));
+      return !v;
+    });
   }
 
   toggleShowTrend(): void {
     this.pendingViewport = this.getCurrentViewport();
-    this.showTrend.update(v => !v);
+    this.showTrend.update(v => {
+      localStorage.setItem('progress.showTrend', String(!v));
+      return !v;
+    });
   }
 
   // ── Chart rendering ────────────────────────────────────────────────────────
@@ -411,9 +422,7 @@ export class ProgressPage {
   private getTrendLine(entries: WeightEntry[]): Pt[] {
     if (!entries.length) return [];
     const startDate = entries[0].dateMs;
-    return entries
-      .filter(p => p.dateMs >= startDate)
-      .map(p => ({ x: p.dateMs, y: p.trend }));
+    return entries.filter(p => p.dateMs >= startDate).map(p => ({ x: p.dateMs, y: p.trend }));
   }
 
   private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
