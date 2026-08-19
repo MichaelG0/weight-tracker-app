@@ -9,7 +9,6 @@ import {
   Input,
   OnInit,
   Signal,
-  signal,
   ViewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -33,6 +32,7 @@ import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
 import { TrendPoint, DatabaseService } from 'src/app/services/database.service';
+import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -80,11 +80,11 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
       backgroundColor: 'rgba(var(--ion-color-primary-rgb), 0)',
     })),
   );
-  readonly maxDate = new Date().toISOString();
+  readonly maxDate = todayLocalMidnightString();
   @Input() readonly formData = {
     existingEntryId: null as number | null,
     weight: null as number | null,
-    selectedDate: new Date().toISOString(),
+    selectedDate: todayLocalMidnightString(),
     notes: '',
   };
 
@@ -187,7 +187,10 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
     };
 
     if (this.formData.existingEntryId != null) {
-      this.db.updateEntry({ id: this.formData.existingEntryId, ...entry }).pipe(take(1)).subscribe();
+      this.db
+        .updateEntry({ id: this.formData.existingEntryId, ...entry })
+        .pipe(take(1))
+        .subscribe();
     } else {
       this.db.addEntry(entry).pipe(take(1)).subscribe();
     }

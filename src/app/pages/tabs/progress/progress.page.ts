@@ -36,7 +36,7 @@ import { DatabaseService, Goal, TrendPoint, WeightUnit } from 'src/app/services/
 import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
-import { todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
+import { todayLocalMidnightDate, todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
 Chart.register(zoomPlugin);
 
 export type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
@@ -141,7 +141,7 @@ export class ProgressPage {
         const activeGoals = goals.filter(g => +new Date(g.start_date) <= todayMs);
         if (activeGoals.length > 0) {
           const cutoff = Math.max(...activeGoals.map(g => +new Date(g.start_date)));
-          filteredEntries = allEntries.filter(e => +new Date(e.date) >= cutoff);
+          filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
           filteredGoals = goals.filter(g => +new Date(g.start_date) >= cutoff);
         }
       }
@@ -231,14 +231,14 @@ export class ProgressPage {
   ): void {
     const colors: ChartColors = this.getChartColors();
 
-    const dots: Pt[] = entries.map(e => ({ x: +new Date(e.date), y: e.weight }));
+    const dots: Pt[] = entries.map(e => ({ x: e.dateMs, y: e.weight }));
     const trendLine: Pt[] = this.getTrendLine(entries);
     const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => +new Date(g.goal_date))) : null;
     const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
 
-    const earliestEntryMs = entries.length > 0 ? +new Date(entries[0].date) : todayLocalMidnightMs() - 30 * 86400000;
+    const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayLocalMidnightMs() - 30 * 86400000;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => +new Date(g.start_date))) : Infinity;
     const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
     const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : todayLocalMidnightMs() + 1 * 86400000;
@@ -311,7 +311,14 @@ export class ProgressPage {
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 5,
-              callback: (v: any) => new Date(Number(v)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+              callback: (v: any) => {
+                const date = new Date(Number(v));
+                const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+                if (date.getFullYear() !== todayLocalMidnightDate().getFullYear()) {
+                  opts.year = '2-digit';
+                }
+                return date.toLocaleDateString(undefined, opts);
+              },
             },
           },
           y: {
@@ -401,7 +408,7 @@ export class ProgressPage {
 
   private getTrendLine(entries: TrendPoint[]): Pt[] {
     if (!entries.length) return [];
-    const startDate = +new Date(entries[0].date);
+    const startDate = entries[0].dateMs;
     return entries
       .filter(p => p.dateMs >= startDate)
       .map(p => ({ x: p.dateMs, y: p.trend }));
@@ -502,19 +509,19 @@ export class ProgressPage {
     let xMax: number;
 
     if (range === 'month') {
-      const cutoff = new Date();
+      const cutoff = todayLocalMidnightDate();
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
       xMax = todayMs;
     } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0) {
-      xMin = +new Date(entries[0].date);
+      xMin = entries[0].dateMs;
       const futureGoalDates = goals.map(g => +new Date(g.goal_date)).filter(d => d > todayMs);
       xMax = futureGoalDates.length > 0 ? Math.min(...futureGoalDates) : (lastGoalDateMs ?? todayMs);
     } else if (range === 'full') {
-      xMin = entries.length > 0 ? +new Date(entries[0].date) : todayMs - 30 * 86400000;
+      xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
     } else {
-      xMin = entries.length > 0 ? +new Date(entries[0].date) : todayMs - 30 * 86400000;
+      xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
     }
 

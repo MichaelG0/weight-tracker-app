@@ -28,7 +28,7 @@ import { DatabaseService, Goal, GoalType, TrendPoint } from 'src/app/services/da
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
-import { todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
+import { todayLocalMidnightString, todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
   trendWeight: number | null;
@@ -173,23 +173,22 @@ export class DashboardPage {
   }
 
   private recentEntries(entries: TrendPoint[]): Array<{ label: string; weight: number }> {
-    return entries.slice(0, 3).map((entry, index) => ({
-      label: this.entryLabel(entry.date, index),
+    return entries.slice(0, 3).map(entry => ({
+      label: this.entryLabel(entry.dateMs),
       weight: entry.weight,
     }));
   }
 
-  private entryLabel(isoDate: string, index: number): string {
+  private entryLabel(dateMs: number): string {
     const today = todayLocalMidnightMs();
-    const entryDate = new Date(isoDate);
 
-    if (entryDate.getTime() >= today) {
+    if (dateMs >= today) {
       return 'Today';
-    } else if (entryDate.getTime() >= today - 86400000) {
+    } else if (dateMs >= today - 86400000) {
       return 'Yesterday';
     }
 
-    return new Date(isoDate).toLocaleDateString('en-GB', {
+    return new Date(dateMs).toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
     });
@@ -279,23 +278,22 @@ export class DashboardPage {
     if (Math.abs(remaining) < 0.01) return 'Reached';
     if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
     if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
-    
+
     const weeks = Math.abs(remaining / weeklyRate);
     const days = Math.ceil(weeks * 7);
-    const goalDate = new Date();
+    const goalDate = todayLocalMidnightDate();
     goalDate.setDate(goalDate.getDate() + days);
 
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    if (goalDate.getFullYear() !== new Date().getFullYear()) {
+    if (goalDate.getFullYear() !== todayLocalMidnightDate().getFullYear()) {
       opts.year = '2-digit';
     }
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
   private stabilityLabel(reversedEntries: TrendPoint[]): string | null {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
-    const recent = reversedEntries.filter(e => new Date(e.date) >= cutoff);
+    const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
+    const recent = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
     const weights = recent.map(e => e.weight);
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
@@ -310,9 +308,8 @@ export class DashboardPage {
   }
 
   private consistencyLabel(reversedEntries: TrendPoint[]): string {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
-    const weeklyEntries = reversedEntries.filter(e => new Date(e.date) >= cutoff);
+    const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
+    const weeklyEntries = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     return `${weeklyEntries.length} / 7 check-ins`;
   }
 

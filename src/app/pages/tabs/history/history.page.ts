@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -26,6 +26,7 @@ import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
+import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 const LIST_PAGE_SIZE = 50;
 
@@ -53,8 +54,8 @@ interface HistoryEntry extends TrendPoint {
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
     DeckCardOptionsDirective,
-    PureFnPipe
-],
+    PureFnPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoryPage {
@@ -78,14 +79,7 @@ export class HistoryPage {
   readonly visibleListEntries = computed(() => this.listEntries().slice(0, this.listVisibleCount()));
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
 
-  private readonly datePipe = new DatePipe('en-US');
-  private readonly currentYear = new Date().getFullYear();
-
-  readonly formatEntryDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const format = date.getFullYear() === this.currentYear ? 'd MMM' : 'd MMM yyyy';
-    return this.datePipe.transform(date, format) ?? '';
-  };
+  private readonly currentYear = todayLocalMidnightDate().getFullYear();
 
   constructor() {
     addIcons({ analyticsOutline, create, trashOutline, documentTextOutline });
@@ -130,11 +124,14 @@ export class HistoryPage {
           text: 'Undo',
           role: 'cancel',
           handler: () => {
-            this.db.addEntry({
-              weight_kg: entry.weight,
-              logged_at: String(entry.date),
-              notes: entry.notes,
-            }).pipe(take(1)).subscribe();
+            this.db
+              .addEntry({
+                weight_kg: entry.weight,
+                logged_at: String(entry.date),
+                notes: entry.notes,
+              })
+              .pipe(take(1))
+              .subscribe();
           },
         },
       ],
@@ -142,4 +139,21 @@ export class HistoryPage {
 
     await toast.present();
   }
+
+  // ─── Piped methods ──────────────────────────────────────────────────────────────────
+
+  readonly formatEntryDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+    };
+
+    // Only show the year if it is not the current year
+    if (date.getFullYear() !== this.currentYear) {
+      options.year = 'numeric';
+    }
+
+    return date.toLocaleDateString(undefined, options);
+  };
 }

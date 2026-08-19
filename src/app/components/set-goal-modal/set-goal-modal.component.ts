@@ -22,6 +22,7 @@ import { DatabaseService, Goal, GoalType } from 'src/app/services/database.servi
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
+import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
 
 @Component({
   selector: 'app-set-goal-modal',
@@ -143,9 +144,10 @@ export class SetGoalModalComponent implements OnInit {
     const weeks = totalChange / weeklyChange;
     const days = Math.ceil(weeks * 7);
 
-    const start = new Date(this.formData.startDate);
+    const normalizedDateStr = this.formData.startDate + 'T00:00:00'; // Must be in this format for Date constructor to treat it as local time
+    const start = new Date(normalizedDateStr);
     start.setDate(start.getDate() + days);
-    this.formData.endDate = start.toISOString().substring(0, 10);
+    this.formData.endDate = toLocalMidnightString(start).substring(0, 10);
   }
 
   get isFormValid(): boolean {
@@ -210,7 +212,7 @@ export class SetGoalModalComponent implements OnInit {
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private getDefaultStartDate(): string {
-    const today = new Date().toISOString().substring(0, 10);
+    const today = todayLocalMidnightString();
 
     if (this.allGoals().length === 0) return today;
 
