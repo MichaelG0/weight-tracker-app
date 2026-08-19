@@ -87,13 +87,12 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
-  private readonly goals = toSignal(this.databaseService.goals$, { initialValue: [] as Goal[] });
   private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
   readonly vm: Signal<DashboardVm> = computed(() => {
     const entries = this.databaseService.entries();
     const reversed = [...entries].reverse();
-    const goals = this.goals();
+    const goals = this.databaseService.goals();
 
     const rawTrend = this.databaseService.currentTrend();
     const trendWeight = rawTrend !== null ? formatWeight(rawTrend, this.unitLabel()) : null;

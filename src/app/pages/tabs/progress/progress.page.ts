@@ -113,7 +113,7 @@ export class ProgressPage {
   readonly showTrend = signal<boolean>(true);
 
   readonly allEntries = this.db.entries;
-  readonly goals = toSignal(this.db.goals$, { initialValue: [] as Goal[] });
+  readonly goals = this.db.goals;
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
   private chart: Chart | null = null;

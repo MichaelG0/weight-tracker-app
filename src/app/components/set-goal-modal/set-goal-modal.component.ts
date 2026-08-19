@@ -57,9 +57,6 @@ export class SetGoalModalComponent implements OnInit {
   weeklyRate = 0.5;
   readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
 
-  // Load existing goals for overlap validation
-  private allGoals = toSignal(this.db.goals$, { initialValue: [] });
-
   readonly formData = {
     startWeight: null as number | null,
     weight: null as number | null,
@@ -214,10 +211,10 @@ export class SetGoalModalComponent implements OnInit {
   private getDefaultStartDate(): string {
     const today = todayLocalMidnightString();
 
-    if (this.allGoals().length === 0) return today;
+    if (this.db.goals().length === 0) return today;
 
     // Default to end date of the latest goal
-    const sorted = [...this.allGoals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
+    const sorted = [...this.db.goals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
     const lastEnd = sorted[sorted.length - 1].goalDate.substring(0, 10);
     return lastEnd > today ? lastEnd : today;
   }
@@ -251,7 +248,7 @@ export class SetGoalModalComponent implements OnInit {
 
   getOverlapError = (startDate: string, endDate: string): string => {
     if (!startDate || !endDate) return '';
-    for (const g of this.allGoals()) {
+    for (const g of this.db.goals()) {
       if (this.isEditing && this.goal && g.id === this.goal.id) continue;
       const gStart = g.startDate.substring(0, 10);
       const gEnd = g.goalDate.substring(0, 10);

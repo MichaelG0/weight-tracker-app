@@ -168,7 +168,7 @@ export class DatabaseService {
       return converted;
     }),
   );
-  readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(
+  private readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(
     map(goalsDB => {
       const unit = this.currentWeightUnit;
 
@@ -187,6 +187,7 @@ export class DatabaseService {
       return goals;
     }),
   );
+  readonly goals: Signal<Goal[]> = toSignal(this.goals$, { initialValue: [] });
   readonly weightUnit$: Observable<WeightUnit> = this._settings$.pipe(map(s => s?.weight_unit ?? 'kg'));
 
   // ── Getters ──────────────────────────────────────────────────────
