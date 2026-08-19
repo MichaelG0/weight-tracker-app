@@ -108,7 +108,7 @@
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
                 <h3>{{ goal.goalWeight | number: '1.1-1' }} {{ unitLabel() }}</h3>
-                <p>{{ goal.goalDate | date: 'mediumDate' }}{{ goal.type ? ' · ' + goal.type : '' }}</p>
+                <p>{{ goal.goalDate | formatDate }}{{ goal.type ? ' · ' + goal.type : '' }}</p>
               </ion-label>
             </ion-item>
             <ion-item-options side="end" (ionSwipe)="deleteGoal(goal)">

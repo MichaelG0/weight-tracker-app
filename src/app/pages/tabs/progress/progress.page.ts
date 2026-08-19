@@ -32,11 +32,12 @@ import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
 import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
-
-import 'hammerjs';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightDate, todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
+import { FormatDatePipe } from "../../../pipes/format-date.pipe";
+
+import 'hammerjs';
 Chart.register(zoomPlugin);
 
 export type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
@@ -97,7 +98,8 @@ const LIST_PAGE_SIZE = 250;
     IonItemOption,
     DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
-  ],
+    FormatDatePipe
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressPage {

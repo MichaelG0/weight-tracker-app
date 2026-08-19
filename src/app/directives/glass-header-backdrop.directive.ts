@@ -2,7 +2,6 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, Renderer2 } from '@ang
 
 @Directive({
   selector: 'ion-header[appGlassBackdrop]',
-  standalone: true,
 })
 export class GlassHeaderBackdropDirective implements AfterViewInit, OnDestroy {
   private readonly layerHeightOffsets = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];

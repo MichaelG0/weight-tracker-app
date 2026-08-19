@@ -25,8 +25,7 @@ import { DatabaseService, WeightEntry } from 'src/app/services/database.service'
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
-import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
-import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
+import { FormatDatePipe } from "../../../pipes/format-date.pipe";
 
 const LIST_PAGE_SIZE = 50;
 
@@ -54,8 +53,8 @@ interface HistoryEntry extends WeightEntry {
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
     DeckCardOptionsDirective,
-    PureFnPipe,
-  ],
+    FormatDatePipe
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoryPage {
@@ -78,8 +77,6 @@ export class HistoryPage {
 
   readonly visibleListEntries = computed(() => this.listEntries().slice(0, this.listVisibleCount()));
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
-
-  private readonly currentYear = todayLocalMidnightDate().getFullYear();
 
   constructor() {
     addIcons({ analyticsOutline, create, trashOutline, documentTextOutline });
@@ -139,21 +136,4 @@ export class HistoryPage {
 
     await toast.present();
   }
-
-  // ─── Piped methods ──────────────────────────────────────────────────────────────────
-
-  readonly formatEntryDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const options: Intl.DateTimeFormatOptions = {
-      month: 'short',
-      day: 'numeric',
-    };
-
-    // Only show the year if it is not the current year
-    if (date.getFullYear() !== this.currentYear) {
-      options.year = 'numeric';
-    }
-
-    return date.toLocaleDateString(undefined, options);
-  };
 }

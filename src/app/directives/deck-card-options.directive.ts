@@ -2,7 +2,6 @@ import { AfterViewInit, Directive, ElementRef, NgZone, OnDestroy, Renderer2, inj
 
 @Directive({
   selector: 'ion-item-sliding[appDeckCardOptions]',
-  standalone: true,
 })
 export class DeckCardOptionsDirective implements AfterViewInit, OnDestroy {
   private observer?: MutationObserver;
