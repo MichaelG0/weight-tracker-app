@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   IonHeader,
   IonToolbar,
@@ -24,15 +23,15 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
-import { kgToUnit, formatWeight } from 'src/app/utils/unit-conversion.util';
-import { todayLocalMidnightString, todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
+import { kgToUnitFixed, formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
+import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
-  trendWeight: number | null;
-  goalWeight: number | null;
+  trendToFixed: string | null;
+  goalWeight: string | null;
   startWeight: number | null;
   goalType: GoalType;
   maintRange: number | null;
@@ -50,7 +49,7 @@ interface DashboardVm {
   consistency: string;
   recommendation: string;
   rateLabel: string;
-  recentEntries: Array<{ label: string; weight: number }>;
+  recentEntries: Array<{ label: string; weight: string }>;
   unitLabel: string;
 }
 
@@ -87,65 +86,54 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
-  private readonly unitLabel = toSignal(this.databaseService.weightUnit$, { initialValue: 'kg' });
 
   readonly vm: Signal<DashboardVm> = computed(() => {
-    const entries = this.databaseService.entries();
+    const entries = this.databaseService.recentEntries();
     const reversed = [...entries].reverse();
     const goals = this.databaseService.goals();
+    const weightUnit = this.databaseService.weightUnit();
 
-    const rawTrend = this.databaseService.currentTrend();
-    const trendWeight = rawTrend !== null ? formatWeight(rawTrend, this.unitLabel()) : null;
+    const latestEntry = this.databaseService.latestEntry();
+    const rawTrend = latestEntry?.trend ?? null;
     const activeGoal = this.findActiveGoal(goals);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? 'Weight Loss';
+    const weeklyRate = this.weeklyRate(latestEntry, entries);
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
     if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
-      maintRange = kgToUnit(0.907186, this.unitLabel());
-      maintOffset = formatWeight(rawTrend - goalWeight, this.unitLabel());
+      maintRange = kgToUnitFixed(0.907186, weightUnit);
+      maintOffset = parseFloat(formatWeight(rawTrend - goalWeight, weightUnit));
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
-    const weeklyRate = this.weeklyRate(rawTrend);
-    const progressPercent = this.progressPercent(startWeight, rawTrend, goalWeight);
-    const expectedGoalDate = this.expectedGoalDate(rawTrend, goalWeight, weeklyRate);
-    const bwPercentPerWeek = this.bwPercentPerWeek(rawTrend, weeklyRate);
-    const absoluteRatePerWeek = this.absoluteRatePerWeek(weeklyRate);
-    const remaining = this.remaining(rawTrend, goalWeight);
-    const totalProgress = this.totalProgress(startWeight, rawTrend);
-    const daysToGoal = this.daysToGoal(rawTrend, goalWeight, weeklyRate);
-    const daysMaintained = goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null;
-    const stabilityLabel = this.stabilityLabel(reversed);
-    const consistency = this.consistencyLabel(reversed);
-
     return {
-      trendWeight,
-      goalWeight,
+      trendToFixed: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
+      goalWeight: formatWeight(goalWeight ?? 0, weightUnit),
       startWeight,
       goalType,
       maintRange,
       maintOffset,
       maintPercent,
-      progressPercent,
-      bwPercentPerWeek,
-      absoluteRatePerWeek,
-      remaining,
-      totalProgress,
-      expectedGoalDate,
-      daysToGoal,
-      daysMaintained,
-      stabilityLabel,
-      consistency,
+      progressPercent: this.progressPercent(startWeight, rawTrend, goalWeight),
+      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, weeklyRate),
+      absoluteRatePerWeek: this.absoluteRatePerWeek(weeklyRate, weightUnit),
+      remaining: this.remaining(rawTrend, goalWeight, weightUnit),
+      totalProgress: this.totalProgress(startWeight, rawTrend, weightUnit),
+      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate),
+      daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate),
+      daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
+      stabilityLabel: this.stabilityLabel(reversed, weightUnit),
+      consistency: this.consistencyLabel(reversed),
       recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight),
-      rateLabel: this.rateLabel(weeklyRate),
+      rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
-      unitLabel: this.unitLabel(),
+      unitLabel: weightUnit,
     };
   });
 
@@ -171,10 +159,10 @@ export class DashboardPage {
     this.statFlip.set(updated);
   }
 
-  private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: number }> {
+  private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
     return entries.slice(0, 3).map(entry => ({
       label: this.entryLabel(entry.dateMs),
-      weight: entry.weight,
+      weight: formatWeight(entry.weight, this.databaseService.weightUnit()),
     }));
   }
 
@@ -200,23 +188,24 @@ export class DashboardPage {
     return `${sign}${pct.toFixed(2)}%`;
   }
 
-  private absoluteRatePerWeek(weeklyRate: number | null): string | null {
+  private absoluteRatePerWeek(weeklyRate: number | null, weightUnit: WeightUnit): string | null {
     if (weeklyRate == null) return null;
     const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${weeklyRate.toFixed(2)}`;
+    const fixed = weightUnit === 'st' ? 3 : 2;
+    return `${sign}${weeklyRate.toFixed(fixed)}`;
   }
 
-  private remaining(trendWeight: number | null, goalWeight: number | null): string | null {
+  private remaining(trendWeight: number | null, goalWeight: number | null, unitLabel: WeightUnit): string | null {
     if (trendWeight == null || goalWeight == null) return null;
     const diff = Math.abs(goalWeight - trendWeight);
-    return diff < 0.01 ? '0' : diff.toFixed(1);
+    return diff < 0.01 ? '0' : String(formatWeight(diff, unitLabel));
   }
 
-  private totalProgress(startWeight: number | null, trendWeight: number | null): string | null {
+  private totalProgress(startWeight: number | null, trendWeight: number | null, unitLabel: WeightUnit): string | null {
     if (startWeight == null || trendWeight == null) return null;
     const diff = trendWeight - startWeight;
     const sign = diff > 0 ? '+' : '';
-    return `${sign}${diff.toFixed(1)}`;
+    return `${sign}${formatWeight(diff, unitLabel)}`;
   }
 
   private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
@@ -229,11 +218,23 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
-  private weeklyRate(currentTrend: number | null): number | null {
-    if (currentTrend == null) return null;
-    const trend7dAgo = this.databaseService.trendAt(todayLocalMidnightMs() - 7 * 86400000);
-    if (trend7dAgo == null) return null;
-    return currentTrend - trend7dAgo;
+  private weeklyRate(latestEntry: WeightEntry | null, entries: WeightEntry[]): number | null {
+    if (latestEntry == null || entries.length < 2) return null;
+    const latestMs = latestEntry.dateMs;
+    const targetMs = latestMs - 7 * 86400000;
+
+    // Find the entry closest to 7 days before the latest entry, excluding the latest itself
+    const candidates = entries.filter(e => e.dateMs < latestMs);
+    if (!candidates.length) return null;
+
+    const closest = candidates.reduce((best, e) => (Math.abs(e.dateMs - targetMs) < Math.abs(best.dateMs - targetMs) ? e : best));
+    const daysBetween = (latestMs - closest.dateMs) / 86400000;
+    if (daysBetween < 1) return null;
+
+    console.log('Calculating weekly rate: latest: ', latestEntry, 'closest: ', closest, 'daysBetween: ', daysBetween);
+    const weeklyRate = ((latestEntry.trend - closest.trend) / daysBetween) * 7;
+    console.log('Weekly rate calculated: ', weeklyRate);
+    return weeklyRate;
   }
 
   private daysMaintained(trendPoints: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
@@ -289,7 +290,7 @@ export class DashboardPage {
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
-  private stabilityLabel(reversedEntries: WeightEntry[]): string | null {
+  private stabilityLabel(reversedEntries: WeightEntry[], unitLabel: WeightUnit): string | null {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
     const recent = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
@@ -297,7 +298,7 @@ export class DashboardPage {
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
     const sd = Math.sqrt(variance);
-    const threshold = kgToUnit(1.5, this.unitLabel());
+    const threshold = kgToUnit(1.5, unitLabel);
     const score = Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
     if (score >= 90) return 'Very stable';
     if (score >= 75) return 'Stable';
@@ -307,16 +308,17 @@ export class DashboardPage {
 
   private consistencyLabel(reversedEntries: WeightEntry[]): string {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
-    const weeklyEntries = reversedEntries.filter(e => e.dateMs >= cutoffMs);
+    const weeklyEntries = reversedEntries.filter(e => e.dateMs > cutoffMs);
     return `${weeklyEntries.length} / 7 check-ins`;
   }
 
-  private rateLabel(weeklyRate: number | null): string {
+  private rateLabel(weeklyRate: number | null, unitLabel: WeightUnit): string {
     if (weeklyRate == null) {
       return 'Need more data';
     }
     const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${weeklyRate.toFixed(2)} ${this.unitLabel()}/week`;
+    const fixed = unitLabel === 'st' ? 3 : 2;
+    return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
   }
 
   private recommendation(trendWeight: number | null, weeklyRate: number | null, goalType: GoalType, goalWeight: number | null): string {

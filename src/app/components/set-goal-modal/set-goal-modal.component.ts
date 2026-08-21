@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, Input, OnInit } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, Input, OnInit, Signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonButton,
@@ -18,7 +17,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalDB, GoalType } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalDB, GoalType, WeightUnit } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -55,7 +54,7 @@ export class SetGoalModalComponent implements OnInit {
   isEditing = false;
   useCustomEndDate = false;
   weeklyRate = 0.5;
-  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
+  readonly weightUnit: Signal<WeightUnit> = this.db.weightUnit;
 
   readonly formData = {
     startWeight: null as number | null,
@@ -96,7 +95,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   refreshStartWeight(): void {
-    this.formData.startWeight = formatWeight(this.db.currentTrend() ?? 0, this.unitLabel());
+    this.formData.startWeight = parseFloat(formatWeight(this.db.latestEntry()?.trend ?? 0, this.weightUnit()));
     this.onStartWeightChange();
   }
 

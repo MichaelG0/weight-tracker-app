@@ -11,7 +11,6 @@ import {
   Signal,
   ViewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   IonButton,
@@ -62,8 +61,7 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
 
-  private readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
-  readonly weightLabel = computed(() => `Weight (${this.unitLabel()})`);
+  readonly weightLabel = computed(() => `Weight (${this.db.weightUnit()})`);
 
   private readonly entriesByDate: Signal<Map<string, WeightEntry>> = computed(() => {
     const map = new Map<string, WeightEntry>();

@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   InfiniteScrollCustomEvent,
   IonContent,
@@ -26,6 +25,7 @@ import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 import { FormatDatePipe } from "../../../pipes/format-date.pipe";
+import { FormatWeightPipe } from "../../../pipes/format-weight.pipe";
 
 const LIST_PAGE_SIZE = 50;
 
@@ -53,7 +53,8 @@ interface HistoryEntry extends WeightEntry {
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
     DeckCardOptionsDirective,
-    FormatDatePipe
+    FormatDatePipe,
+    FormatWeightPipe
 ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -62,7 +63,7 @@ export class HistoryPage {
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
   readonly listVisibleCount = signal(LIST_PAGE_SIZE);
-  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
+  readonly weightUnit = this.db.weightUnit;
 
   readonly listEntries = computed<HistoryEntry[]>(() => {
     const desc = [...this.db.entries()].reverse();

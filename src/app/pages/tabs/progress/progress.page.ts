@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   IonHeader,
   IonToolbar,
@@ -33,11 +32,12 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
 import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
-import { kgToUnitNoFixed } from 'src/app/utils/unit-conversion.util';
+import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightDate, todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 import 'hammerjs';
+import { FormatWeightPipe } from "../../../pipes/format-weight.pipe";
 Chart.register(zoomPlugin);
 
 type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
@@ -97,7 +97,8 @@ interface ChartColors {
     DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
     FormatDatePipe,
-  ],
+    FormatWeightPipe
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressPage {
@@ -108,19 +109,13 @@ export class ProgressPage {
 
   readonly weightChart = viewChild<ElementRef>('weightChart');
 
-  readonly rangeMode = signal<RangeMode>(
-    (localStorage.getItem('progress.rangeMode') as RangeMode) || 'journey'
-  );
-  readonly showDaily = signal<boolean>(
-    localStorage.getItem('progress.showDaily') !== 'false'
-  );
-  readonly showTrend = signal<boolean>(
-    localStorage.getItem('progress.showTrend') !== 'false'
-  );
+  readonly rangeMode = signal<RangeMode>((localStorage.getItem('progress.rangeMode') as RangeMode) || 'journey');
+  readonly showDaily = signal<boolean>(localStorage.getItem('progress.showDaily') !== 'false');
+  readonly showTrend = signal<boolean>(localStorage.getItem('progress.showTrend') !== 'false');
 
   readonly allEntries = this.db.entries;
   readonly goals = this.db.goals;
-  readonly unitLabel = toSignal(this.db.weightUnit$, { initialValue: 'kg' });
+  readonly weightUnit = this.db.weightUnit;
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
@@ -134,7 +129,7 @@ export class ProgressPage {
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
-      const unitLbl = this.unitLabel();
+      const unitLbl = this.weightUnit();
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
@@ -246,15 +241,16 @@ export class ProgressPage {
 
     const dots: Pt[] = entries.map(e => ({ x: e.dateMs, y: e.weight }));
     const trendLine: Pt[] = this.getTrendLine(entries);
-    const maintRange = kgToUnitNoFixed(0.907186, unitLbl);
+    const maintRange = kgToUnit(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
-    const lastGoalDateMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
-    const bounds = this.getBounds(entries, goals, lastGoalDateMs, range, maintRange, unitLbl);
+    const latestGoalMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
+    const bounds = this.getBounds(entries, goals, latestGoalMs, range, maintRange, unitLbl);
 
     const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayLocalMidnightMs() - 30 * 86400000;
+    const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayLocalMidnightMs();
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => g.startDateMs)) : Infinity;
     const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
-    const xMaxLimit = lastGoalDateMs !== null ? lastGoalDateMs + 1 * 86400000 : todayLocalMidnightMs() + 1 * 86400000;
+    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0) + 1 * 86400000;
 
     const config = {
       type: 'line',
@@ -342,7 +338,7 @@ export class ProgressPage {
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: number) => (unitLbl === 'st' ? v.toFixed(2) : v.toFixed(1)),
+              callback: (v: number) => (formatWeight(v, unitLbl) + ' ' + unitLbl),
             },
           },
         },
@@ -366,7 +362,7 @@ export class ProgressPage {
                 return x ? new Date(x).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
               },
               label: (ctx: any) => {
-                const val = Number(ctx.parsed.y).toFixed(1);
+                const val = formatWeight(ctx.parsed.y, unitLbl);
                 if (ctx.dataset.label === 'Guide') {
                   const tag = ctx.dataIndex === 0 ? 'Start' : 'Goal';
                   return `  ${tag}: ${val} ${unitLbl}`;
@@ -546,7 +542,7 @@ export class ProgressPage {
     let yMax = weights.length ? Math.max(...weights) : 90;
 
     // Minimum 2kg range
-    const minYrange = kgToUnitNoFixed(2, unitLbl);
+    const minYrange = kgToUnit(2, unitLbl);
     if (yMax - yMin < minYrange) {
       const mid = (yMin + yMax) / 2;
       yMin = mid - minYrange / 2;

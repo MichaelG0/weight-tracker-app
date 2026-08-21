@@ -1,8 +1,7 @@
-import { Pipe, PipeTransform } from "@angular/core";
+import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
   name: 'pureFn',
-  pure: true,
 })
 export class PureFnPipe implements PipeTransform {
   // IMPORTANT: in order to pass the context to the pipe, the methods passed to

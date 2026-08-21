@@ -1,10 +1,10 @@
 import { computed, inject, Injectable, Signal } from '@angular/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
-import { BehaviorSubject, Observable, ReplaySubject, from } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 'rxjs';
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { cmToFtIn, kgToUnit, ftInToCm, unitToKg } from '../utils/unit-conversion.util';
+import { cmToFtIn, ftInToCm, unitToKgFixed, kgToUnit } from '../utils/unit-conversion.util';
 import { toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
@@ -125,39 +125,48 @@ export class DatabaseService {
   private readonly _goals$ = new BehaviorSubject<GoalDB[]>([]);
 
   /** All entries with their computed EWMA trend value, sorted oldest → newest. */
-  private readonly entries$: Observable<WeightEntry[]> = this._entries$.asObservable().pipe(
-    map(entries => {
-      if (!entries.length) return [];
-
-      const unit = this.currentWeightUnit;
+  private readonly entries$: Observable<WeightEntry[]> = combineLatest([
+    this._entries$,
+    this._settings$.pipe(map(s => s?.weight_unit ?? 'kg')),
+  ]).pipe(
+    map(([entriesDB, unit]) => {
+      if (!entriesDB.length) return [];
       // Alphabetical string comparison is way faster and yields the exact same chronological result
-      const ordered = entries.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
+      const ordered = entriesDB.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
-      const pts: WeightEntry[] = [];
-      let ewma = kgToUnit(entries[0].weight_kg, unit);
+      const entries: WeightEntry[] = [];
+      let ewma = kgToUnit(ordered[0].weight_kg, unit);
+      let prevDateMs = +new Date(ordered[0].logged_at);
 
-      for (const entry of ordered) {
+      for (let i = 0; i < ordered.length; i++) {
+        const entry = ordered[i];
         const convertedWeight = kgToUnit(entry.weight_kg, unit);
-        ewma = ewma + ALPHA * (convertedWeight - ewma);
-        pts.push({
+        const currentDateMs = +new Date(entry.logged_at);
+
+        if (i === 0) {
+          ewma = convertedWeight;
+        } else {
+          const daysDelta = (currentDateMs - prevDateMs) / 86400000; // ms → days
+          const adjustedAlpha = 1 - Math.pow(1 - ALPHA, daysDelta);
+          ewma = ewma + adjustedAlpha * (convertedWeight - ewma);
+        }
+
+        entries.push({
           id: entry.id,
           date: entry.logged_at,
-          dateMs: +new Date(entry.logged_at),
+          dateMs: currentDateMs,
           weight: convertedWeight,
           trend: ewma,
           notes: entry.notes,
         });
+
+        prevDateMs = currentDateMs;
       }
 
-      return pts;
+      console.log('entries$', entries.slice(-5));
+      return entries;
     }),
   );
-  readonly entries: Signal<WeightEntry[]> = toSignal(this.entries$, { initialValue: [] });
-  readonly recentEntries: Signal<WeightEntry[]> = computed(() => this.entries().slice(-90));
-  readonly currentTrend: Signal<number | null> = computed(() => {
-    const pts = this.entries();
-    return pts.length ? pts[pts.length - 1].trend : null;
-  });
   readonly settings$: Observable<UserSettingsDB | null> = this._settings$.asObservable().pipe(
     map(settings => {
       if (!settings) return null;
@@ -165,13 +174,16 @@ export class DatabaseService {
         ...settings,
         heightFtIn: settings.height_cm ? cmToFtIn(settings.height_cm) : undefined,
       };
+
+      console.log('settings$', converted);
       return converted;
     }),
   );
-  private readonly goals$: Observable<Goal[]> = this._goals$.asObservable().pipe(
-    map(goalsDB => {
-      const unit = this.currentWeightUnit;
-
+  private readonly goals$: Observable<Goal[]> = combineLatest([
+    this._goals$,
+    this._settings$.pipe(map(s => s?.weight_unit ?? 'kg')),
+  ]).pipe(
+    map(([goalsDB, unit]) => {
       const goals: Goal[] = goalsDB.map(g => ({
         id: g.id,
         startWeight: kgToUnit(g.start_weight_kg, unit),
@@ -187,18 +199,21 @@ export class DatabaseService {
       return goals;
     }),
   );
+
+  // ── Derived  signals ──────────────────────────────────────
+
+  readonly entries: Signal<WeightEntry[]> = toSignal(this.entries$, { initialValue: [] });
+  readonly recentEntries: Signal<WeightEntry[]> = computed(() => this.entries().slice(-7));
+  readonly latestEntry: Signal<WeightEntry | null> = computed(() => {
+    const pts = this.entries();
+    return pts.length ? pts[pts.length - 1] : null;
+  });
+
   readonly goals: Signal<Goal[]> = toSignal(this.goals$, { initialValue: [] });
-  readonly weightUnit$: Observable<WeightUnit> = this._settings$.pipe(map(s => s?.weight_unit ?? 'kg'));
 
-  // ── Getters ──────────────────────────────────────────────────────
-
-  private get currentWeightUnit(): WeightUnit {
-    return this._settings$.value?.weight_unit ?? 'kg';
-  }
-
-  private get currentHeightUnit(): HeightUnit {
-    return this._settings$.value?.height_unit ?? 'cm';
-  }
+  readonly settings: Signal<UserSettingsDB | null> = toSignal(this.settings$, { initialValue: null });
+  readonly weightUnit = computed(() => this.settings()?.weight_unit ?? 'kg');
+  readonly heightUnit = computed(() => this.settings()?.height_unit ?? 'cm');
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
 
@@ -247,8 +262,6 @@ export class DatabaseService {
     this._goals$.next((r.values ?? []) as GoalDB[]);
   }
 
-
-
   // ── Weight entries ────────────────────────────────────────────────────────
 
   addEntry(entry: Omit<WeightEntryDB, 'id'>): Observable<void> {
@@ -256,7 +269,7 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
-          unitToKg(entry.weight_kg, this.currentWeightUnit),
+          unitToKgFixed(entry.weight_kg, this.weightUnit()),
           toLocalMidnightString(entry.logged_at),
           entry.notes ?? null,
         ]),
@@ -271,7 +284,7 @@ export class DatabaseService {
     console.log('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
-    const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.currentWeightUnit) : null;
+    const weightToStore = entry.weight_kg != null ? unitToKgFixed(entry.weight_kg, this.weightUnit()) : null;
 
     return this.whenReady(() =>
       from(
@@ -303,29 +316,6 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntryDB) ?? null)),
     );
-  }
-
-  /** Trend value at or before a given timestamp. */
-  trendAt(timestampMs: number): number | null {
-    const pts = this.entries();
-    if (!pts.length || timestampMs < pts[0].dateMs) return null;
-
-    // Binary search for the last index where pt.date <= timestampMs.
-    let lo = 0;
-    let hi = pts.length - 1;
-    let result = -1;
-
-    while (lo <= hi) {
-      const mid = (lo + hi) >>> 1;
-      if (pts[mid].dateMs <= timestampMs) {
-        result = mid;
-        lo = mid + 1; // keep searching right for a later valid index
-      } else {
-        hi = mid - 1;
-      }
-    }
-
-    return result === -1 ? null : pts[result].trend;
   }
 
   // ── User settings ─────────────────────────────────────────────────────────
@@ -369,8 +359,8 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
-          unitToKg(goal.start_weight_kg, this.currentWeightUnit),
-          unitToKg(goal.goal_weight_kg, this.currentWeightUnit),
+          unitToKgFixed(goal.start_weight_kg, this.weightUnit()),
+          unitToKgFixed(goal.goal_weight_kg, this.weightUnit()),
           toLocalMidnightString(goal.start_date),
           toLocalMidnightString(goal.goal_date),
           goal.type ?? null,
@@ -395,8 +385,8 @@ export class DatabaseService {
                  type            = COALESCE(?, type)
            WHERE id = ?`,
           [
-            goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.currentWeightUnit) : null,
-            goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.currentWeightUnit) : null,
+            goal.start_weight_kg != null ? unitToKgFixed(goal.start_weight_kg, this.weightUnit()) : null,
+            goal.goal_weight_kg != null ? unitToKgFixed(goal.goal_weight_kg, this.weightUnit()) : null,
             goal.start_date != null ? toLocalMidnightString(goal.start_date) : null,
             goal.goal_date != null ? toLocalMidnightString(goal.goal_date) : null,
             goal.type ?? null,
