@@ -100,6 +100,7 @@ export class DashboardPage {
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? 'Weight Loss';
     const weeklyRate = this.weeklyRate(latestEntry, entries);
+    const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
@@ -111,6 +112,7 @@ export class DashboardPage {
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
+
 
     return {
       trendToFixed: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
@@ -128,9 +130,9 @@ export class DashboardPage {
       expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate),
       daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
-      stabilityLabel: this.stabilityLabel(reversed, weightUnit),
+      stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
-      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight),
+      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
@@ -290,7 +292,7 @@ export class DashboardPage {
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
-  private stabilityLabel(reversedEntries: WeightEntry[], unitLabel: WeightUnit): string | null {
+  private stabilityScore(reversedEntries: WeightEntry[], unitLabel: WeightUnit): number | null {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
     const recent = reversedEntries.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
@@ -299,10 +301,14 @@ export class DashboardPage {
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
     const sd = Math.sqrt(variance);
     const threshold = kgToUnit(1.5, unitLabel);
-    const score = Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
-    if (score >= 90) return 'Very stable';
-    if (score >= 75) return 'Stable';
-    if (score >= 50) return 'Some variation';
+    return Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
+  }
+
+  private stabilityLabel(stabilityScore: number | null): string | null {
+    if (stabilityScore == null) return null;
+    if (stabilityScore >= 90) return 'Very stable';
+    if (stabilityScore >= 75) return 'Stable';
+    if (stabilityScore >= 50) return 'Some variation';
     return 'Fluctuating';
   }
 
@@ -321,7 +327,13 @@ export class DashboardPage {
     return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
   }
 
-  private recommendation(trendWeight: number | null, weeklyRate: number | null, goalType: GoalType, goalWeight: number | null): string {
+  private recommendation(
+    trendWeight: number | null,
+    weeklyRate: number | null,
+    goalType: GoalType,
+    goalWeight: number | null,
+    stabilityScore: number | null,
+  ): string {
     if (trendWeight == null || weeklyRate == null) {
       return 'Log weight at least 3 times this week to unlock recommendations.';
     }
@@ -329,9 +341,11 @@ export class DashboardPage {
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
     const isLosing = weeklyRate < -0.01;
-    const reachedGoal = goalWeight != null && Math.abs(trendWeight - goalWeight) < 0.3;
+    const reachedGoal =
+      goalWeight != null &&
+      ((goalType === 'Weight Loss' && trendWeight <= goalWeight) || (goalType === 'Weight Gain' && trendWeight >= goalWeight));
 
-    if (reachedGoal && goalType !== 'Maintenance') {
+    if (reachedGoal) {
       return 'You have reached your goal weight. Consider setting a maintenance or new target.';
     }
 
@@ -340,6 +354,14 @@ export class DashboardPage {
         if (isGaining) {
           return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.';
         }
+
+        const nearLossGoal = goalWeight != null && goalWeight > 0 && ((trendWeight - goalWeight) / goalWeight) < 0.01;
+        if (nearLossGoal) {
+          return isLosing
+            ? 'Almost at your goal — keep going, no changes needed.'
+            : 'Nearly at your goal but progress has stalled. A small nudge — cut ~100 kcal or a short daily walk — should close the gap.';
+        }
+
         if (bwPct > 1.0) {
           return 'Loss rate exceeds 1% BW/week. Slow down slightly to preserve lean mass and training performance.';
         }
@@ -359,6 +381,14 @@ export class DashboardPage {
         if (isLosing) {
           return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.';
         }
+
+        const nearGainGoal = goalWeight != null && goalWeight > 0 && ((goalWeight - trendWeight) / goalWeight) < 0.01;
+        if (nearGainGoal) {
+          return isGaining
+            ? 'Almost at your goal — keep going, no changes needed.'
+            : 'Nearly at your goal but progress has stalled. A small nudge — add ~100 kcal or a calorie-dense snack — should close the gap.';
+        }
+
         if (bwPct > 1.0) {
           return 'Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~200 kcal.';
         }
@@ -375,17 +405,123 @@ export class DashboardPage {
       }
 
       case 'Maintenance': {
+        if (goalWeight == null) {
+          return 'No target weight set for maintenance. Keep logging to maintain current trends or set a clear goal.';
+        }
+
+        const offset = trendWeight - goalWeight;
+        const offsetPct = (offset / goalWeight) * 100;
+        const absOffsetPct = Math.abs(offsetPct);
+        const isAbove = offsetPct > 0.5;
+        const isBelow = offsetPct < -0.5;
+        const onTarget = !isAbove && !isBelow;
+
+        const movingAway = (isAbove && isGaining) || (isBelow && isLosing);
+        const movingToward = (isAbove && isLosing) || (isBelow && isGaining);
+
+        const noData = stabilityScore == null;
+        const stable = !noData && stabilityScore >= 75;
+        const moderate = !noData && stabilityScore >= 50 && stabilityScore < 75;
+        const fluctuating = !noData && stabilityScore < 50;
+
+        // --- High drift (>0.5% BW/week) ---
         if (bwPct > 0.5) {
-          return isGaining
-            ? 'Drifting above maintenance. Reduce portion sizes slightly or add some low-intensity movement.'
-            : 'Drifting below maintenance. Add a small snack or slightly larger meals to stabilize.';
+          if (movingAway) {
+            return isGaining
+              ? 'Drifting rapidly above target. Reduce portion sizes or add low-intensity movement to correct course.'
+              : 'Drifting rapidly below target. Increase meal sizes or add a snack to stabilize.';
+          }
+          if (movingToward) {
+            return isGaining
+              ? "Correcting quickly upward toward target. Good progress, but ease off soon so you don't overshoot."
+              : "Correcting quickly downward toward target. Good progress, but ease off soon so you don't overshoot.";
+          }
+          if (onTarget) {
+            if (fluctuating) {
+              return 'Weight is near target but swinging rapidly. Focus on strict hydration and sodium consistency.';
+            }
+            return isGaining
+              ? 'Weight is near target but trending up quickly. A small calorie trim now prevents a larger correction later.'
+              : 'Weight is near target but trending down quickly. Slightly increase portions to avoid drifting below range.';
+          }
         }
+
+        // --- Moderate drift (0.2–0.5% BW/week) ---
         if (bwPct > 0.2) {
-          return isGaining
-            ? 'Slight upward drift. Stay mindful of weekend intake — a small adjustment now prevents larger corrections later.'
-            : 'Slight downward drift. Ensure you are eating enough to support training and recovery.';
+          if (movingAway) {
+            if (fluctuating) {
+              return isGaining
+                ? 'Drifting above target with high variability. Tighten up meal consistency and watch sodium intake.'
+                : 'Drifting below target with high variability. Ensure consistent meal timing and adequate calories.';
+            }
+            return isGaining
+              ? 'Slowly trending above target. A small adjustment now — fewer liquid calories or an extra walk — prevents a bigger correction later.'
+              : 'Slowly trending below target. Ensure you are eating enough to support training and recovery.';
+          }
+          if (movingToward) {
+            if (fluctuating) {
+              return 'Trending back toward target, but with high variability. Focus on steady habits to smooth the trend.';
+            }
+            return "Trending back toward target. Stay the course but monitor so you don't overshoot.";
+          }
+          if (onTarget) {
+            if (fluctuating) {
+              return 'Near target but weight is swinging. Keep meal timing and hydration consistent to smooth things out.';
+            }
+            return isGaining
+              ? 'Near target with a slight upward drift. Stay mindful of portions this week to level off.'
+              : 'Near target with a slight downward drift. Ensure meals are satisfying and consistent to level off.';
+          }
         }
-        return 'Weight is stable. Keep doing what works — consistency is the goal here.';
+
+        // --- Low drift (<=0.2% BW/week) ---
+        // Address large deviations first
+        if (absOffsetPct > 1.5) {
+          if (movingToward) {
+            return isAbove
+              ? 'Weight is well above target but slowly heading back down. Stay consistent — no drastic changes needed.'
+              : 'Weight is well below target but slowly heading back up. Stay consistent — no drastic changes needed.';
+          }
+          if (movingAway) {
+            return isAbove
+              ? 'Weight is far above target and still creeping up. Create a calorie deficit — even a small one will help reverse the trend.'
+              : 'Weight is far below target and still creeping down. Increase portions or add a calorie-dense snack to reverse the trend.';
+          }
+          if (isAbove) {
+            return fluctuating
+              ? 'Weight is fluctuating significantly above target. Focus on consistency before making large calorie cuts.'
+              : 'Weight is settled far above target. Create a modest calorie deficit to return to your maintenance range.';
+          }
+          if (isBelow) {
+            return fluctuating
+              ? 'Weight is fluctuating significantly below target. Focus on regular meals before blindly adding calories.'
+              : 'Weight is settled far below target. Add a daily snack or slightly larger portions to return to your range.';
+          }
+        }
+
+        if (fluctuating) {
+          return 'Weight is fluctuating near target. Review sodium, sleep, and stress — these often drive short-term swings.';
+        }
+
+        if (stable) {
+          if (onTarget) return 'Excellent stability right on target. Maintain your current routine.';
+          if (isAbove) return 'Weight is stable but sitting slightly above target. A very minor calorie reduction can realign it.';
+          if (isBelow) return 'Weight is stable but sitting slightly below target. A very minor calorie increase can realign it.';
+        }
+
+        if (moderate) {
+          if (onTarget) return 'Good stability near target. Minor day-to-day fluctuations are normal — stay the course.';
+          if (isAbove) return 'Moderate stability slightly above target. Keep meal timing consistent and consider a small calorie trim.';
+          if (isBelow)
+            return 'Moderate stability slightly below target. Keep meal timing consistent and consider slightly larger portions.';
+        }
+
+        if (noData) {
+          if (onTarget) return 'Weight is near target, but more data is needed to assess stability. Keep logging daily.';
+          return 'Weight is slightly off target. Keep logging daily to track this trend before making adjustments.';
+        }
+
+        return 'Weight is generally on track. Keep doing what works — consistency is the goal here.';
       }
     }
   }

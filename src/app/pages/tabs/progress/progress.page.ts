@@ -338,7 +338,7 @@ export class ProgressPage {
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: number) => (formatWeight(v, unitLbl) + ' ' + unitLbl),
+              callback: (v: number) => (formatWeight(v, unitLbl)),
             },
           },
         },
