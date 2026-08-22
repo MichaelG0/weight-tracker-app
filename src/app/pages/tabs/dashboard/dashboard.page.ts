@@ -148,7 +148,7 @@ export class DashboardPage {
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
-      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore, profile),
+      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore, profile, activeGoal),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
@@ -350,6 +350,7 @@ export class DashboardPage {
     goalWeight: number | null,
     stabilityScore: number | null,
     profile: UserProfile,
+    activeGoal: Goal | null,
   ): string {
     if (trendWeight == null || weeklyRate == null) {
       return 'Log weight at least 3 times this week to unlock recommendations.';
@@ -416,6 +417,30 @@ export class DashboardPage {
       goalWeight != null &&
       ((goalType === 'Weight Loss' && trendWeight <= goalWeight) || (goalType === 'Weight Gain' && trendWeight >= goalWeight));
 
+    // --- Schedule awareness ---
+    // Calculate where weight should be today based on linear progress from start to goal date.
+    let scheduleStatus: 'ahead' | 'behind' | 'on-track' | null = null;
+    if (activeGoal && goalWeight != null && activeGoal.startWeight != null && goalType !== 'Maintenance') {
+      const today = todayLocalMidnightMs();
+      const totalDuration = activeGoal.goalDateMs - activeGoal.startDateMs;
+      const elapsed = today - activeGoal.startDateMs;
+      if (totalDuration > 0 && elapsed > 0 && elapsed < totalDuration) {
+        const progress = elapsed / totalDuration;
+        const projectedWeight = activeGoal.startWeight + (goalWeight - activeGoal.startWeight) * progress;
+        const deviationPct = Math.abs(trendWeight - projectedWeight) / Math.abs(goalWeight - activeGoal.startWeight);
+        if (deviationPct > 0.1) {
+          // More than 10% off the linear schedule
+          if (goalType === 'Weight Loss') {
+            scheduleStatus = trendWeight < projectedWeight ? 'ahead' : 'behind';
+          } else {
+            scheduleStatus = trendWeight > projectedWeight ? 'ahead' : 'behind';
+          }
+        } else {
+          scheduleStatus = 'on-track';
+        }
+      }
+    }
+
     if (reachedGoal) {
       return 'You have reached your goal weight. Consider setting a maintenance or new target.';
     }
@@ -423,6 +448,9 @@ export class DashboardPage {
     switch (goalType) {
       case 'Weight Loss': {
         if (isGaining) {
+          if (scheduleStatus === 'behind') {
+            return 'Weight is trending up and you\'re falling behind schedule. Re-evaluate intake urgently — track every meal for a few days.' + stepAdvice;
+          }
           return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + stepAdvice;
         }
 
@@ -434,22 +462,40 @@ export class DashboardPage {
         }
 
         if (bwPct > maxLossRate) {
+          if (scheduleStatus === 'ahead') {
+            return `Loss rate exceeds ${maxLossRate}% BW/week, but you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
+          }
           return `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + stepAdvice;
         }
         if (bwPct >= 0.5) {
+          if (scheduleStatus === 'ahead') {
+            return 'Rate is ideal for fat loss and you\'re ahead of schedule. Great position — maintain or even relax slightly.';
+          }
           return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
         }
         if (bwPct >= 0.25) {
+          if (scheduleStatus === 'behind') {
+            return `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + stepAdvice;
+          }
           return 'Losing steadily. If progress stalls, a small calorie reduction or extra daily steps can help.';
         }
         if (isLosing) {
+          if (scheduleStatus === 'behind') {
+            return `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal and adding 2,000–3,000 daily steps to get back on track.` + stepAdvice;
+          }
           return `Progress is slower than optimal. Try reducing intake by ~${deficitStep} kcal or adding 2,000 daily steps.` + stepAdvice;
+        }
+        if (scheduleStatus === 'behind') {
+          return `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal and add daily activity.` + stepAdvice;
         }
         return `Weight is flat. Create a modest deficit — cut ~${deficitStep} kcal or increase activity to get things moving.` + stepAdvice;
       }
 
       case 'Weight Gain': {
         if (isLosing) {
+          if (scheduleStatus === 'behind') {
+            return 'Weight is dropping and you\'re falling behind schedule. Increase calories significantly — add 2 snacks or a calorie-dense shake daily.' + stepAdvice;
+          }
           return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + stepAdvice;
         }
 
@@ -461,16 +507,31 @@ export class DashboardPage {
         }
 
         if (bwPct > 1.0) {
+          if (scheduleStatus === 'ahead') {
+            return `Gaining faster than 1% BW/week and already ahead of schedule. Pull back surplus by ~${surplusStep} kcal — no need to rush.`;
+          }
           return `Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~${surplusStep} kcal.`;
         }
         if (bwPct >= idealGainCeiling) {
+          if (scheduleStatus === 'ahead') {
+            return 'Gain rate is moderate and you\'re ahead of schedule. Consider maintaining current intake without increasing further.';
+          }
           return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.' + stepAdvice;
         }
         if (bwPct >= 0.2) {
+          if (scheduleStatus === 'behind') {
+            return `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${Math.round(surplusStep * 0.5)} kcal to pick up the pace.` + stepAdvice;
+          }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
         if (isGaining) {
+          if (scheduleStatus === 'behind') {
+            return `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + stepAdvice;
+          }
           return `Gaining slowly. If strength is not progressing, try adding ~${Math.round(surplusStep * 0.75)} kcal from protein or carbs.` + stepAdvice;
+        }
+        if (scheduleStatus === 'behind') {
+          return `Weight is flat and you\'re behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` + stepAdvice;
         }
         return `Weight is flat. Increase intake — an extra ${surplusStep}–${surplusStep + 100} kcal should move the scale.` + stepAdvice;
       }
