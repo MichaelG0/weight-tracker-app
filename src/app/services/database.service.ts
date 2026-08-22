@@ -5,7 +5,7 @@ import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, ftInToCm, unitToKgFixed, kgToUnit } from '../utils/unit-conversion.util';
-import { toLocalMidnightString } from '../utils/date-converter.util';
+import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 
@@ -219,6 +219,12 @@ export class DatabaseService {
   });
 
   readonly goals: Signal<Goal[]> = toSignal(this.goals$, { initialValue: [] });
+  readonly activeGoal: Signal<Goal | null> = computed(() => {
+    const goals = this.goals();
+    if (!goals.length) return null;
+    const today = todayLocalMidnightMs();
+    return goals.find(g => g.goalDateMs >= today && g.startDateMs <= today) ?? null;
+  });
 
   readonly settings: Signal<UserSettingsDB | null> = toSignal(this.settings$, { initialValue: null });
   readonly weightUnit = computed(() => this.settings()?.weight_unit ?? 'kg');

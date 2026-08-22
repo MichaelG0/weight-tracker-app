@@ -23,19 +23,11 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, ActivityLevel, Experience, BodyType, UserSettingsDB } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsDB } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
-import { kgToUnitFixed, formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
+import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
-
-interface UserProfile {
-  gender: string | null;
-  age: number | null;
-  activityLevel: ActivityLevel | null;
-  experience: Experience | null;
-  bodyType: BodyType | null;
-}
 
 interface DashboardVm {
   trendToFixed: string | null;
@@ -45,6 +37,9 @@ interface DashboardVm {
   maintRange: number | null;
   maintOffset: number | null;
   maintPercent: number | null;
+  scheduleOffset: number | null;
+  scheduleRange: number | null;
+  schedulePercent: number | null;
   progressPercent: number | null;
   bwPercentPerWeek: string | null;
   absoluteRatePerWeek: string | null;
@@ -96,39 +91,49 @@ export class DashboardPage {
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
 
   readonly vm: Signal<DashboardVm> = computed(() => {
+    const userSettings = this.databaseService.settings();
     const entries = this.databaseService.recentEntries();
     const reversed = [...entries].reverse();
-    const goals = this.databaseService.goals();
     const weightUnit = this.databaseService.weightUnit();
-
     const latestEntry = this.databaseService.latestEntry();
     const rawTrend = latestEntry?.trend ?? null;
-    const activeGoal = this.findActiveGoal(goals);
+    const activeGoal = this.databaseService.activeGoal();
+    const goalReached = this.goalReached(rawTrend, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? 'Weight Loss';
     const weeklyRate = this.weeklyRate(latestEntry, entries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
-    const settings = this.databaseService.settings();
-    const profile: UserProfile = {
-      gender: settings?.gender ?? null,
-      age: settings?.age ?? null,
-      activityLevel: settings?.activity_level ?? null,
-      experience: settings?.experience ?? null,
-      bodyType: settings?.body_type ?? null,
-    };
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
     if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
-      maintRange = kgToUnitFixed(0.907186, weightUnit);
+      // Proportional maintenance range: 1.5% of the target weight (handles different body sizes fairly)
+      maintRange = parseFloat(formatWeight(goalWeight * 0.015, weightUnit));
       maintOffset = parseFloat(formatWeight(rawTrend - goalWeight, weightUnit));
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
+    const scheduleProjection: { projectedWeight: number; range: number } | null = this.scheduleProjection(rawTrend, activeGoal);
+    let scheduleOffset: number | null = null;
+    let scheduleRange: number | null = null;
+    let schedulePercent: number | null = null;
+
+    if (scheduleProjection) {
+      scheduleRange = scheduleProjection.range;
+      // Offset = actual weight difference from projected (trend - projected)
+      // Loss: negative = ahead (lighter), positive = behind (heavier)
+      // Gain: positive = ahead (heavier), negative = behind (lighter)
+      scheduleOffset = parseFloat(formatWeight(rawTrend! - scheduleProjection.projectedWeight, weightUnit));
+      // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
+      if (scheduleRange > 0) {
+        const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
+        schedulePercent = Math.max(0, Math.min(100, ((normalizedOffset + scheduleRange) / (2 * scheduleRange)) * 100));
+      }
+    }
 
     return {
       trendToFixed: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
@@ -138,17 +143,29 @@ export class DashboardPage {
       maintRange,
       maintOffset,
       maintPercent,
+      scheduleOffset,
+      scheduleRange,
+      schedulePercent,
       progressPercent: this.progressPercent(startWeight, rawTrend, goalWeight),
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, weeklyRate),
       absoluteRatePerWeek: this.absoluteRatePerWeek(weeklyRate, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
       totalProgress: this.totalProgress(startWeight, rawTrend, weightUnit),
-      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate),
-      daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate),
+      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate, goalReached),
+      daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
-      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore, profile, activeGoal),
+      recommendation: this.recommendation(
+        rawTrend,
+        weeklyRate,
+        goalType,
+        goalWeight,
+        stabilityScore,
+        userSettings,
+        scheduleProjection,
+        goalReached,
+      ),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
@@ -226,10 +243,15 @@ export class DashboardPage {
     return `${sign}${formatWeight(diff, unitLabel)}`;
   }
 
-  private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
+  private daysToGoal(
+    trendWeight: number | null,
+    goalWeight: number | null,
+    weeklyRate: number | null,
+    goalReached: boolean,
+  ): string | null {
     if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
     const remaining = goalWeight - trendWeight;
-    if (Math.abs(remaining) < 0.01) return '0';
+    if (goalReached) return '0 days';
     if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
     if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
     const weeks = Math.abs(remaining / weeklyRate);
@@ -289,10 +311,16 @@ export class DashboardPage {
     return Math.min(100, Math.max(0, pct));
   }
 
-  private expectedGoalDate(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null): string | null {
+  private expectedGoalDate(
+    trendWeight: number | null,
+    goalWeight: number | null,
+    weeklyRate: number | null,
+    goalReached: boolean,
+  ): string | null {
     if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
     const remaining = goalWeight - trendWeight;
-    if (Math.abs(remaining) < 0.01) return 'Reached';
+    console.log('Calculating expected goal date: remaining:', remaining);
+    if (goalReached) return 'Reached';
     if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
     if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
 
@@ -343,16 +371,56 @@ export class DashboardPage {
     return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
   }
 
+  private goalReached(currentTrend: number | null, activeGoal: Goal | null): boolean {
+    if (!activeGoal || currentTrend == null) return false;
+    const { goalWeight, type: goalType } = activeGoal;
+    const reachedGoal =
+      goalWeight != null &&
+      ((goalType === 'Weight Loss' && currentTrend <= goalWeight) || (goalType === 'Weight Gain' && currentTrend >= goalWeight));
+    return reachedGoal;
+  }
+
+  private scheduleProjection(trendWeight: number | null, activeGoal: Goal | null): { projectedWeight: number; range: number } | null {
+    if (
+      trendWeight == null ||
+      !activeGoal ||
+      activeGoal.goalWeight == null ||
+      activeGoal.startWeight == null ||
+      activeGoal.type === 'Maintenance'
+    ) {
+      return null;
+    }
+    console.log('Calculating schedule projection for trendWeight:', trendWeight, 'activeGoal:', activeGoal);
+    const today = todayLocalMidnightMs();
+    const totalDuration = activeGoal.goalDateMs - activeGoal.startDateMs;
+    const elapsed = today - activeGoal.startDateMs;
+    if (totalDuration <= 0 || elapsed <= 0 || elapsed >= totalDuration) return null;
+
+    const progress = elapsed / totalDuration;
+    const projectedWeight = activeGoal.startWeight + (activeGoal.goalWeight - activeGoal.startWeight) * progress;
+    const totalDays = totalDuration / 86400000;
+    const dailyExpected = totalDays > 0 ? (activeGoal.goalWeight - activeGoal.startWeight) / totalDays : 0;
+    // Range = ±1.5 weeks of expected progress
+    const scheduleToleranceWeeks = 10.5; // ±1.5 weeks
+    const scheduleRange = Math.abs(dailyExpected) * scheduleToleranceWeeks;
+    const noiseFloor = trendWeight * 0.005; // 0.5% body weight
+    const range = Math.max(scheduleRange, noiseFloor);
+
+    console.log('Schedule projection:', { projectedWeight, range });
+    return { projectedWeight, range };
+  }
+
   private recommendation(
     trendWeight: number | null,
     weeklyRate: number | null,
     goalType: GoalType,
     goalWeight: number | null,
     stabilityScore: number | null,
-    profile: UserProfile,
-    activeGoal: Goal | null,
+    userSettings: UserSettingsDB | null,
+    idealCurrentWeight: { projectedWeight: number; range: number } | null,
+    goalReached: boolean,
   ): string {
-    if (trendWeight == null || weeklyRate == null) {
+    if (trendWeight == null || weeklyRate == null || userSettings == null) {
       return 'Log weight at least 3 times this week to unlock recommendations.';
     }
 
@@ -365,45 +433,46 @@ export class DashboardPage {
     let surplusStep = 200; // kcal adjustment size for gain
     let stepAdvice = ''; // extra context from profile
 
-    if (profile.experience === 'Beginner') {
+    if (userSettings.experience === 'Beginner') {
       // Beginners gain muscle faster → can tolerate slightly higher surplus
       idealGainCeiling = 0.6;
       maxLossRate = 0.7;
       deficitStep = 150;
-    } else if (profile.experience === 'Advanced') {
+    } else if (userSettings.experience === 'Advanced') {
       // Advanced trainees gain muscle slowly → keep surplus tight
       idealGainCeiling = 0.35;
       maxLossRate = 1.0;
       deficitStep = 250;
     }
 
-    if (profile.activityLevel === 'Sedentary' || profile.activityLevel === 'Lightly Active') {
+    if (userSettings.activity_level === 'Sedentary' || userSettings.activity_level === 'Lightly Active') {
       // Less active = fewer calories burned → smaller adjustments needed
       deficitStep = Math.min(deficitStep, 150);
       surplusStep = Math.min(surplusStep, 150);
       stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
-    } else if (profile.activityLevel === 'Very Active' || profile.activityLevel === 'Extra Active') {
+    } else if (userSettings.activity_level === 'Very Active' || userSettings.activity_level === 'Extra Active') {
       // Highly active = more room for dietary shifts
       deficitStep = Math.max(deficitStep, 200);
       surplusStep = Math.max(surplusStep, 250);
       stepAdvice = ' With your activity level, prioritize protein and recovery.';
     }
 
-    if (profile.bodyType === 'Endomorph') {
+    if (userSettings.body_type === 'Endomorph') {
       maxLossRate = Math.min(maxLossRate, 0.8);
       if (goalType === 'Weight Gain') stepAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
-    } else if (profile.bodyType === 'Ectomorph') {
+    } else if (userSettings.body_type === 'Ectomorph') {
       if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
-      if (goalType === 'Weight Gain') stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
+      if (goalType === 'Weight Gain')
+        stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
     }
 
-    if (profile.gender === 'Female') {
+    if (userSettings.gender === 'Female') {
       // Women generally benefit from a more conservative deficit
       deficitStep = Math.min(deficitStep, 150);
       maxLossRate = Math.min(maxLossRate, 0.8);
     }
 
-    if (profile.age != null && profile.age >= 50) {
+    if (userSettings.age != null && userSettings.age >= 50) {
       // Older adults should prioritize muscle preservation
       maxLossRate = Math.min(maxLossRate, 0.7);
       deficitStep = Math.min(deficitStep, 150);
@@ -413,35 +482,23 @@ export class DashboardPage {
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
     const isLosing = weeklyRate < -0.01;
-    const reachedGoal =
-      goalWeight != null &&
-      ((goalType === 'Weight Loss' && trendWeight <= goalWeight) || (goalType === 'Weight Gain' && trendWeight >= goalWeight));
 
-    // --- Schedule awareness ---
-    // Calculate where weight should be today based on linear progress from start to goal date.
+    // --- Schedule awareness (uses same ±1 week range as the visual) ---
     let scheduleStatus: 'ahead' | 'behind' | 'on-track' | null = null;
-    if (activeGoal && goalWeight != null && activeGoal.startWeight != null && goalType !== 'Maintenance') {
-      const today = todayLocalMidnightMs();
-      const totalDuration = activeGoal.goalDateMs - activeGoal.startDateMs;
-      const elapsed = today - activeGoal.startDateMs;
-      if (totalDuration > 0 && elapsed > 0 && elapsed < totalDuration) {
-        const progress = elapsed / totalDuration;
-        const projectedWeight = activeGoal.startWeight + (goalWeight - activeGoal.startWeight) * progress;
-        const deviationPct = Math.abs(trendWeight - projectedWeight) / Math.abs(goalWeight - activeGoal.startWeight);
-        if (deviationPct > 0.1) {
-          // More than 10% off the linear schedule
-          if (goalType === 'Weight Loss') {
-            scheduleStatus = trendWeight < projectedWeight ? 'ahead' : 'behind';
-          } else {
-            scheduleStatus = trendWeight > projectedWeight ? 'ahead' : 'behind';
-          }
+    if (idealCurrentWeight) {
+      const deviation = Math.abs(trendWeight - idealCurrentWeight.projectedWeight);
+      if (idealCurrentWeight.range > 0 && deviation > idealCurrentWeight.range) {
+        if (goalType === 'Weight Loss') {
+          scheduleStatus = trendWeight < idealCurrentWeight.projectedWeight ? 'ahead' : 'behind';
         } else {
-          scheduleStatus = 'on-track';
+          scheduleStatus = trendWeight > idealCurrentWeight.projectedWeight ? 'ahead' : 'behind';
         }
+      } else {
+        scheduleStatus = 'on-track';
       }
     }
 
-    if (reachedGoal) {
+    if (goalReached) {
       return 'You have reached your goal weight. Consider setting a maintenance or new target.';
     }
 
@@ -449,12 +506,17 @@ export class DashboardPage {
       case 'Weight Loss': {
         if (isGaining) {
           if (scheduleStatus === 'behind') {
-            return 'Weight is trending up and you\'re falling behind schedule. Re-evaluate intake urgently — track every meal for a few days.' + stepAdvice;
+            return (
+              "Weight is trending up and you're falling behind schedule. Re-evaluate intake urgently — track every meal for a few days." +
+              stepAdvice
+            );
           }
-          return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + stepAdvice;
+          return (
+            'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + stepAdvice
+          );
         }
 
-        const nearLossGoal = goalWeight != null && goalWeight > 0 && ((trendWeight - goalWeight) / goalWeight) < 0.01;
+        const nearLossGoal = goalWeight != null && goalWeight > 0 && (trendWeight - goalWeight) / goalWeight < 0.01;
         if (nearLossGoal) {
           return isLosing
             ? 'Almost at your goal — keep going, no changes needed.'
@@ -465,41 +527,58 @@ export class DashboardPage {
           if (scheduleStatus === 'ahead') {
             return `Loss rate exceeds ${maxLossRate}% BW/week, but you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
-          return `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + stepAdvice;
+          return (
+            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + stepAdvice
+          );
         }
         if (bwPct >= 0.5) {
           if (scheduleStatus === 'ahead') {
-            return 'Rate is ideal for fat loss and you\'re ahead of schedule. Great position — maintain or even relax slightly.';
+            return "Rate is ideal for fat loss and you're ahead of schedule. Great position — maintain or even relax slightly.";
           }
           return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
         }
         if (bwPct >= 0.25) {
           if (scheduleStatus === 'behind') {
-            return `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + stepAdvice;
+            return (
+              `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + stepAdvice
+            );
           }
           return 'Losing steadily. If progress stalls, a small calorie reduction or extra daily steps can help.';
         }
         if (isLosing) {
           if (scheduleStatus === 'behind') {
-            return `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal and adding 2,000–3,000 daily steps to get back on track.` + stepAdvice;
+            return (
+              `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal and adding 2,000–3,000 daily steps to get back on track.` +
+              stepAdvice
+            );
           }
-          return `Progress is slower than optimal. Try reducing intake by ~${deficitStep} kcal or adding 2,000 daily steps.` + stepAdvice;
+          return (
+            `Progress is slower than optimal. Try reducing intake by ~${deficitStep} kcal or adding 2,000 daily steps.` + stepAdvice
+          );
         }
         if (scheduleStatus === 'behind') {
-          return `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal and add daily activity.` + stepAdvice;
+          return (
+            `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal and add daily activity.` +
+            stepAdvice
+          );
         }
-        return `Weight is flat. Create a modest deficit — cut ~${deficitStep} kcal or increase activity to get things moving.` + stepAdvice;
+        return (
+          `Weight is flat. Create a modest deficit — cut ~${deficitStep} kcal or increase activity to get things moving.` + stepAdvice
+        );
       }
 
       case 'Weight Gain': {
         if (isLosing) {
           if (scheduleStatus === 'behind') {
-            return 'Weight is dropping and you\'re falling behind schedule. Increase calories significantly — add 2 snacks or a calorie-dense shake daily.' + stepAdvice;
+            return (
+              "Weight is dropping and you're falling behind schedule. Increase calories significantly — add 2 snacks or a calorie-dense shake daily." +
+              stepAdvice
+            );
           }
           return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + stepAdvice;
         }
 
-        const nearGainGoal = goalWeight != null && goalWeight > 0 && ((goalWeight - trendWeight) / goalWeight) < 0.01;
+        const nearGainGoal = goalWeight != null && goalWeight > 0 && (goalWeight - trendWeight) / goalWeight < 0.01;
         if (nearGainGoal) {
           return isGaining
             ? 'Almost at your goal — keep going, no changes needed.'
@@ -514,24 +593,35 @@ export class DashboardPage {
         }
         if (bwPct >= idealGainCeiling) {
           if (scheduleStatus === 'ahead') {
-            return 'Gain rate is moderate and you\'re ahead of schedule. Consider maintaining current intake without increasing further.';
+            return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
           return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.' + stepAdvice;
         }
         if (bwPct >= 0.2) {
           if (scheduleStatus === 'behind') {
-            return `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${Math.round(surplusStep * 0.5)} kcal to pick up the pace.` + stepAdvice;
+            return (
+              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${Math.round(surplusStep * 0.5)} kcal to pick up the pace.` +
+              stepAdvice
+            );
           }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
         if (isGaining) {
           if (scheduleStatus === 'behind') {
-            return `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + stepAdvice;
+            return (
+              `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + stepAdvice
+            );
           }
-          return `Gaining slowly. If strength is not progressing, try adding ~${Math.round(surplusStep * 0.75)} kcal from protein or carbs.` + stepAdvice;
+          return (
+            `Gaining slowly. If strength is not progressing, try adding ~${Math.round(surplusStep * 0.75)} kcal from protein or carbs.` +
+            stepAdvice
+          );
         }
         if (scheduleStatus === 'behind') {
-          return `Weight is flat and you\'re behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` + stepAdvice;
+          return (
+            `Weight is flat and you\'re behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` +
+            stepAdvice
+          );
         }
         return `Weight is flat. Increase intake — an extra ${surplusStep}–${surplusStep + 100} kcal should move the scale.` + stepAdvice;
       }
@@ -656,14 +746,5 @@ export class DashboardPage {
         return 'Weight is generally on track. Keep doing what works — consistency is the goal here.';
       }
     }
-  }
-
-  private findActiveGoal(goals: Goal[]): Goal | null {
-    if (!goals.length) return null;
-    const today = todayLocalMidnightMs();
-    // Find the earliest goal whose date is still in the future
-    const future = goals.filter(g => g.goalDateMs >= today).sort((a, b) => a.goalDateMs - b.goalDateMs);
-    // Fall back to the latest goal if all are past
-    return future[0] ?? goals.sort((a, b) => b.goalDateMs - a.goalDateMs)[0];
   }
 }

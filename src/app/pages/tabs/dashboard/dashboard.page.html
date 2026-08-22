@@ -22,6 +22,15 @@
                     <span>{{ vm.maintRange ? '+' + vm.maintRange : '--' }}</span>
                   </div>
                 </div>
+              } @else if (vm.schedulePercent !== null) {
+                <div class="maint-track">
+                  <div class="maint-center-mark"></div>
+                  <div class="maint-indicator" [style.left.%]="vm.schedulePercent" [class.danger]="vm.schedulePercent <= 5 || vm.schedulePercent >= 95"></div>
+                  <div class="maint-bounds">
+                    <span>Behind</span>
+                    <span>Ahead</span>
+                  </div>
+                </div>
               } @else {
                 <ion-progress-bar color="primary" [value]="vm.progressPercent !== null ? vm.progressPercent / 100 : 0"></ion-progress-bar>
               }
@@ -31,6 +40,8 @@
               <span>
                 @if (vm.goalType === 'Maintenance') {
                   {{ vm.maintOffset !== null ? (vm.maintOffset > 0 ? '+' : '') + vm.maintOffset + ' ' + vm.unitLabel : 'No data' }}
+                } @else if (vm.scheduleOffset !== null) {
+                  {{ (vm.scheduleOffset > 0 ? '+' : '') + vm.scheduleOffset + ' ' + vm.unitLabel + ' vs projected' }}
                 } @else {
                   {{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}
                 }
