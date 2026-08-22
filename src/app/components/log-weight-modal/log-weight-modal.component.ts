@@ -14,11 +14,9 @@ import {
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   IonButton,
-  IonButtons,
   IonContent,
   IonDatetime,
   IonHeader,
-  IonIcon,
   IonInput,
   IonItem,
   IonList,
@@ -43,16 +41,14 @@ import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
     IonHeader,
     IonToolbar,
     IonTitle,
-    IonButtons,
     IonButton,
-    IonIcon,
     IonContent,
     IonInput,
     IonTextarea,
     IonDatetime,
     IonList,
-    IonItem,
-  ],
+    IonItem
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LogWeightModalComponent implements OnInit, AfterViewInit {
@@ -167,10 +163,6 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
       input!.value = match[1];
       this.formData.weight = +match[1];
     }
-  }
-
-  dismiss(): void {
-    this.modalCtrl.dismiss(null, 'cancel');
   }
 
   save(form: NgForm): void {

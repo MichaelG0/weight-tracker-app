@@ -6,6 +6,18 @@
 
 <ion-content fullscreen class="tab-content">
   <div class="list-group-wrp">
+    <section class="list-group">
+      <p class="list-group-label">Appearance</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="moon-outline"></ion-icon>
+          </div>
+          <ion-toggle [checked]="isDarkMode()" (ionChange)="toggleTheme($event)"> Dark Mode </ion-toggle>
+        </ion-item>
+      </ion-list>
+    </section>
+
     <section class="list-group personal-details-list-group">
       <p class="list-group-label">Personal Details</p>
       <ion-list lines="none">
@@ -97,7 +109,7 @@
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
-            <ion-icon name="body-outline"></ion-icon>
+            <ion-icon name="swap-vertical-outline"></ion-icon>
           </div>
           <ion-label>Height</ion-label>
           <div class="chip-group" slot="end">
@@ -108,15 +120,51 @@
       </ion-list>
     </section>
 
-    <section class="list-group">
-      <p class="list-group-label">Appearance</p>
+    <section class="list-group profile-list-group">
+      <p class="list-group-label">Profile</p>
       <ion-list lines="none">
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
-            <ion-icon name="moon-outline"></ion-icon>
+            <ion-icon name="walk-outline"></ion-icon>
           </div>
-          <ion-toggle [checked]="isDarkMode()" (ionChange)="toggleTheme($event)"> Dark Mode </ion-toggle>
+          <ion-label>Activity Level</ion-label>
+          <ion-button fill="clear" slot="end" (click)="showInfo('activity')">
+            <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+          </ion-button>
         </ion-item>
+        <div class="chip-group-row">
+          @for (level of activityLevels; track level) {
+            <ion-chip [class.selected]="activityLevel === level" (click)="setActivityLevel(level)">{{ level }}</ion-chip>
+          }
+        </div>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="fitness-outline"></ion-icon>
+          </div>
+          <ion-label>Experience</ion-label>
+          <ion-button fill="clear" slot="end" (click)="showInfo('experience')">
+            <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+        <div class="chip-group-row">
+          @for (level of experienceLevels; track level) {
+            <ion-chip [class.selected]="experience === level" (click)="setExperience(level)">{{ level }}</ion-chip>
+          }
+        </div>
+        <ion-item class="list-group-item">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="body-outline"></ion-icon>
+          </div>
+          <ion-label>Body Type</ion-label>
+          <ion-button fill="clear" slot="end" (click)="showInfo('bodyType')">
+            <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+        <div class="chip-group-row">
+          @for (type of bodyTypes; track type) {
+            <ion-chip [class.selected]="bodyType === type" (click)="setBodyType(type)">{{ type }}</ion-chip>
+          }
+        </div>
       </ion-list>
     </section>
   </div>

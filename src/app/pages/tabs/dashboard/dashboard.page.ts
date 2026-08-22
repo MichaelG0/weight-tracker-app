@@ -23,11 +23,19 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, ActivityLevel, Experience, BodyType, UserSettingsDB } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { kgToUnitFixed, formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
+
+interface UserProfile {
+  gender: string | null;
+  age: number | null;
+  activityLevel: ActivityLevel | null;
+  experience: Experience | null;
+  bodyType: BodyType | null;
+}
 
 interface DashboardVm {
   trendToFixed: string | null;
@@ -101,6 +109,14 @@ export class DashboardPage {
     const goalType = activeGoal?.type ?? 'Weight Loss';
     const weeklyRate = this.weeklyRate(latestEntry, entries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
+    const settings = this.databaseService.settings();
+    const profile: UserProfile = {
+      gender: settings?.gender ?? null,
+      age: settings?.age ?? null,
+      activityLevel: settings?.activity_level ?? null,
+      experience: settings?.experience ?? null,
+      bodyType: settings?.body_type ?? null,
+    };
 
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
@@ -132,7 +148,7 @@ export class DashboardPage {
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
-      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore),
+      recommendation: this.recommendation(rawTrend, weeklyRate, goalType, goalWeight, stabilityScore, profile),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
@@ -333,9 +349,64 @@ export class DashboardPage {
     goalType: GoalType,
     goalWeight: number | null,
     stabilityScore: number | null,
+    profile: UserProfile,
   ): string {
     if (trendWeight == null || weeklyRate == null) {
       return 'Log weight at least 3 times this week to unlock recommendations.';
+    }
+
+    // --- Profile-aware thresholds ---
+    // Max safe loss rate: beginners/sedentary/endomorphs should lose slower to preserve muscle.
+    // Advanced/very active users can tolerate a faster deficit safely.
+    let maxLossRate = 1.0; // default % BW/week ceiling
+    let idealGainCeiling = 0.5; // default % BW/week for lean gains
+    let deficitStep = 200; // kcal adjustment size for loss
+    let surplusStep = 200; // kcal adjustment size for gain
+    let stepAdvice = ''; // extra context from profile
+
+    if (profile.experience === 'Beginner') {
+      // Beginners gain muscle faster → can tolerate slightly higher surplus
+      idealGainCeiling = 0.6;
+      maxLossRate = 0.7;
+      deficitStep = 150;
+    } else if (profile.experience === 'Advanced') {
+      // Advanced trainees gain muscle slowly → keep surplus tight
+      idealGainCeiling = 0.35;
+      maxLossRate = 1.0;
+      deficitStep = 250;
+    }
+
+    if (profile.activityLevel === 'Sedentary' || profile.activityLevel === 'Lightly Active') {
+      // Less active = fewer calories burned → smaller adjustments needed
+      deficitStep = Math.min(deficitStep, 150);
+      surplusStep = Math.min(surplusStep, 150);
+      stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
+    } else if (profile.activityLevel === 'Very Active' || profile.activityLevel === 'Extra Active') {
+      // Highly active = more room for dietary shifts
+      deficitStep = Math.max(deficitStep, 200);
+      surplusStep = Math.max(surplusStep, 250);
+      stepAdvice = ' With your activity level, prioritize protein and recovery.';
+    }
+
+    if (profile.bodyType === 'Endomorph') {
+      maxLossRate = Math.min(maxLossRate, 0.8);
+      if (goalType === 'Weight Gain') stepAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
+    } else if (profile.bodyType === 'Ectomorph') {
+      if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
+      if (goalType === 'Weight Gain') stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
+    }
+
+    if (profile.gender === 'Female') {
+      // Women generally benefit from a more conservative deficit
+      deficitStep = Math.min(deficitStep, 150);
+      maxLossRate = Math.min(maxLossRate, 0.8);
+    }
+
+    if (profile.age != null && profile.age >= 50) {
+      // Older adults should prioritize muscle preservation
+      maxLossRate = Math.min(maxLossRate, 0.7);
+      deficitStep = Math.min(deficitStep, 150);
+      stepAdvice = stepAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
     }
 
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
@@ -352,7 +423,7 @@ export class DashboardPage {
     switch (goalType) {
       case 'Weight Loss': {
         if (isGaining) {
-          return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.';
+          return 'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + stepAdvice;
         }
 
         const nearLossGoal = goalWeight != null && goalWeight > 0 && ((trendWeight - goalWeight) / goalWeight) < 0.01;
@@ -362,8 +433,8 @@ export class DashboardPage {
             : 'Nearly at your goal but progress has stalled. A small nudge — cut ~100 kcal or a short daily walk — should close the gap.';
         }
 
-        if (bwPct > 1.0) {
-          return 'Loss rate exceeds 1% BW/week. Slow down slightly to preserve lean mass and training performance.';
+        if (bwPct > maxLossRate) {
+          return `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + stepAdvice;
         }
         if (bwPct >= 0.5) {
           return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
@@ -372,36 +443,36 @@ export class DashboardPage {
           return 'Losing steadily. If progress stalls, a small calorie reduction or extra daily steps can help.';
         }
         if (isLosing) {
-          return 'Progress is slower than optimal. Try reducing intake by ~100–200 kcal or adding 2,000 daily steps.';
+          return `Progress is slower than optimal. Try reducing intake by ~${deficitStep} kcal or adding 2,000 daily steps.` + stepAdvice;
         }
-        return 'Weight is flat. Create a modest deficit — cut ~250 kcal or increase activity to get things moving.';
+        return `Weight is flat. Create a modest deficit — cut ~${deficitStep} kcal or increase activity to get things moving.` + stepAdvice;
       }
 
       case 'Weight Gain': {
         if (isLosing) {
-          return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.';
+          return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + stepAdvice;
         }
 
         const nearGainGoal = goalWeight != null && goalWeight > 0 && ((goalWeight - trendWeight) / goalWeight) < 0.01;
         if (nearGainGoal) {
           return isGaining
             ? 'Almost at your goal — keep going, no changes needed.'
-            : 'Nearly at your goal but progress has stalled. A small nudge — add ~100 kcal or a calorie-dense snack — should close the gap.';
+            : `Nearly at your goal but progress has stalled. A small nudge — add ~${Math.round(surplusStep / 2)} kcal or a calorie-dense snack — should close the gap.`;
         }
 
         if (bwPct > 1.0) {
-          return 'Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~200 kcal.';
+          return `Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~${surplusStep} kcal.`;
         }
-        if (bwPct >= 0.5) {
-          return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.';
+        if (bwPct >= idealGainCeiling) {
+          return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.' + stepAdvice;
         }
         if (bwPct >= 0.2) {
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
         if (isGaining) {
-          return 'Gaining slowly. If strength is not progressing, try adding ~150 kcal from protein or carbs.';
+          return `Gaining slowly. If strength is not progressing, try adding ~${Math.round(surplusStep * 0.75)} kcal from protein or carbs.` + stepAdvice;
         }
-        return 'Weight is flat. Increase intake — an extra 200–300 kcal should move the scale.';
+        return `Weight is flat. Increase intake — an extra ${surplusStep}–${surplusStep + 100} kcal should move the scale.` + stepAdvice;
       }
 
       case 'Maintenance': {

@@ -12,9 +12,19 @@ import {
   IonIcon,
   IonInput,
   IonChip,
+  IonButton,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
-import { DatabaseService, UserSettingsDB, WeightUnit, HeightUnit } from '../../../services/database.service';
+import {
+  DatabaseService,
+  UserSettingsDB,
+  WeightUnit,
+  HeightUnit,
+  ActivityLevel,
+  Experience,
+  BodyType,
+} from '../../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
   personOutline,
@@ -26,11 +36,16 @@ import {
   checkmarkCircleOutline,
   barbellOutline,
   bodyOutline,
+  walkOutline,
+  fitnessOutline,
+  informationCircleOutline,
+  swapVerticalOutline,
 } from 'ionicons/icons';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { take } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
+import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
 
 @Component({
   selector: 'app-settings',
@@ -49,6 +64,7 @@ import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
     IonIcon,
     IonInput,
     IonChip,
+    IonButton,
     GlassHeaderBackdropDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +72,7 @@ import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
 export class SettingsPage {
   private themeService = inject(CssThemeService);
   private db = inject(DatabaseService);
+  private modalCtrl = inject(ModalController);
 
   name = '';
   age: number | null = null;
@@ -65,6 +82,13 @@ export class SettingsPage {
   heightIn: number | null = null;
   weightUnit: WeightUnit = 'kg';
   heightUnit: HeightUnit = 'cm';
+  activityLevel: ActivityLevel | '' = '';
+  experience: Experience | '' = '';
+  bodyType: BodyType | '' = '';
+
+  readonly activityLevels: ActivityLevel[] = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
+  readonly experienceLevels: Experience[] = ['Beginner', 'Intermediate', 'Advanced'];
+  readonly bodyTypes: BodyType[] = ['Ectomorph', 'Mesomorph', 'Endomorph'];
 
   constructor() {
     addIcons({
@@ -77,6 +101,10 @@ export class SettingsPage {
       checkmarkCircleOutline,
       barbellOutline,
       bodyOutline,
+      walkOutline,
+      fitnessOutline,
+      informationCircleOutline,
+      swapVerticalOutline,
     });
 
     this.db.settings$.pipe(takeUntilDestroyed()).subscribe(settings => {
@@ -90,6 +118,9 @@ export class SettingsPage {
         this.heightIn = ftIn?.inches ?? null;
         this.weightUnit = settings.weight_unit ?? 'kg';
         this.heightUnit = settings.height_unit ?? 'cm';
+        this.activityLevel = settings.activity_level ?? '';
+        this.experience = settings.experience ?? '';
+        this.bodyType = settings.body_type ?? '';
       }
     });
   }
@@ -109,6 +140,9 @@ export class SettingsPage {
       gender: this.gender || undefined,
       weight_unit: this.weightUnit,
       height_unit: this.heightUnit,
+      activity_level: this.activityLevel || undefined,
+      experience: this.experience || undefined,
+      body_type: this.bodyType || undefined,
     };
 
     if (this.heightUnit === 'cm' && this.heightCm) {
@@ -133,5 +167,31 @@ export class SettingsPage {
   setHeightUnit(value: HeightUnit): void {
     this.heightUnit = value;
     this.saveSettings();
+  }
+
+  setActivityLevel(value: ActivityLevel): void {
+    this.activityLevel = this.activityLevel === value ? '' : value;
+    this.saveSettings();
+  }
+
+  setExperience(value: Experience): void {
+    this.experience = this.experience === value ? '' : value;
+    this.saveSettings();
+  }
+
+  setBodyType(value: BodyType): void {
+    this.bodyType = this.bodyType === value ? '' : value;
+    this.saveSettings();
+  }
+
+  async showInfo(topic: ProfileInfoTopic): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: ProfileInfoModalComponent,
+      componentProps: { topic },
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+    await modal.present();
   }
 }

@@ -1,0 +1,133 @@
+<ion-header>
+  <ion-toolbar>
+    @if (topic === 'activity') {
+      <ion-title>Activity Level</ion-title>
+    } @else if (topic === 'experience') {
+      <ion-title>Training Experience</ion-title>
+    } @else {
+      <ion-title>Body Type</ion-title>
+    }
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (topic === 'activity') {
+    <div class="info-section">
+      <p class="info-intro">
+        Pick the level that best matches your <strong>overall daily life</strong> — not just your gym sessions. Your job, commute, and
+        daily movement matter more than a few hours of exercise. We use this to size calorie adjustments — less active means smaller
+        tweaks have a bigger effect, more active means you can handle (and may need) larger shifts.
+      </p>
+
+      <div class="info-card">
+        <h3>Sedentary</h3>
+        <p class="info-subtitle">Under 3,000 steps/day · No deliberate exercise</p>
+        <p>Desk job or remote worker. Majority of the day spent seated with minimal walking.</p>
+      </div>
+
+      <div class="info-card">
+        <h3>Lightly Active</h3>
+        <p class="info-subtitle">5,000–7,500 steps/day · Light exercise 1–3 days/week</p>
+        <p>Standing or walking job (teacher, cashier, retail) — or a desk worker who adds light movement like daily walks.</p>
+      </div>
+
+      <div class="info-card">
+        <h3>Moderately Active</h3>
+        <p class="info-subtitle">7,500–10,000 steps/day · Moderate exercise 3–5 days/week</p>
+        <p>On your feet most of the day (nurse, server, tradesperson) — or a desk worker with frequent intense workouts.</p>
+      </div>
+
+      <div class="info-card">
+        <h3>Very Active</h3>
+        <p class="info-subtitle">10,000–12,500+ steps/day · Hard exercise 6–7 days/week</p>
+        <p>Physically demanding job (construction, agricultural worker) or an intense athletic training schedule.</p>
+      </div>
+
+      <div class="info-card">
+        <h3>Extra Active</h3>
+        <p class="info-subtitle">Heavy daily labor + intense training</p>
+        <p>Heavy manual labor (logger, professional athlete, military training) combined with daily endurance or strength work.</p>
+      </div>
+    </div>
+  }
+
+  @if (topic === 'experience') {
+    <div class="info-section">
+      <p class="info-intro">
+        How long you've been training consistently determines how fast you can gain muscle and how aggressively you can diet without
+        losing it. We use this to set your safe rate-of-change ceiling and the size of calorie adjustments we suggest.
+      </p>
+
+      <div class="info-card">
+        <h3>Beginner</h3>
+        <p class="info-subtitle">Less than 1 year of consistent resistance training</p>
+        <p>
+          New to lifting or returning after a long break. You can build muscle quickly — even in a mild deficit. A moderate surplus is
+          enough during a bulk; no need to overeat.
+        </p>
+        <div class="info-note">Gentler loss ceiling (~0.7% BW/week) and smaller calorie adjustments to protect new muscle.</div>
+      </div>
+
+      <div class="info-card">
+        <h3>Intermediate</h3>
+        <p class="info-subtitle">1–3 years of consistent resistance training</p>
+        <p>
+          You've built a solid base and know your way around the gym. Muscle gain has slowed but is still meaningful. Standard cut/bulk
+          approaches work well.
+        </p>
+        <div class="info-note">Standard thresholds: 0.5–1.0% BW/week loss range, ~200 kcal adjustment steps.</div>
+      </div>
+
+      <div class="info-card">
+        <h3>Advanced</h3>
+        <p class="info-subtitle">3+ years of consistent resistance training</p>
+        <p>
+          Muscle gain is slow (1–2 kg/year). Every gram is hard-earned, so surpluses stay tight and cuts are controlled. You can handle
+          bigger dietary swings without losing muscle if protein is high.
+        </p>
+        <div class="info-note">Tighter gain ceiling (~0.35% BW/week), larger deficit steps (~250 kcal) when progress stalls.</div>
+      </div>
+    </div>
+  }
+
+  @if (topic === 'bodyType') {
+    <div class="info-section">
+      <p class="info-intro">
+        Your natural build affects how your body responds to surplus and deficit. Pick the one that best describes you
+        <em>before</em> training changed your shape. We use this to adjust surplus sizes, loss rate limits, and flag when body
+        composition monitoring is especially important.
+      </p>
+
+      <div class="info-card">
+        <h3>Ectomorph</h3>
+        <p class="info-subtitle">Narrow shoulders, long limbs, naturally lean</p>
+        <p>
+          You've always been thin and find it hard to gain weight. You may eat a lot without putting on mass. Think: distance-runner
+          build.
+        </p>
+        <div class="info-note">Larger surplus recommended (~300 kcal). Calorie-dense foods (nuts, oils, shakes) help hit targets.</div>
+      </div>
+
+      <div class="info-card">
+        <h3>Mesomorph</h3>
+        <p class="info-subtitle">Broad shoulders, athletic frame, gains muscle easily</p>
+        <p>You respond well to training and can shift body composition without extreme measures. Think: naturally athletic build.</p>
+        <div class="info-note">Standard adjustments apply. You have flexibility in how aggressively you cut or bulk.</div>
+      </div>
+
+      <div class="info-card">
+        <h3>Endomorph</h3>
+        <p class="info-subtitle">Wider hips, stockier frame, gains weight easily</p>
+        <p>
+          You put on size quickly — both muscle and fat. Surplus phases need careful monitoring (watch waist, not just scale). Think:
+          naturally solid/stocky build.
+        </p>
+        <div class="info-note">Tighter surplus, lower max loss rate (~0.8% BW/week), and body composition awareness in all advice.</div>
+      </div>
+
+      <div class="info-card disclaimer">
+        <p>Most people are a blend of types. Pick the closest match — your habits and training matter far more than any label.</p>
+      </div>
+    </div>
+  }
+</ion-content>

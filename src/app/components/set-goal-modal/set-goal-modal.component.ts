@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, Input, OnInit, Signal } fro
 import { FormsModule } from '@angular/forms';
 import {
   IonButton,
-  IonButtons,
   IonChip,
   IonContent,
   IonHeader,
@@ -32,7 +31,6 @@ import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/d
     IonHeader,
     IonToolbar,
     IonTitle,
-    IonButtons,
     IonButton,
     IonChip,
     IonIcon,
@@ -41,8 +39,8 @@ import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/d
     IonItem,
     IonInput,
     IonToggle,
-    PureFnPipe,
-  ],
+    PureFnPipe
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SetGoalModalComponent implements OnInit {
@@ -170,10 +168,6 @@ export class SetGoalModalComponent implements OnInit {
     if (['e', 'E', '+', '-'].includes(event.key)) {
       event.preventDefault();
     }
-  }
-
-  dismiss(): void {
-    this.modalCtrl.dismiss(null, 'cancel');
   }
 
   submit(): void {

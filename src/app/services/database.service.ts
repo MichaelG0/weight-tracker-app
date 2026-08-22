@@ -36,6 +36,9 @@ export interface UserSettingsDB {
   heightFtIn?: HeightFtIn;
   weight_unit?: WeightUnit;
   height_unit?: HeightUnit;
+  activity_level?: ActivityLevel;
+  experience?: Experience;
+  body_type?: BodyType;
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -44,6 +47,9 @@ export type GoalType = 'Weight Gain' | 'Weight Loss' | 'Maintenance';
 
 export type WeightUnit = 'kg' | 'lbs' | 'st';
 export type HeightUnit = 'cm' | 'ft/in';
+export type ActivityLevel = 'Sedentary' | 'Lightly Active' | 'Moderately Active' | 'Very Active' | 'Extra Active';
+export type Experience = 'Beginner' | 'Intermediate' | 'Advanced';
+export type BodyType = 'Ectomorph' | 'Mesomorph' | 'Endomorph';
 
 export interface HeightFtIn {
   feet: number | null;
@@ -87,7 +93,10 @@ const MIGRATIONS = `
     gender         TEXT,
     height_cm      REAL,
     weight_unit    TEXT DEFAULT 'kg',
-    height_unit    TEXT DEFAULT 'cm'
+    height_unit    TEXT DEFAULT 'cm',
+    activity_level TEXT,
+    experience     TEXT,
+    body_type      TEXT
   );
 
   CREATE TABLE IF NOT EXISTS goals (
@@ -227,6 +236,11 @@ export class DatabaseService {
     await this.db.open();
     await this.db.execute(MIGRATIONS);
 
+    // Migrate existing databases that lack the new profile columns
+    for (const col of ['activity_level', 'experience', 'body_type']) {
+      await this.db.execute(`ALTER TABLE user_settings ADD COLUMN ${col} TEXT`).catch(() => {/* column already exists */});
+    }
+
     if (!environment.production) {
       await this.mockData.seed(this.db);
     }
@@ -326,15 +340,18 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, name, age, gender, height_cm, weight_unit, height_unit)
-             VALUES (1, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO user_settings (user_id, name, age, gender, height_cm, weight_unit, height_unit, activity_level, experience, body_type)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
-             name        = excluded.name,
-             age         = excluded.age,
-             gender      = excluded.gender,
-             height_cm   = excluded.height_cm,
-             weight_unit = excluded.weight_unit,
-             height_unit = excluded.height_unit`,
+             name           = excluded.name,
+             age            = excluded.age,
+             gender         = excluded.gender,
+             height_cm      = excluded.height_cm,
+             weight_unit    = excluded.weight_unit,
+             height_unit    = excluded.height_unit,
+             activity_level = excluded.activity_level,
+             experience     = excluded.experience,
+             body_type      = excluded.body_type`,
           [
             settings.name ?? null,
             settings.age ?? null,
@@ -342,6 +359,9 @@ export class DatabaseService {
             heightCm,
             settings.weight_unit ?? 'kg',
             settings.height_unit ?? 'cm',
+            settings.activity_level ?? null,
+            settings.experience ?? null,
+            settings.body_type ?? null,
           ],
         ),
       ).pipe(
