@@ -488,16 +488,17 @@ export class DashboardPage {
     // --- Gender × experience matrix (mirrors getDynamicThresholds) ---
     const isFemale = userSettings.gender === 'Female';
 
+    // prettier-ignore
     if (isFemale) {
       switch (userSettings.experience) {
         case 'Beginner':
-          maxLossRate = 0.6; idealGainCeiling = 0.6; deficitStep = 125; surplusStep = 175;
+          maxLossRate = 0.6; idealGainCeiling = 0.35; deficitStep = 125; surplusStep = 175;
           break;
         case 'Advanced':
-          maxLossRate = 0.8; idealGainCeiling = 0.35; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 0.8; idealGainCeiling = 0.15; deficitStep = 200; surplusStep = 200;
           break;
         default:
-          maxLossRate = 0.7; idealGainCeiling = 0.5; deficitStep = 150; surplusStep = 200;
+          maxLossRate = 0.7; idealGainCeiling = 0.25; deficitStep = 150; surplusStep = 200;
       }
     } else {
       switch (userSettings.experience) {
@@ -505,10 +506,10 @@ export class DashboardPage {
           maxLossRate = 0.7; idealGainCeiling = 0.6; deficitStep = 150; surplusStep = 200;
           break;
         case 'Advanced':
-          maxLossRate = 1.0; idealGainCeiling = 0.35; deficitStep = 250; surplusStep = 200;
+          maxLossRate = 1.0; idealGainCeiling = 0.25; deficitStep = 250; surplusStep = 200;
           break;
         default:
-          maxLossRate = 1.0; idealGainCeiling = 0.5; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 1.0; idealGainCeiling = 0.4; deficitStep = 200; surplusStep = 200;
       }
     }
 
@@ -516,6 +517,9 @@ export class DashboardPage {
     if (userSettings.activity_level === 'Sedentary' || userSettings.activity_level === 'Lightly Active') {
       deficitStep = Math.min(deficitStep, 150);
       surplusStep = Math.min(surplusStep, 150);
+
+
+      
       stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
     } else if (userSettings.activity_level === 'Very Active' || userSettings.activity_level === 'Extra Active') {
       deficitStep = Math.max(deficitStep, 200);
@@ -587,7 +591,7 @@ export class DashboardPage {
         if (nearLossGoal) {
           return isLosing
             ? 'Almost at your goal — keep going, no changes needed.'
-            : 'Nearly at your goal but progress has stalled. A small nudge — cut ~100 kcal or a short daily walk — should close the gap.';
+            : `Nearly at your goal but progress has stalled. A small nudge — cut ~${minorDeficitStep} kcal or take a short daily walk — should close the gap.`;
         }
 
         if (bwPct > maxLossRate) {
@@ -615,22 +619,24 @@ export class DashboardPage {
         if (isLosing) {
           if (scheduleStatus === 'behind') {
             return (
-              `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal and adding 2,000–3,000 daily steps to get back on track.` +
+              `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
               stepAdvice
             );
           }
           return (
-            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` + stepAdvice
+            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` +
+            stepAdvice
           );
         }
         if (scheduleStatus === 'behind') {
           return (
-            `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal and add daily activity.` +
+            `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal or add ~2,000 daily steps to get things moving.` +
             stepAdvice
           );
         }
         return (
-          `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal or add ~1,500 daily steps to get things moving.` + stepAdvice
+          `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal or add ~1,500 daily steps to get things moving.` +
+          stepAdvice
         );
       }
 
@@ -662,13 +668,15 @@ export class DashboardPage {
           if (scheduleStatus === 'ahead') {
             return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
-          return `Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` + stepAdvice;
+          return (
+            `Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` +
+            stepAdvice
+          );
         }
         if (bwPct >= 0.2) {
           if (scheduleStatus === 'behind') {
             return (
-              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` +
-              stepAdvice
+              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` + stepAdvice
             );
           }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
@@ -680,8 +688,7 @@ export class DashboardPage {
             );
           }
           return (
-            `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` +
-            stepAdvice
+            `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` + stepAdvice
           );
         }
         if (scheduleStatus === 'behind') {
@@ -690,7 +697,10 @@ export class DashboardPage {
             stepAdvice
           );
         }
-        return `Weight is flat. Increase intake — an extra ${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` + stepAdvice;
+        return (
+          `Weight is flat. Increase intake — an extra ${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` +
+          stepAdvice
+        );
       }
 
       case 'Maintenance': {
@@ -802,8 +812,7 @@ export class DashboardPage {
         if (moderate) {
           if (onTarget) return 'Good stability near target. Minor day-to-day fluctuations are normal — stay the course.';
           if (isAbove) return `Moderate stability slightly above target. Keep meal timing consistent and trim ~${maintMinorStep} kcal.`;
-          if (isBelow)
-            return `Moderate stability slightly below target. Keep meal timing consistent and add ~${maintMinorStep} kcal.`;
+          if (isBelow) return `Moderate stability slightly below target. Keep meal timing consistent and add ~${maintMinorStep} kcal.`;
         }
 
         if (noData) {
