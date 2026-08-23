@@ -338,7 +338,6 @@ export class DashboardPage {
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
     const sd = Math.sqrt(variance);
     const threshold = kgToUnit(1.5, unitLabel);
-    // TODO: check how it differs if you increase the number of entries
     return Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
   }
 
