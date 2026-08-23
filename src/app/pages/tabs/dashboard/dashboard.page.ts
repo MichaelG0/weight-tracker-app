@@ -33,12 +33,12 @@ interface DashboardVm {
   trendToFixed: string | null;
   goalWeight: string | null;
   startWeight: number | null;
-  goalType: GoalType;
-  maintRange: number | null;
-  maintOffset: number | null;
+  goalType: GoalType | null;
+  maintRange: string | null;
+  maintOffset: string | null;
   maintPercent: number | null;
-  scheduleOffset: number | null;
-  scheduleRange: number | null;
+  scheduleOffset: string | null;
+  scheduleRange: string | null;
   schedulePercent: number | null;
   progressPercent: number | null;
   bwPercentPerWeek: string | null;
@@ -92,27 +92,29 @@ export class DashboardPage {
 
   readonly vm: Signal<DashboardVm> = computed(() => {
     const userSettings = this.databaseService.settings();
-    const entries = this.databaseService.recentEntries();
-    const reversed = [...entries].reverse();
+    const recentEntries = this.databaseService.recentEntries();
+    const reversed = [...recentEntries].reverse();
+    const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
     const latestEntry = this.databaseService.latestEntry();
     const rawTrend = latestEntry?.trend ?? null;
+    const trendToFixed = rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null;
     const activeGoal = this.databaseService.activeGoal();
-    const goalReached = this.goalReached(rawTrend, activeGoal);
+    const goalReached = this.goalReached(trendToFixed, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
-    const goalType = activeGoal?.type ?? 'Weight Loss';
-    const weeklyRate = this.weeklyRate(latestEntry, entries);
+    const goalType = activeGoal?.type ?? null;
+    const weeklyRate = this.weeklyRate(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
+    const maintRangePct = 1.15; // Proportional maintenance range: 1.15% of the target weight (handles different body sizes fairly)
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
     if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
-      // Proportional maintenance range: 1.5% of the target weight (handles different body sizes fairly)
-      maintRange = parseFloat(formatWeight(goalWeight * 0.015, weightUnit));
-      maintOffset = parseFloat(formatWeight(rawTrend - goalWeight, weightUnit));
+      maintRange = goalWeight * (maintRangePct / 100);
+      maintOffset = rawTrend - goalWeight;
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
@@ -122,12 +124,9 @@ export class DashboardPage {
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
 
-    if (scheduleProjection) {
+    if (scheduleProjection && rawTrend !== null) {
       scheduleRange = scheduleProjection.range;
-      // Offset = actual weight difference from projected (trend - projected)
-      // Loss: negative = ahead (lighter), positive = behind (heavier)
-      // Gain: positive = ahead (heavier), negative = behind (lighter)
-      scheduleOffset = parseFloat(formatWeight(rawTrend! - scheduleProjection.projectedWeight, weightUnit));
+      scheduleOffset = rawTrend - scheduleProjection.projectedWeight;
       // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
       if (scheduleRange > 0) {
         const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
@@ -136,15 +135,15 @@ export class DashboardPage {
     }
 
     return {
-      trendToFixed: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
+      trendToFixed,
       goalWeight: formatWeight(goalWeight ?? 0, weightUnit),
       startWeight,
       goalType,
-      maintRange,
-      maintOffset,
+      maintRange: formatWeight(maintRange ?? 0, weightUnit),
+      maintOffset: formatWeight(maintOffset ?? 0, weightUnit),
       maintPercent,
-      scheduleOffset,
-      scheduleRange,
+      scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit),
+      scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit),
       schedulePercent,
       progressPercent: this.progressPercent(startWeight, rawTrend, goalWeight),
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, weeklyRate),
@@ -153,18 +152,18 @@ export class DashboardPage {
       totalProgress: this.totalProgress(startWeight, rawTrend, weightUnit),
       expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate, goalReached),
       daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate, goalReached),
-      daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entries, activeGoal, maintRange) : null,
+      daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
       recommendation: this.recommendation(
         rawTrend,
         weeklyRate,
-        goalType,
-        goalWeight,
+        activeGoal,
         stabilityScore,
         userSettings,
         scheduleProjection,
         goalReached,
+        maintRangePct,
       ),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
@@ -277,23 +276,20 @@ export class DashboardPage {
     return weeklyRate;
   }
 
-  private daysMaintained(trendPoints: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
-    if (!trendPoints.length || goal == null || maintRange == null) return null;
-
-    const pts = trendPoints.filter(p => p.dateMs >= goal.startDateMs);
-    if (!pts.length) return null;
+  private daysMaintained(entriesAfterGoalStart: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
+    if (!entriesAfterGoalStart.length || goal == null || maintRange == null) return null;
 
     // If the most recent point is out of range, streak is 0
-    if (Math.abs(pts[pts.length - 1].trend - goal.goalWeight) > maintRange) return 0;
+    if (Math.abs(entriesAfterGoalStart[entriesAfterGoalStart.length - 1].trend - goal.goalWeight) > maintRange) return 0;
 
     // Walk backward to find the first out-of-range point
-    let streakStart = pts.length - 1;
-    for (let i = pts.length - 1; i >= 0; i--) {
-      if (Math.abs(pts[i].trend - goal.goalWeight) > maintRange) break;
+    let streakStart = entriesAfterGoalStart.length - 1;
+    for (let i = entriesAfterGoalStart.length - 1; i >= 0; i--) {
+      if (Math.abs(entriesAfterGoalStart[i].trend - goal.goalWeight) > maintRange) break;
       streakStart = i;
     }
 
-    return Math.max(0, Math.round((todayLocalMidnightMs() - pts[streakStart].dateMs) / 86400000));
+    return Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStart].dateMs) / 86400000));
   }
 
   private progressPercent(startWeight: number | null, trendWeight: number | null, goalWeight: number | null): number | null {
@@ -371,12 +367,13 @@ export class DashboardPage {
     return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
   }
 
-  private goalReached(currentTrend: number | null, activeGoal: Goal | null): boolean {
+  private goalReached(currentTrend: string | null, activeGoal: Goal | null): boolean {
     if (!activeGoal || currentTrend == null) return false;
+    const trendValue = parseFloat(currentTrend);
     const { goalWeight, type: goalType } = activeGoal;
     const reachedGoal =
       goalWeight != null &&
-      ((goalType === 'Weight Loss' && currentTrend <= goalWeight) || (goalType === 'Weight Gain' && currentTrend >= goalWeight));
+      ((goalType === 'Weight Loss' && trendValue <= goalWeight) || (goalType === 'Weight Gain' && trendValue >= goalWeight));
     return reachedGoal;
   }
 
@@ -413,16 +410,22 @@ export class DashboardPage {
   private recommendation(
     trendWeight: number | null,
     weeklyRate: number | null,
-    goalType: GoalType,
-    goalWeight: number | null,
+    activeGoal: Goal | null,
     stabilityScore: number | null,
     userSettings: UserSettingsDB | null,
     idealCurrentWeight: { projectedWeight: number; range: number } | null,
     goalReached: boolean,
+    maintRangePct: number | null,
   ): string {
-    if (trendWeight == null || weeklyRate == null || userSettings == null) {
-      return 'Log weight at least 3 times this week to unlock recommendations.';
+    if (!activeGoal) {
+      return 'Set a new goal to receive personalized recommendations.';
     }
+    if (trendWeight == null || weeklyRate == null || userSettings == null) {
+      return 'Log weight at least 2 times to unlock custom recommendations.';
+    }
+
+    const goalWeight = activeGoal.goalWeight;
+    const goalType = activeGoal.type;
 
     // --- Profile-aware thresholds ---
     // Max safe loss rate: beginners/sedentary/endomorphs should lose slower to preserve muscle.
@@ -627,15 +630,16 @@ export class DashboardPage {
       }
 
       case 'Maintenance': {
-        if (goalWeight == null) {
+        if (goalWeight == null || maintRangePct == null) {
           return 'No target weight set for maintenance. Keep logging to maintain current trends or set a clear goal.';
         }
 
         const offset = trendWeight - goalWeight;
         const offsetPct = (offset / goalWeight) * 100;
         const absOffsetPct = Math.abs(offsetPct);
-        const isAbove = offsetPct > 0.5;
-        const isBelow = offsetPct < -0.5;
+        const thresholdPct = maintRangePct / 2;
+        const isAbove = offsetPct > thresholdPct;
+        const isBelow = offsetPct < -thresholdPct;
         const onTarget = !isAbove && !isBelow;
 
         const movingAway = (isAbove && isGaining) || (isBelow && isLosing);

@@ -217,6 +217,11 @@ export class DatabaseService {
     const pts = this.entries();
     return pts.length ? pts[pts.length - 1] : null;
   });
+  readonly entriesAfterGoalStart: Signal<WeightEntry[]> = computed(() => {
+    const activeGoal = this.activeGoal();
+    if (!activeGoal) return [];
+    return this.entries().filter(e => e.dateMs >= activeGoal.startDateMs);
+  });
 
   readonly goals: Signal<Goal[]> = toSignal(this.goals$, { initialValue: [] });
   readonly activeGoal: Signal<Goal | null> = computed(() => {
