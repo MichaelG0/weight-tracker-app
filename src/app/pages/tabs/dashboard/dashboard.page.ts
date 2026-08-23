@@ -479,31 +479,45 @@ export class DashboardPage {
     // --- Profile-aware thresholds ---
     // Max safe loss rate: beginners/sedentary/endomorphs should lose slower to preserve muscle.
     // Advanced/very active users can tolerate a faster deficit safely.
-    let maxLossRate = 1.0; // default % BW/week ceiling
-    let idealGainCeiling = 0.5; // default % BW/week for lean gains
-    let deficitStep = 200; // kcal adjustment size for loss
-    let surplusStep = 200; // kcal adjustment size for gain
+    let maxLossRate: number;
+    let idealGainCeiling: number;
+    let deficitStep: number;
+    let surplusStep: number;
     let stepAdvice = ''; // extra context from profile
 
-    if (userSettings.experience === 'Beginner') {
-      // Beginners gain muscle faster → can tolerate slightly higher surplus
-      idealGainCeiling = 0.6;
-      maxLossRate = 0.7;
-      deficitStep = 150;
-    } else if (userSettings.experience === 'Advanced') {
-      // Advanced trainees gain muscle slowly → keep surplus tight
-      idealGainCeiling = 0.35;
-      maxLossRate = 1.0;
-      deficitStep = 250;
+    // --- Gender × experience matrix (mirrors getDynamicThresholds) ---
+    const isFemale = userSettings.gender === 'Female';
+
+    if (isFemale) {
+      switch (userSettings.experience) {
+        case 'Beginner':
+          maxLossRate = 0.6; idealGainCeiling = 0.6; deficitStep = 125; surplusStep = 175;
+          break;
+        case 'Advanced':
+          maxLossRate = 0.8; idealGainCeiling = 0.35; deficitStep = 200; surplusStep = 200;
+          break;
+        default:
+          maxLossRate = 0.7; idealGainCeiling = 0.5; deficitStep = 150; surplusStep = 200;
+      }
+    } else {
+      switch (userSettings.experience) {
+        case 'Beginner':
+          maxLossRate = 0.7; idealGainCeiling = 0.6; deficitStep = 150; surplusStep = 200;
+          break;
+        case 'Advanced':
+          maxLossRate = 1.0; idealGainCeiling = 0.35; deficitStep = 250; surplusStep = 200;
+          break;
+        default:
+          maxLossRate = 1.0; idealGainCeiling = 0.5; deficitStep = 200; surplusStep = 200;
+      }
     }
 
+    // --- Secondary modifiers: activity, body type, age ---
     if (userSettings.activity_level === 'Sedentary' || userSettings.activity_level === 'Lightly Active') {
-      // Less active = fewer calories burned → smaller adjustments needed
       deficitStep = Math.min(deficitStep, 150);
       surplusStep = Math.min(surplusStep, 150);
       stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
     } else if (userSettings.activity_level === 'Very Active' || userSettings.activity_level === 'Extra Active') {
-      // Highly active = more room for dietary shifts
       deficitStep = Math.max(deficitStep, 200);
       surplusStep = Math.max(surplusStep, 250);
       stepAdvice = ' With your activity level, prioritize protein and recovery.';
@@ -518,18 +532,19 @@ export class DashboardPage {
         stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
     }
 
-    if (userSettings.gender === 'Female') {
-      // Women generally benefit from a more conservative deficit
-      deficitStep = Math.min(deficitStep, 150);
-      maxLossRate = Math.min(maxLossRate, 0.8);
-    }
-
     if (userSettings.age != null && userSettings.age >= 50) {
-      // Older adults should prioritize muscle preservation
       maxLossRate = Math.min(maxLossRate, 0.7);
       deficitStep = Math.min(deficitStep, 150);
       stepAdvice = stepAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
     }
+
+    // Minor nudge variants (gentle course-corrections when progress is close)
+    const minorDeficitStep = Math.round(deficitStep * 0.6);
+    const minorSurplusStep = Math.round(surplusStep * 0.6);
+    // Maintenance-specific correction sizes (even gentler)
+    const maintMinorStep = Math.max(100, Math.min(minorDeficitStep, 150));
+    const maintMajorCut = deficitStep;
+    const maintMajorAdd = surplusStep;
 
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
@@ -595,7 +610,7 @@ export class DashboardPage {
               `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + stepAdvice
             );
           }
-          return 'Losing steadily. If progress stalls, a small calorie reduction or extra daily steps can help.';
+          return `Losing steadily. If progress stalls, a small nudge — trim ~${minorDeficitStep} kcal or add ~1,500 daily steps — can help.`;
         }
         if (isLosing) {
           if (scheduleStatus === 'behind') {
@@ -605,7 +620,7 @@ export class DashboardPage {
             );
           }
           return (
-            `Progress is slower than optimal. Try reducing intake by ~${deficitStep} kcal or adding 2,000 daily steps.` + stepAdvice
+            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` + stepAdvice
           );
         }
         if (scheduleStatus === 'behind') {
@@ -615,7 +630,7 @@ export class DashboardPage {
           );
         }
         return (
-          `Weight is flat. Create a modest deficit — cut ~${deficitStep} kcal or increase activity to get things moving.` + stepAdvice
+          `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal or add ~1,500 daily steps to get things moving.` + stepAdvice
         );
       }
 
@@ -634,7 +649,7 @@ export class DashboardPage {
         if (nearGainGoal) {
           return isGaining
             ? 'Almost at your goal — keep going, no changes needed.'
-            : `Nearly at your goal but progress has stalled. A small nudge — add ~${Math.round(surplusStep / 2)} kcal or a calorie-dense snack — should close the gap.`;
+            : `Nearly at your goal but progress has stalled. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
         }
 
         if (bwPct > 1.0) {
@@ -647,12 +662,12 @@ export class DashboardPage {
           if (scheduleStatus === 'ahead') {
             return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
-          return 'Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus slightly.' + stepAdvice;
+          return `Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` + stepAdvice;
         }
         if (bwPct >= 0.2) {
           if (scheduleStatus === 'behind') {
             return (
-              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${Math.round(surplusStep * 0.5)} kcal to pick up the pace.` +
+              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` +
               stepAdvice
             );
           }
@@ -665,7 +680,7 @@ export class DashboardPage {
             );
           }
           return (
-            `Gaining slowly. If strength is not progressing, try adding ~${Math.round(surplusStep * 0.75)} kcal from protein or carbs.` +
+            `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` +
             stepAdvice
           );
         }
@@ -675,7 +690,7 @@ export class DashboardPage {
             stepAdvice
           );
         }
-        return `Weight is flat. Increase intake — an extra ${surplusStep}–${surplusStep + 100} kcal should move the scale.` + stepAdvice;
+        return `Weight is flat. Increase intake — an extra ${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` + stepAdvice;
       }
 
       case 'Maintenance': {
@@ -699,12 +714,12 @@ export class DashboardPage {
         const moderate = !noData && stabilityScore >= 50 && stabilityScore < 75;
         const fluctuating = !noData && stabilityScore < 50;
 
-        // --- High drift (>0.5% BW/week) ---
+        // --- High drift (>0.5% BW/week) → major correction ---
         if (bwPct > 0.5) {
           if (movingAway) {
             return isGaining
-              ? 'Drifting rapidly above target. Reduce portion sizes or add low-intensity movement to correct course.'
-              : 'Drifting rapidly below target. Increase meal sizes or add a snack to stabilize.';
+              ? `Drifting rapidly above target. Cut ~${maintMajorCut} kcal or add ~2,500 daily steps to correct course.`
+              : `Drifting rapidly below target. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to stabilize.`;
           }
           if (movingToward) {
             return isGaining
@@ -716,12 +731,12 @@ export class DashboardPage {
               return 'Weight is near target but swinging rapidly. Focus on strict hydration and sodium consistency.';
             }
             return isGaining
-              ? 'Weight is near target but trending up quickly. A small calorie trim now prevents a larger correction later.'
-              : 'Weight is near target but trending down quickly. Slightly increase portions to avoid drifting below range.';
+              ? `Weight is near target but trending up quickly. Trim ~${maintMajorCut} kcal now to prevent a larger correction later.`
+              : `Weight is near target but trending down quickly. Add ~${maintMajorAdd} kcal to avoid drifting below range.`;
           }
         }
 
-        // --- Moderate drift (0.2–0.5% BW/week) ---
+        // --- Moderate drift (0.2–0.5% BW/week) → minor correction ---
         if (bwPct > 0.2) {
           if (movingAway) {
             if (fluctuating) {
@@ -730,8 +745,8 @@ export class DashboardPage {
                 : 'Drifting below target with high variability. Ensure consistent meal timing and adequate calories.';
             }
             return isGaining
-              ? 'Slowly trending above target. A small adjustment now — fewer liquid calories or an extra walk — prevents a bigger correction later.'
-              : 'Slowly trending below target. Ensure you are eating enough to support training and recovery.';
+              ? `Slowly trending above target. Trim ~${maintMinorStep} kcal — like skipping a liquid calorie or adding a short walk — to level off.`
+              : `Slowly trending below target. Add ~${maintMinorStep} kcal — a small snack or slightly larger portion — to support recovery.`;
           }
           if (movingToward) {
             if (fluctuating) {
@@ -744,8 +759,8 @@ export class DashboardPage {
               return 'Near target but weight is swinging. Keep meal timing and hydration consistent to smooth things out.';
             }
             return isGaining
-              ? 'Near target with a slight upward drift. Stay mindful of portions this week to level off.'
-              : 'Near target with a slight downward drift. Ensure meals are satisfying and consistent to level off.';
+              ? `Near target with a slight upward drift. A ~${maintMinorStep} kcal trim or ~1,500 extra steps this week should level it off.`
+              : `Near target with a slight downward drift. Add ~${maintMinorStep} kcal — a small snack — to level off.`;
           }
         }
 
@@ -759,18 +774,18 @@ export class DashboardPage {
           }
           if (movingAway) {
             return isAbove
-              ? 'Weight is far above target and still creeping up. Create a calorie deficit — even a small one will help reverse the trend.'
-              : 'Weight is far below target and still creeping down. Increase portions or add a calorie-dense snack to reverse the trend.';
+              ? `Weight is far above target and still creeping up. Cut ~${maintMajorCut} kcal and add ~2,000 daily steps to reverse the trend.`
+              : `Weight is far below target and still creeping down. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to reverse the trend.`;
           }
           if (isAbove) {
             return fluctuating
               ? 'Weight is fluctuating significantly above target. Focus on consistency before making large calorie cuts.'
-              : 'Weight is settled far above target. Create a modest calorie deficit to return to your maintenance range.';
+              : `Weight is settled far above target. Cut ~${maintMajorCut} kcal to return to your maintenance range.`;
           }
           if (isBelow) {
             return fluctuating
               ? 'Weight is fluctuating significantly below target. Focus on regular meals before blindly adding calories.'
-              : 'Weight is settled far below target. Add a daily snack or slightly larger portions to return to your range.';
+              : `Weight is settled far below target. Add ~${maintMajorAdd} kcal — a daily snack or slightly larger portions — to return to your range.`;
           }
         }
 
@@ -780,15 +795,15 @@ export class DashboardPage {
 
         if (stable) {
           if (onTarget) return 'Excellent stability right on target. Maintain your current routine.';
-          if (isAbove) return 'Weight is stable but sitting slightly above target. A very minor calorie reduction can realign it.';
-          if (isBelow) return 'Weight is stable but sitting slightly below target. A very minor calorie increase can realign it.';
+          if (isAbove) return `Weight is stable but sitting slightly above target. Trim ~${maintMinorStep} kcal to realign it.`;
+          if (isBelow) return `Weight is stable but sitting slightly below target. Add ~${maintMinorStep} kcal to realign it.`;
         }
 
         if (moderate) {
           if (onTarget) return 'Good stability near target. Minor day-to-day fluctuations are normal — stay the course.';
-          if (isAbove) return 'Moderate stability slightly above target. Keep meal timing consistent and consider a small calorie trim.';
+          if (isAbove) return `Moderate stability slightly above target. Keep meal timing consistent and trim ~${maintMinorStep} kcal.`;
           if (isBelow)
-            return 'Moderate stability slightly below target. Keep meal timing consistent and consider slightly larger portions.';
+            return `Moderate stability slightly below target. Keep meal timing consistent and add ~${maintMinorStep} kcal.`;
         }
 
         if (noData) {
