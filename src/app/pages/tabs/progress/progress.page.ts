@@ -33,11 +33,11 @@ import { CssThemeService } from 'src/app/services/css-theme.service';
 import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
-import { todayLocalMidnightDate, todayLocalMidnightMs } from 'src/app/utils/date-converter.util';
+import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 import 'hammerjs';
-import { FormatWeightPipe } from "../../../pipes/format-weight.pipe";
+import { FormatWeightPipe } from '../../../pipes/format-weight.pipe';
 Chart.register(zoomPlugin);
 
 type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
@@ -97,8 +97,8 @@ interface ChartColors {
     DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
     FormatDatePipe,
-    FormatWeightPipe
-],
+    FormatWeightPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressPage {
@@ -132,6 +132,8 @@ export class ProgressPage {
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
       const unitLbl = this.weightUnit();
+      const today = todayLocalMidnightDate();
+      const todayMs = today.getTime();
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
@@ -144,12 +146,12 @@ export class ProgressPage {
         filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
       }
 
-      if (!canvas || filteredEntries.length === 0) {
+      if (!canvas || (filteredEntries.length === 0 && filteredGoals.length === 0)) {
         this.destroyChart();
         return;
       }
 
-      this.renderChart(canvas, filteredEntries, filteredGoals, futureGoals, range, showDaily, showTrend, unitLbl);
+      this.renderChart(canvas, filteredEntries, filteredGoals, futureGoals, range, showDaily, showTrend, unitLbl, today, todayMs);
     });
   }
 
@@ -234,6 +236,8 @@ export class ProgressPage {
     showDaily: boolean,
     showTrend: boolean,
     unitLbl: WeightUnit,
+    today: Date,
+    todayMs: number,
   ): void {
     const colors: ChartColors = this.getChartColors();
 
@@ -242,13 +246,13 @@ export class ProgressPage {
     const maintRange = kgToUnit(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const latestGoalMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
-    const bounds = this.getBounds(entries, goals, futureGoals, range, maintRange, unitLbl);
+    const bounds = this.getBounds(entries, goals, futureGoals, range, maintRange, unitLbl, today, todayMs);
 
-    const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayLocalMidnightMs() - 30 * 86400000;
-    const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayLocalMidnightMs();
+    const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
+    const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayMs;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => g.startDateMs)) : Infinity;
-    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs) - 1 * 86400000;
-    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0) + 1 * 86400000;
+    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs, todayMs - 30 * 86400000) - 1 * 86400000;
+    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0, todayMs) + 1 * 86400000;
 
     const config = {
       type: 'line',
@@ -321,7 +325,7 @@ export class ProgressPage {
               callback: (v: any) => {
                 const date = new Date(Number(v));
                 const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-                if (date.getFullYear() !== todayLocalMidnightDate().getFullYear()) {
+                if (date.getFullYear() !== today.getFullYear()) {
                   opts.year = '2-digit';
                 }
                 return date.toLocaleDateString(undefined, opts);
@@ -336,7 +340,7 @@ export class ProgressPage {
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: number) => (formatWeight(v, unitLbl)),
+              callback: (v: number) => formatWeight(v, unitLbl),
             },
           },
         },
@@ -497,9 +501,9 @@ export class ProgressPage {
     range: RangeMode,
     maintRange: number,
     unitLbl: WeightUnit,
+    today: Date,
+    todayMs: number,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
-    const todayMs = todayLocalMidnightMs();
-
     const weights = entries.map(e => e.weight);
     for (const g of goals) {
       weights.push(g.startWeight);
@@ -514,18 +518,18 @@ export class ProgressPage {
     let xMax: number;
 
     if (range === 'month') {
-      const cutoff = todayLocalMidnightDate();
+      const cutoff = today;
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
       xMax = todayMs;
-    } else if (range === 'to-goal' && entries.length > 0 && futureGoals.length > 0) {
-      xMin = entries[0].dateMs;
+    } else if (range === 'to-goal' && futureGoals.length > 0) {
+      xMin = futureGoals[0].startDateMs;
       xMax = Math.min(...futureGoals.map(g => g.goalDateMs));
     } else if (range === 'full') {
       xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
     } else {
-      xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
+      xMin = entries.length > 0 ? entries[0].dateMs : futureGoals.length > 0 ? futureGoals[0].startDateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
     }
 
