@@ -203,13 +203,14 @@ export class SetGoalModalComponent implements OnInit {
 
   private getDefaultStartDate(): string {
     const today = todayLocalMidnightString();
+    const todayForForm = today.substring(0, 10);
 
-    if (this.db.goals().length === 0) return today;
+    if (this.db.goals().length === 0) return todayForForm;
 
     // Default to end date of the latest goal
     const sorted = [...this.db.goals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
     const lastEnd = sorted[sorted.length - 1].goalDate.substring(0, 10);
-    return lastEnd > today ? lastEnd : today;
+    return lastEnd > today ? lastEnd : todayForForm;
   }
 
   // ── Piped Methods ───────────────────────────────────────────────────────

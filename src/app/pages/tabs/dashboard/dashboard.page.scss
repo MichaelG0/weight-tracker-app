@@ -133,6 +133,18 @@ ion-card {
     position: relative;
     z-index: 1;
   }
+
+  .set-goal-prompt {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 4px 0 0;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .set-goal-link {
+    color: var(--ion-color-primary);
+  }
 }
 
 .quick-actions {

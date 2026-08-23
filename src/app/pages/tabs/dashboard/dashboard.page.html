@@ -39,27 +39,34 @@
                     <span>Ahead</span>
                   </div>
                 </div>
-              } @else {
-                <ion-progress-bar
-                  color="primary"
-                  [value]="vm.progressPercent !== null ? vm.progressPercent / 100 : 0"
-                ></ion-progress-bar>
+              } @else if (vm.goalType !== null) {
+                <ion-progress-bar color="primary" [value]="0"></ion-progress-bar>
               }
             </div>
-            <div class="meta-row">
-              <span>Goal: {{ vm.goalWeight !== null ? vm.goalWeight + ' ' + vm.unitLabel : 'Not set' }}</span>
-              <span>
-                @if (vm.goalType === 'Maintenance') {
-                  {{
-                    vm.maintOffset !== null ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset + ' ' + vm.unitLabel : 'No data'
-                  }}
-                } @else if (vm.scheduleOffset !== null) {
-                  {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' ' + vm.unitLabel + ' vs projected' }}
+            @if (vm.goalType !== null) {
+              <div class="meta-row">
+                @if (vm.goalReached) {
+                  <p class="set-goal-prompt">
+                    Goal reached! <span class="set-goal-link" (click)="openSetGoal()">+ Set a new target</span>
+                  </p>
                 } @else {
-                  {{ vm.progressPercent !== null ? (vm.progressPercent | number: '1.0-0') + '% reached' : 'No progress yet' }}
+                  <span>Goal: {{ vm.goalWeight + ' ' + vm.unitLabel }}</span>
+                  <span>
+                    @if (vm.goalType === 'Maintenance') {
+                      {{
+                        vm.maintOffset !== null
+                          ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset + ' ' + vm.unitLabel
+                          : 'No data'
+                      }}
+                    } @else if (vm.scheduleOffset !== null) {
+                      {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' ' + vm.unitLabel + ' vs projected' }}
+                    }
+                  </span>
                 }
-              </span>
-            </div>
+              </div>
+            } @else {
+              <p class="set-goal-prompt set-goal-link" (click)="openSetGoal()">+ Set a goal to track your progress</p>
+            }
           </ion-card-content>
         </ion-card>
       </section>

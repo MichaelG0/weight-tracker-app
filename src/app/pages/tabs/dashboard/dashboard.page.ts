@@ -26,6 +26,7 @@ import { trendingDownOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsDB } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
+import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
 import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
@@ -40,7 +41,6 @@ interface DashboardVm {
   scheduleOffset: string | null;
   scheduleRange: string | null;
   schedulePercent: number | null;
-  progressPercent: number | null;
   bwPercentPerWeek: string | null;
   absoluteRatePerWeek: string | null;
   remaining: string | null;
@@ -49,6 +49,7 @@ interface DashboardVm {
   daysToGoal: string | null;
   daysMaintained: number | null;
   stabilityLabel: string | null;
+  goalReached: boolean;
   consistency: string;
   recommendation: string;
   rateLabel: string;
@@ -148,7 +149,7 @@ export class DashboardPage {
       scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit),
       scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit),
       schedulePercent,
-      progressPercent: this.progressPercent(startWeight, rawTrend, goalWeight),
+      goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, weeklyRate),
       absoluteRatePerWeek: this.absoluteRatePerWeek(weeklyRate, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
@@ -186,6 +187,16 @@ export class DashboardPage {
       handleBehavior: 'cycle',
     });
 
+    await modal.present();
+  }
+
+  async openSetGoal(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: SetGoalModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
     await modal.present();
   }
 
@@ -295,21 +306,6 @@ export class DashboardPage {
     return Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStart].dateMs) / 86400000));
   }
 
-  private progressPercent(startWeight: number | null, trendWeight: number | null, goalWeight: number | null): number | null {
-    if (startWeight == null || trendWeight == null || goalWeight == null) {
-      return null;
-    }
-
-    const totalDelta = goalWeight - startWeight;
-    if (Math.abs(totalDelta) < 0.001) {
-      return 100;
-    }
-
-    const progressed = trendWeight - startWeight;
-    const pct = (progressed / totalDelta) * 100;
-    return Math.min(100, Math.max(0, pct));
-  }
-
   private expectedGoalDate(
     trendWeight: number | null,
     goalWeight: number | null,
@@ -371,9 +367,9 @@ export class DashboardPage {
     return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
   }
 
-  private goalReached(currentTrend: string | null, activeGoal: Goal | null): boolean {
-    if (!activeGoal || currentTrend == null) return false;
-    const trendValue = parseFloat(currentTrend);
+  private goalReached(trendToFixed: string | null, activeGoal: Goal | null): boolean {
+    if (!activeGoal || trendToFixed == null) return false;
+    const trendValue = parseFloat(trendToFixed);
     const { goalWeight, type: goalType } = activeGoal;
     const reachedGoal =
       goalWeight != null &&
