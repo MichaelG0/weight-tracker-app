@@ -230,6 +230,16 @@ export class DatabaseService {
     const today = todayLocalMidnightMs();
     return goals.find(g => g.goalDateMs >= today && g.startDateMs <= today) ?? null;
   });
+  readonly activeOrLatestGoal: Signal<Goal | null> = computed(() => {
+    const active = this.activeGoal();
+    if (active) return active;
+    const goals = this.goals();
+    if (!goals.length) return null;
+    const today = todayLocalMidnightMs();
+    const started = goals.filter(g => g.startDateMs <= today);
+    if (!started.length) return null;
+    return started.reduce((latest, g) => g.startDateMs > latest.startDateMs ? g : latest);
+  });
   readonly futureGoals: Signal<Goal[]> = computed(() => {
     const today = todayLocalMidnightMs();
     return this.goals().filter(g => g.goalDateMs > today);

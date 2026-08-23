@@ -126,6 +126,7 @@ export class ProgressPage {
     effect(() => {
       const allEntries = this.allEntries();
       const goals = this.goals();
+      const latestGoal = this.db.activeOrLatestGoal();
       const futureGoals = this.db.futureGoals();
       const range = this.rangeMode();
       const showDaily = this.showDaily();
@@ -137,15 +138,10 @@ export class ProgressPage {
       // Filter entries and goals: cut off before the most recent goal's start date (unless 'full')
       let filteredEntries = allEntries;
       let filteredGoals = goals;
-      if (range !== 'full' && goals.length > 0) {
-        const todayMs = todayLocalMidnightMs();
-
-        const activeGoals = goals.filter(g => g.startDateMs <= todayMs);
-        if (activeGoals.length > 0) {
-          const cutoff = Math.max(...activeGoals.map(g => g.startDateMs));
-          filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
-          filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
-        }
+      if (range !== 'full' && latestGoal) {
+        const cutoff = latestGoal.startDateMs;
+        filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
+        filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
       }
 
       if (!canvas || filteredEntries.length === 0) {
