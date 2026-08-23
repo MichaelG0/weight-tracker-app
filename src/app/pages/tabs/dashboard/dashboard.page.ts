@@ -107,35 +107,33 @@ export class DashboardPage {
     const weeklyRate = this.weeklyRate(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
-    const { maintRangePct, scheduleToleranceWeeks, noiseFloorPct } = this.getDynamicThresholds(userSettings);
+    const { maintRangePct, scheduleToleranceWeeks, rangeCap, noiseFloor } = this.getDynamicThresholds(userSettings, weightUnit);
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
     if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
-      maintRange = goalWeight * (maintRangePct / 100);
+      maintRange = Math.min(Math.max(goalWeight * (maintRangePct / 100), noiseFloor), rangeCap);
       maintOffset = rawTrend - goalWeight;
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
     }
 
-    const scheduleProjection: { projectedWeight: number; range: number } | null = this.scheduleProjection(
-      rawTrend,
-      activeGoal,
-      scheduleToleranceWeeks,
-      noiseFloorPct,
-    );
+    let scheduleProjection: { projectedWeight: number; range: number } | null = null;
     let scheduleOffset: number | null = null;
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
 
-    if (scheduleProjection && rawTrend !== null) {
-      scheduleRange = scheduleProjection.range;
-      scheduleOffset = rawTrend - scheduleProjection.projectedWeight;
-      // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
-      if (scheduleRange > 0) {
-        const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
-        schedulePercent = Math.max(0, Math.min(100, ((normalizedOffset + scheduleRange) / (2 * scheduleRange)) * 100));
+    if (goalType == 'Weight Loss' || (goalType == 'Weight Gain' && rawTrend !== null)) {
+      scheduleProjection = this.scheduleProjection(rawTrend, activeGoal, scheduleToleranceWeeks, noiseFloor, rangeCap);
+      if (scheduleProjection) {
+        scheduleRange = scheduleProjection.range;
+        scheduleOffset = rawTrend! - scheduleProjection.projectedWeight;
+        // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
+        if (scheduleRange > 0) {
+          const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
+          schedulePercent = Math.max(0, Math.min(100, ((normalizedOffset + scheduleRange) / (2 * scheduleRange)) * 100));
+        }
       }
     }
 
@@ -387,7 +385,8 @@ export class DashboardPage {
     trendWeight: number | null,
     activeGoal: Goal | null,
     scheduleToleranceWeeks: number,
-    noiseFloorPct: number,
+    noiseFloor: number,
+    rangeCap: number,
   ): { projectedWeight: number; range: number } | null {
     if (
       trendWeight == null ||
@@ -407,42 +406,60 @@ export class DashboardPage {
     const delta = activeGoal.goalWeight - activeGoal.startWeight;
     const projectedWeight = activeGoal.startWeight + delta * (elapsed / totalDuration);
     const totalDays = totalDuration / 86400000;
-    const range = Math.max(Math.abs(delta / totalDays) * scheduleToleranceWeeks * 7, trendWeight * noiseFloorPct);
+    const range = Math.min(Math.max(Math.abs(delta / totalDays) * scheduleToleranceWeeks * 7, noiseFloor), rangeCap);
 
     console.log('Schedule projection:', { projectedWeight, range });
     return { projectedWeight, range };
   }
 
-  private getDynamicThresholds(userSettings: UserSettingsDB | null): {
+  // prettier-ignore
+  private getDynamicThresholds(userSettings: UserSettingsDB | null, weightUnit: WeightUnit): {
     maintRangePct: number;
     scheduleToleranceWeeks: number;
-    noiseFloorPct: number;
+    rangeCap: number;
+    noiseFloor: number;
   } {
+    let maintRangePct: number;
+    let scheduleToleranceWeeks: number;
+    let rangeCapKg: number;
+    let noiseFloorKg: number;
+
     if (userSettings == null) {
-      return { maintRangePct: 1.5, scheduleToleranceWeeks: 2.0, noiseFloorPct: 0.005 };
-    }
+      maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
+    } else {
+      const isFemale = userSettings.gender === 'Female';
 
-    const isFemale = userSettings.gender === 'Female';
-
-    if (isFemale) {
-      switch (userSettings.experience) {
-        case 'Beginner':
-          return { maintRangePct: 2.5, scheduleToleranceWeeks: 3.5, noiseFloorPct: 0.0125 };
-        case 'Advanced':
-          return { maintRangePct: 1.5, scheduleToleranceWeeks: 2.0, noiseFloorPct: 0.0075 };
-        default:
-          return { maintRangePct: 2.0, scheduleToleranceWeeks: 3.0, noiseFloorPct: 0.01 };
+      if (isFemale) {
+        switch (userSettings.experience) {
+          case 'Beginner':
+            maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
+            break;
+          case 'Advanced':
+            maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
+            break;
+          default:
+            maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
+        }
+      } else {
+        switch (userSettings.experience) {
+          case 'Beginner':
+            maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
+            break;
+          case 'Advanced':
+            maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
+            break;
+          default:
+            maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
+        }
       }
     }
 
-    switch (userSettings.experience) {
-      case 'Beginner':
-        return { maintRangePct: 2.0, scheduleToleranceWeeks: 2.5, noiseFloorPct: 0.0075 };
-      case 'Advanced':
-        return { maintRangePct: 1.2, scheduleToleranceWeeks: 1.5, noiseFloorPct: 0.004 };
-      default:
-        return { maintRangePct: 1.5, scheduleToleranceWeeks: 2.0, noiseFloorPct: 0.005 };
-    }
+    return {
+      maintRangePct,
+      scheduleToleranceWeeks,
+      rangeCap: kgToUnit(rangeCapKg, weightUnit),
+      noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
+    };
   }
 
   private recommendation(
