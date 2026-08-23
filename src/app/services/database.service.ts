@@ -230,6 +230,10 @@ export class DatabaseService {
     const today = todayLocalMidnightMs();
     return goals.find(g => g.goalDateMs >= today && g.startDateMs <= today) ?? null;
   });
+  readonly futureGoals: Signal<Goal[]> = computed(() => {
+    const today = todayLocalMidnightMs();
+    return this.goals().filter(g => g.goalDateMs > today);
+  });
 
   readonly settings: Signal<UserSettingsDB | null> = toSignal(this.settings$, { initialValue: null });
   readonly weightUnit = computed(() => this.settings()?.weight_unit ?? 'kg');

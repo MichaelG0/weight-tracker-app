@@ -126,6 +126,7 @@ export class ProgressPage {
     effect(() => {
       const allEntries = this.allEntries();
       const goals = this.goals();
+      const futureGoals = this.db.futureGoals();
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
@@ -152,7 +153,7 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(canvas, filteredEntries, filteredGoals, range, showDaily, showTrend, unitLbl);
+      this.renderChart(canvas, filteredEntries, filteredGoals, futureGoals, range, showDaily, showTrend, unitLbl);
     });
   }
 
@@ -232,6 +233,7 @@ export class ProgressPage {
     canvas: HTMLCanvasElement,
     entries: WeightEntry[],
     goals: Goal[],
+    futureGoals: Goal[],
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
@@ -244,7 +246,7 @@ export class ProgressPage {
     const maintRange = kgToUnit(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const latestGoalMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
-    const bounds = this.getBounds(entries, goals, latestGoalMs, range, maintRange, unitLbl);
+    const bounds = this.getBounds(entries, goals, futureGoals, range, maintRange, unitLbl);
 
     const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayLocalMidnightMs() - 30 * 86400000;
     const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayLocalMidnightMs();
@@ -495,7 +497,7 @@ export class ProgressPage {
   private getBounds(
     entries: WeightEntry[],
     goals: Goal[],
-    lastGoalDateMs: number | null,
+    futureGoals: Goal[],
     range: RangeMode,
     maintRange: number,
     unitLbl: WeightUnit,
@@ -520,10 +522,9 @@ export class ProgressPage {
       cutoff.setDate(cutoff.getDate() - 30);
       xMin = +cutoff;
       xMax = todayMs;
-    } else if (range === 'to-goal' && entries.length > 0 && goals.length > 0) {
+    } else if (range === 'to-goal' && entries.length > 0 && futureGoals.length > 0) {
       xMin = entries[0].dateMs;
-      const futureGoalDates = goals.map(g => g.goalDateMs).filter(d => d > todayMs);
-      xMax = futureGoalDates.length > 0 ? Math.min(...futureGoalDates) : (lastGoalDateMs ?? todayMs);
+      xMax = Math.min(...futureGoals.map(g => g.goalDateMs));
     } else if (range === 'full') {
       xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
