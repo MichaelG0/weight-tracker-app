@@ -103,6 +103,10 @@ ion-card {
         width: 16px;
         z-index: 2;
 
+        &.warn {
+          background: var(--ion-color-warning);
+        }
+
         &.danger {
           background: var(--ion-color-danger);
         }

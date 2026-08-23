@@ -19,6 +19,7 @@
                   <div
                     class="maint-indicator"
                     [style.left.%]="vm.maintPercent"
+                    [class.warn]="vm.maintPercent <= 25 || vm.maintPercent >= 75"
                     [class.danger]="vm.maintPercent <= 5 || vm.maintPercent >= 95"
                   ></div>
                   <div class="maint-bounds">
@@ -32,6 +33,7 @@
                   <div
                     class="maint-indicator"
                     [style.left.%]="vm.schedulePercent"
+                    [class.warn]="vm.schedulePercent <= 25 || vm.schedulePercent >= 75"
                     [class.danger]="vm.schedulePercent <= 5 || vm.schedulePercent >= 95"
                   ></div>
                   <div class="maint-bounds">
