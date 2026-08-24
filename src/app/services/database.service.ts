@@ -96,6 +96,7 @@ export interface UserSettingsExtended extends UserSettings {
     rangeCap: number;
     noiseFloor: number;
     maxLossRate: number;
+    idealGainFloorPct: number;
     idealGainCeilingPct: number;
     deficitStep: number;
     surplusStep: number;
@@ -104,7 +105,7 @@ export interface UserSettingsExtended extends UserSettings {
     maintMinorStep: number;
     maintMajorCut: number;
     maintMajorAdd: number;
-    stepAdvice: string;
+    customAdvice: string;
   };
 }
 
@@ -507,39 +508,40 @@ export class DatabaseService {
 
     // ── Recommendation thresholds (gender × experience) ──
     let maxLossRate: number;
+    let idealGainFloorPct: number;
     let idealGainCeilingPct: number;
     let deficitStep: number;
     let surplusStep: number;
-    let stepAdvice = '';
+    let customAdvice = '';
 
     // prettier-ignore
     if (isFemale) {
       switch (settings.experience) {
         case 'Beginner':
           maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
-          maxLossRate = 0.6; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
+          maxLossRate = 0.6; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
           break;
         case 'Advanced':
           maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 0.8; idealGainCeilingPct = 0.15; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 0.8; idealGainFloorPct = 0.05; idealGainCeilingPct = 0.15; deficitStep = 200; surplusStep = 200;
           break;
         default:
           maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 0.7; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
+          maxLossRate = 0.7; idealGainFloorPct = 0.10; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
       }
     } else {
       switch (settings.experience) {
         case 'Beginner':
           maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 0.7; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
+          maxLossRate = 0.7; idealGainFloorPct = 0.25; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
           break;
         case 'Advanced':
           maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
-          maxLossRate = 1.0; idealGainCeilingPct = 0.25; deficitStep = 250; surplusStep = 200;
+          maxLossRate = 1.0; idealGainFloorPct = 0.1; idealGainCeilingPct = 0.25; deficitStep = 250; surplusStep = 200;
           break;
         default:
           maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 1.0; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 1.0; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
       }
     }
 
@@ -547,26 +549,26 @@ export class DatabaseService {
     if (settings.activityLevel === 'Sedentary' || settings.activityLevel === 'Lightly Active') {
       deficitStep = Math.min(deficitStep, 150);
       surplusStep = Math.min(surplusStep, 150);
-      stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
+      customAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
     } else if (settings.activityLevel === 'Very Active' || settings.activityLevel === 'Extra Active') {
       deficitStep = Math.max(deficitStep, 200);
       surplusStep = Math.max(surplusStep, 250);
-      stepAdvice = ' With your activity level, prioritize protein and recovery.';
+      customAdvice = ' With your activity level, prioritize protein and recovery.';
     }
 
     if (settings.bodyType === 'Endomorph') {
       maxLossRate = Math.min(maxLossRate, 0.8);
-      if (goalType === 'Weight Gain') stepAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
+      if (goalType === 'Weight Gain') customAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
     } else if (settings.bodyType === 'Ectomorph') {
       if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
       if (goalType === 'Weight Gain')
-        stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
+        customAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
     }
 
     if (settings.age != null && settings.age >= 50) {
       maxLossRate = Math.min(maxLossRate, 0.7);
       deficitStep = Math.min(deficitStep, 150);
-      stepAdvice = stepAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
+      customAdvice = customAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
     }
 
     const minorDeficitStep = Math.round(deficitStep * 0.6);
@@ -579,6 +581,7 @@ export class DatabaseService {
       rangeCap: kgToUnit(rangeCapKg, weightUnit),
       noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
       maxLossRate,
+      idealGainFloorPct,
       idealGainCeilingPct,
       deficitStep,
       surplusStep,
@@ -587,7 +590,7 @@ export class DatabaseService {
       maintMinorStep,
       maintMajorCut: deficitStep,
       maintMajorAdd: surplusStep,
-      stepAdvice,
+      customAdvice,
     };
   }
 }

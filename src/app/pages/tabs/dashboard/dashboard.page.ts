@@ -429,7 +429,7 @@ export class DashboardPage {
     const goalType = activeGoal.type;
 
     // prettier-ignore
-    const { maxLossRate, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, stepAdvice, maintRangePct } = userSettings.coaching;
+    const { maxLossRate, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRangePct } = userSettings.coaching;
 
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
@@ -460,11 +460,11 @@ export class DashboardPage {
           if (scheduleStatus === 'behind') {
             return (
               "Weight is trending up and you're falling behind schedule. Re-evaluate intake urgently — track every meal for a few days." +
-              stepAdvice
+              customAdvice
             );
           }
           return (
-            'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + stepAdvice
+            'Weight is trending up while in a loss phase. Re-evaluate intake — track a few days to find hidden calories.' + customAdvice
           );
         }
 
@@ -480,7 +480,7 @@ export class DashboardPage {
             return `Loss rate exceeds ${maxLossRate}% BW/week, but you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
           return (
-            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + stepAdvice
+            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + customAdvice
           );
         }
         if (bwPct >= 0.5) {
@@ -492,7 +492,7 @@ export class DashboardPage {
         if (bwPct >= 0.25) {
           if (scheduleStatus === 'behind') {
             return (
-              `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + stepAdvice
+              `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + customAdvice
             );
           }
           return `Losing steadily. If progress stalls, a small nudge — trim ~${minorDeficitStep} kcal or add ~1,500 daily steps — can help.`;
@@ -501,23 +501,23 @@ export class DashboardPage {
           if (scheduleStatus === 'behind') {
             return (
               `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
-              stepAdvice
+              customAdvice
             );
           }
           return (
             `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` +
-            stepAdvice
+            customAdvice
           );
         }
         if (scheduleStatus === 'behind') {
           return (
             `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal or add ~2,000 daily steps to get things moving.` +
-            stepAdvice
+            customAdvice
           );
         }
         return (
           `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal or add ~1,500 daily steps to get things moving.` +
-          stepAdvice
+          customAdvice
         );
       }
 
@@ -526,10 +526,10 @@ export class DashboardPage {
           if (scheduleStatus === 'behind') {
             return (
               "Weight is dropping and you're falling behind schedule. Increase calories significantly — add 2 snacks or a calorie-dense shake daily." +
-              stepAdvice
+              customAdvice
             );
           }
-          return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + stepAdvice;
+          return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + customAdvice;
         }
 
         const nearGainGoal = goalWeight != null && goalWeight > 0 && (goalWeight - trendWeight) / goalWeight < 0.01;
@@ -551,13 +551,13 @@ export class DashboardPage {
           }
           return (
             `Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` +
-            stepAdvice
+            customAdvice
           );
         }
-        if (bwPct >= 0.2) {
+        if (bwPct >= idealGainFloorPct) {
           if (scheduleStatus === 'behind') {
             return (
-              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` + stepAdvice
+              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` + customAdvice
             );
           }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
@@ -565,22 +565,22 @@ export class DashboardPage {
         if (isGaining) {
           if (scheduleStatus === 'behind') {
             return (
-              `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + stepAdvice
+              `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + customAdvice
             );
           }
           return (
-            `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` + stepAdvice
+            `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` + customAdvice
           );
         }
         if (scheduleStatus === 'behind') {
           return (
             `Weight is flat and you\'re behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` +
-            stepAdvice
+            customAdvice
           );
         }
         return (
           `Weight is flat. Increase intake — an extra ${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` +
-          stepAdvice
+          customAdvice
         );
       }
 
