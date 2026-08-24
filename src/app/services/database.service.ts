@@ -76,6 +76,38 @@ export interface Goal {
   type: GoalType;
 }
 
+export interface UserSettings {
+  name?: string;
+  age?: number;
+  gender?: string;
+  heightCm?: number;
+  heightFtIn?: HeightFtIn;
+  weightUnit: WeightUnit;
+  heightUnit: HeightUnit;
+  activityLevel?: ActivityLevel;
+  experience?: Experience;
+  bodyType?: BodyType;
+}
+
+export interface UserSettingsExtended extends UserSettings {
+  coaching: {
+    maintRangePct: number;
+    scheduleToleranceWeeks: number;
+    rangeCap: number;
+    noiseFloor: number;
+    maxLossRate: number;
+    idealGainCeilingPct: number;
+    deficitStep: number;
+    surplusStep: number;
+    minorDeficitStep: number;
+    minorSurplusStep: number;
+    maintMinorStep: number;
+    maintMajorCut: number;
+    maintMajorAdd: number;
+    stepAdvice: string;
+  };
+}
+
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const MIGRATIONS = `
@@ -136,10 +168,10 @@ export class DatabaseService {
   /** All entries with their computed EWMA trend value, sorted oldest → newest. */
   private readonly entries$: Observable<WeightEntry[]> = combineLatest([
     this._entries$,
-    this._settings$.pipe(map(s => s?.weight_unit ?? 'kg')),
+    this._settings$.pipe(map(s => s?.weight_unit)),
   ]).pipe(
     map(([entriesDB, unit]) => {
-      if (!entriesDB.length) return [];
+      if (!entriesDB.length || !unit) return [];
       // Alphabetical string comparison is way faster and yields the exact same chronological result
       const ordered = entriesDB.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
@@ -176,23 +208,29 @@ export class DatabaseService {
       return entries;
     }),
   );
-  readonly settings$: Observable<UserSettingsDB | null> = this._settings$.asObservable().pipe(
+  private readonly settings$: Observable<UserSettings | null> = this._settings$.asObservable().pipe(
     map(settings => {
       if (!settings) return null;
-      const converted: UserSettingsDB = {
-        ...settings,
+      const converted: UserSettings = {
+        name: settings.name,
+        age: settings.age,
+        gender: settings.gender,
+        heightCm: settings.height_cm,
         heightFtIn: settings.height_cm ? cmToFtIn(settings.height_cm) : undefined,
+        weightUnit: settings.weight_unit ?? 'kg',
+        heightUnit: settings.height_unit ?? 'cm',
+        activityLevel: settings.activity_level,
+        experience: settings.experience,
+        bodyType: settings.body_type,
       };
 
       console.log('settings$', converted);
       return converted;
     }),
   );
-  private readonly goals$: Observable<Goal[]> = combineLatest([
-    this._goals$,
-    this._settings$.pipe(map(s => s?.weight_unit ?? 'kg')),
-  ]).pipe(
+  private readonly goals$: Observable<Goal[]> = combineLatest([this._goals$, this._settings$.pipe(map(s => s?.weight_unit))]).pipe(
     map(([goalsDB, unit]) => {
+      if (!goalsDB.length || !unit) return [];
       const goals: Goal[] = goalsDB.map(g => ({
         id: g.id,
         startWeight: kgToUnit(g.start_weight_kg, unit),
@@ -238,16 +276,22 @@ export class DatabaseService {
     const today = todayLocalMidnightMs();
     const started = goals.filter(g => g.startDateMs <= today);
     if (!started.length) return null;
-    return started.reduce((latest, g) => g.startDateMs > latest.startDateMs ? g : latest);
+    return started.reduce((latest, g) => (g.startDateMs > latest.startDateMs ? g : latest));
   });
   readonly futureGoals: Signal<Goal[]> = computed(() => {
     const today = todayLocalMidnightMs();
     return this.goals().filter(g => g.goalDateMs > today);
   });
 
-  readonly settings: Signal<UserSettingsDB | null> = toSignal(this.settings$, { initialValue: null });
-  readonly weightUnit = computed(() => this.settings()?.weight_unit ?? 'kg');
-  readonly heightUnit = computed(() => this.settings()?.height_unit ?? 'cm');
+  readonly settings: Signal<UserSettings | null> = toSignal(this.settings$, { initialValue: null });
+  readonly weightUnit = computed(() => this.settings()?.weightUnit ?? 'kg');
+  readonly heightUnit = computed(() => this.settings()?.heightUnit ?? 'cm');
+  readonly extendedSettings: Signal<UserSettingsExtended | null> = computed(() => {
+    const settings = this.settings();
+    const activeGoal = this.activeGoal();
+    if (!settings) return null;
+    return { ...settings, coaching: this.computeCoaching(settings, activeGoal?.type ?? null) };
+  });
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
 
@@ -260,11 +304,6 @@ export class DatabaseService {
     this.db = await this.sqlite.createConnection('weight_tracker', false, 'no-encryption', 1, false);
     await this.db.open();
     await this.db.execute(MIGRATIONS);
-
-    // Migrate existing databases that lack the new profile columns
-    for (const col of ['activity_level', 'experience', 'body_type']) {
-      await this.db.execute(`ALTER TABLE user_settings ADD COLUMN ${col} TEXT`).catch(() => {/* column already exists */});
-    }
 
     if (!environment.production) {
       await this.mockData.seed(this.db);
@@ -452,5 +491,103 @@ export class DatabaseService {
         map(() => undefined),
       ),
     );
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────
+
+  private computeCoaching(settings: UserSettings, goalType: GoalType | null): UserSettingsExtended['coaching'] {
+    const weightUnit = settings.weightUnit;
+    const isFemale = settings.gender === 'Female';
+
+    // ── Dynamic thresholds (gender × experience) ──
+    let maintRangePct: number;
+    let scheduleToleranceWeeks: number;
+    let rangeCapKg: number;
+    let noiseFloorKg: number;
+
+    // ── Recommendation thresholds (gender × experience) ──
+    let maxLossRate: number;
+    let idealGainCeilingPct: number;
+    let deficitStep: number;
+    let surplusStep: number;
+    let stepAdvice = '';
+
+    // prettier-ignore
+    if (isFemale) {
+      switch (settings.experience) {
+        case 'Beginner':
+          maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
+          maxLossRate = 0.6; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
+          break;
+        case 'Advanced':
+          maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
+          maxLossRate = 0.8; idealGainCeilingPct = 0.15; deficitStep = 200; surplusStep = 200;
+          break;
+        default:
+          maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
+          maxLossRate = 0.7; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
+      }
+    } else {
+      switch (settings.experience) {
+        case 'Beginner':
+          maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
+          maxLossRate = 0.7; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
+          break;
+        case 'Advanced':
+          maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
+          maxLossRate = 1.0; idealGainCeilingPct = 0.25; deficitStep = 250; surplusStep = 200;
+          break;
+        default:
+          maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
+          maxLossRate = 1.0; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
+      }
+    }
+
+    // ── Secondary modifiers: activity, body type, age ──
+    if (settings.activityLevel === 'Sedentary' || settings.activityLevel === 'Lightly Active') {
+      deficitStep = Math.min(deficitStep, 150);
+      surplusStep = Math.min(surplusStep, 150);
+      stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
+    } else if (settings.activityLevel === 'Very Active' || settings.activityLevel === 'Extra Active') {
+      deficitStep = Math.max(deficitStep, 200);
+      surplusStep = Math.max(surplusStep, 250);
+      stepAdvice = ' With your activity level, prioritize protein and recovery.';
+    }
+
+    if (settings.bodyType === 'Endomorph') {
+      maxLossRate = Math.min(maxLossRate, 0.8);
+      if (goalType === 'Weight Gain') stepAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
+    } else if (settings.bodyType === 'Ectomorph') {
+      if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
+      if (goalType === 'Weight Gain')
+        stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
+    }
+
+    if (settings.age != null && settings.age >= 50) {
+      maxLossRate = Math.min(maxLossRate, 0.7);
+      deficitStep = Math.min(deficitStep, 150);
+      stepAdvice = stepAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
+    }
+
+    const minorDeficitStep = Math.round(deficitStep * 0.6);
+    const minorSurplusStep = Math.round(surplusStep * 0.6);
+    const maintMinorStep = Math.max(100, Math.min(minorDeficitStep, 150));
+
+    return {
+      maintRangePct,
+      scheduleToleranceWeeks,
+      rangeCap: kgToUnit(rangeCapKg, weightUnit),
+      noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
+      maxLossRate,
+      idealGainCeilingPct,
+      deficitStep,
+      surplusStep,
+      minorDeficitStep,
+      minorSurplusStep,
+      maintMinorStep,
+      maintMajorCut: deficitStep,
+      maintMajorAdd: surplusStep,
+      stepAdvice,
+    };
   }
 }

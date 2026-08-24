@@ -74,17 +74,17 @@ export class SettingsPage {
   private db = inject(DatabaseService);
   private modalCtrl = inject(ModalController);
 
-  name = '';
-  age: number | null = null;
-  gender = '';
-  heightCm: number | null = null;
+  name = this.db.settings()?.name ?? '';
+  age: number | null = this.db.settings()?.age ?? null;
+  gender = this.db.settings()?.gender ?? '';
+  heightCm: number | null = this.db.settings()?.heightCm ?? null;
   heightFt: number | null = null;
   heightIn: number | null = null;
-  weightUnit: WeightUnit = 'kg';
-  heightUnit: HeightUnit = 'cm';
-  activityLevel: ActivityLevel | '' = '';
-  experience: Experience | '' = '';
-  bodyType: BodyType | '' = '';
+  weightUnit: WeightUnit = this.db.settings()?.weightUnit ?? 'kg';
+  heightUnit: HeightUnit = this.db.settings()?.heightUnit ?? 'cm';
+  activityLevel: ActivityLevel | '' = this.db.settings()?.activityLevel ?? '';
+  experience: Experience | '' = this.db.settings()?.experience ?? '';
+  bodyType: BodyType | '' = this.db.settings()?.bodyType ?? '';
 
   readonly activityLevels: ActivityLevel[] = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
   readonly experienceLevels: Experience[] = ['Beginner', 'Intermediate', 'Advanced'];
@@ -107,22 +107,9 @@ export class SettingsPage {
       swapVerticalOutline,
     });
 
-    this.db.settings$.pipe(takeUntilDestroyed()).subscribe(settings => {
-      if (settings) {
-        this.name = settings.name ?? '';
-        this.age = settings.age ?? null;
-        this.gender = settings.gender ?? '';
-        this.heightCm = settings.height_cm ?? null;
-        const ftIn = this.heightCm ? cmToFtIn(this.heightCm) : null;
-        this.heightFt = ftIn?.feet ?? null;
-        this.heightIn = ftIn?.inches ?? null;
-        this.weightUnit = settings.weight_unit ?? 'kg';
-        this.heightUnit = settings.height_unit ?? 'cm';
-        this.activityLevel = settings.activity_level ?? '';
-        this.experience = settings.experience ?? '';
-        this.bodyType = settings.body_type ?? '';
-      }
-    });
+    const ftIn = this.heightCm ? cmToFtIn(this.heightCm) : null;
+    this.heightFt = ftIn?.feet ?? null;
+    this.heightIn = ftIn?.inches ?? null;
   }
 
   toggleTheme(event: any): void {

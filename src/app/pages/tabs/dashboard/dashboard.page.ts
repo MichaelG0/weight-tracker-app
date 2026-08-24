@@ -22,7 +22,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsDB } from 'src/app/services/database.service';
+import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsExtended } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
@@ -90,7 +90,7 @@ export class DashboardPage {
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
 
   readonly vm: Signal<DashboardVm> = computed(() => {
-    const userSettings = this.databaseService.settings();
+    const userSettings = this.databaseService.extendedSettings();
     const recentEntries = this.databaseService.recentEntries();
     const reversed = [...recentEntries].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
@@ -106,7 +106,7 @@ export class DashboardPage {
     const weeklyRate = this.weeklyRate(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
-    const { maintRangePct, scheduleToleranceWeeks, rangeCap, noiseFloor } = this.getDynamicThresholds(userSettings, weightUnit);
+    const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit) } = userSettings?.coaching ?? {};
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
@@ -165,7 +165,6 @@ export class DashboardPage {
         userSettings,
         scheduleProjection,
         goalReached,
-        maintRangePct,
       ),
       rateLabel: this.rateLabel(weeklyRate, weightUnit),
       recentEntries: this.recentEntries(reversed),
@@ -405,65 +404,14 @@ export class DashboardPage {
     return { projectedWeight, range };
   }
 
-  // prettier-ignore
-  private getDynamicThresholds(userSettings: UserSettingsDB | null, weightUnit: WeightUnit): {
-    maintRangePct: number;
-    scheduleToleranceWeeks: number;
-    rangeCap: number;
-    noiseFloor: number;
-  } {
-    let maintRangePct: number;
-    let scheduleToleranceWeeks: number;
-    let rangeCapKg: number;
-    let noiseFloorKg: number;
-
-    if (userSettings == null) {
-      maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-    } else {
-      const isFemale = userSettings.gender === 'Female';
-
-      if (isFemale) {
-        switch (userSettings.experience) {
-          case 'Beginner':
-            maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
-            break;
-          case 'Advanced':
-            maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-            break;
-          default:
-            maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-        }
-      } else {
-        switch (userSettings.experience) {
-          case 'Beginner':
-            maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-            break;
-          case 'Advanced':
-            maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
-            break;
-          default:
-            maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-        }
-      }
-    }
-
-    return {
-      maintRangePct,
-      scheduleToleranceWeeks,
-      rangeCap: kgToUnit(rangeCapKg, weightUnit),
-      noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
-    };
-  }
-
   private recommendation(
     trendWeight: number | null,
     weeklyRate: number | null,
     activeGoal: Goal | null,
     stabilityScore: number | null,
-    userSettings: UserSettingsDB | null,
+    userSettings: UserSettingsExtended | null,
     idealCurrentWeight: { projectedWeight: number; range: number } | null,
     goalReached: boolean,
-    maintRangePct: number | null,
   ): string {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
@@ -475,79 +423,7 @@ export class DashboardPage {
     const goalWeight = activeGoal.goalWeight;
     const goalType = activeGoal.type;
 
-    // --- Profile-aware thresholds ---
-    // Max safe loss rate: beginners/sedentary/endomorphs should lose slower to preserve muscle.
-    // Advanced/very active users can tolerate a faster deficit safely.
-    let maxLossRate: number;
-    let idealGainCeiling: number;
-    let deficitStep: number;
-    let surplusStep: number;
-    let stepAdvice = ''; // extra context from profile
-
-    // --- Gender × experience matrix (mirrors getDynamicThresholds) ---
-    const isFemale = userSettings.gender === 'Female';
-
-    // prettier-ignore
-    if (isFemale) {
-      switch (userSettings.experience) {
-        case 'Beginner':
-          maxLossRate = 0.6; idealGainCeiling = 0.35; deficitStep = 125; surplusStep = 175;
-          break;
-        case 'Advanced':
-          maxLossRate = 0.8; idealGainCeiling = 0.15; deficitStep = 200; surplusStep = 200;
-          break;
-        default:
-          maxLossRate = 0.7; idealGainCeiling = 0.25; deficitStep = 150; surplusStep = 200;
-      }
-    } else {
-      switch (userSettings.experience) {
-        case 'Beginner':
-          maxLossRate = 0.7; idealGainCeiling = 0.6; deficitStep = 150; surplusStep = 200;
-          break;
-        case 'Advanced':
-          maxLossRate = 1.0; idealGainCeiling = 0.25; deficitStep = 250; surplusStep = 200;
-          break;
-        default:
-          maxLossRate = 1.0; idealGainCeiling = 0.4; deficitStep = 200; surplusStep = 200;
-      }
-    }
-
-    // --- Secondary modifiers: activity, body type, age ---
-    if (userSettings.activity_level === 'Sedentary' || userSettings.activity_level === 'Lightly Active') {
-      deficitStep = Math.min(deficitStep, 150);
-      surplusStep = Math.min(surplusStep, 150);
-
-
-      
-      stepAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
-    } else if (userSettings.activity_level === 'Very Active' || userSettings.activity_level === 'Extra Active') {
-      deficitStep = Math.max(deficitStep, 200);
-      surplusStep = Math.max(surplusStep, 250);
-      stepAdvice = ' With your activity level, prioritize protein and recovery.';
-    }
-
-    if (userSettings.body_type === 'Endomorph') {
-      maxLossRate = Math.min(maxLossRate, 0.8);
-      if (goalType === 'Weight Gain') stepAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
-    } else if (userSettings.body_type === 'Ectomorph') {
-      if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
-      if (goalType === 'Weight Gain')
-        stepAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
-    }
-
-    if (userSettings.age != null && userSettings.age >= 50) {
-      maxLossRate = Math.min(maxLossRate, 0.7);
-      deficitStep = Math.min(deficitStep, 150);
-      stepAdvice = stepAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
-    }
-
-    // Minor nudge variants (gentle course-corrections when progress is close)
-    const minorDeficitStep = Math.round(deficitStep * 0.6);
-    const minorSurplusStep = Math.round(surplusStep * 0.6);
-    // Maintenance-specific correction sizes (even gentler)
-    const maintMinorStep = Math.max(100, Math.min(minorDeficitStep, 150));
-    const maintMajorCut = deficitStep;
-    const maintMajorAdd = surplusStep;
+    const { maxLossRate, idealGainCeilingPct: idealGainCeiling, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, stepAdvice, maintRangePct } = userSettings.coaching;
 
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
