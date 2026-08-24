@@ -106,7 +106,12 @@ export class DashboardPage {
     const weeklyRate = this.weeklyRate(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
-    const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit) } = userSettings?.coaching ?? {};
+    const {
+      maintRangePct = 1.0,
+      scheduleToleranceWeeks = 2.0,
+      rangeCap = kgToUnit(2.0, weightUnit),
+      noiseFloor = kgToUnit(0.5, weightUnit),
+    } = userSettings?.coaching ?? {};
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
@@ -423,7 +428,8 @@ export class DashboardPage {
     const goalWeight = activeGoal.goalWeight;
     const goalType = activeGoal.type;
 
-    const { maxLossRate, idealGainCeilingPct: idealGainCeiling, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, stepAdvice, maintRangePct } = userSettings.coaching;
+    // prettier-ignore
+    const { maxLossRate, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, stepAdvice, maintRangePct } = userSettings.coaching;
 
     const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
     const isGaining = weeklyRate > 0.01;
@@ -539,7 +545,7 @@ export class DashboardPage {
           }
           return `Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~${surplusStep} kcal.`;
         }
-        if (bwPct >= idealGainCeiling) {
+        if (bwPct >= idealGainCeilingPct) {
           if (scheduleStatus === 'ahead') {
             return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
