@@ -103,7 +103,7 @@ export class DashboardPage {
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const weeklyRate = this.weeklyRate(latestEntry, recentEntries);
+    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
     const {
@@ -153,25 +153,25 @@ export class DashboardPage {
       scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit),
       schedulePercent,
       goalReached,
-      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, weeklyRate),
-      absoluteRatePerWeek: this.absoluteRatePerWeek(weeklyRate, weightUnit),
+      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRateAbs),
+      absoluteRatePerWeek: this.absoluteRatePerWeek(rawWeeklyRateAbs, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
       totalProgress: this.totalProgress(startWeight, rawTrend, weightUnit),
-      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, weeklyRate, goalReached),
-      daysToGoal: this.daysToGoal(rawTrend, goalWeight, weeklyRate, goalReached),
+      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
+      daysToGoal: this.daysToGoal(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(reversed),
       recommendation: this.recommendation(
         rawTrend,
-        weeklyRate,
+        rawWeeklyRateAbs,
         activeGoal,
         stabilityScore,
         userSettings,
         scheduleProjection,
         goalReached,
       ),
-      rateLabel: this.rateLabel(weeklyRate, weightUnit),
+      rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
     };
@@ -273,7 +273,7 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
-  private weeklyRate(latestEntry: WeightEntry | null, entries: WeightEntry[]): number | null {
+  private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entries: WeightEntry[]): number | null {
     if (latestEntry == null || entries.length < 2) return null;
     const latestMs = latestEntry.dateMs;
     const targetMs = latestMs - 7 * 86400000;
@@ -411,7 +411,7 @@ export class DashboardPage {
 
   private recommendation(
     trendWeight: number | null,
-    weeklyRate: number | null,
+    rawWeeklyRate: number | null,
     activeGoal: Goal | null,
     stabilityScore: number | null,
     userSettings: UserSettingsExtended | null,
@@ -421,7 +421,7 @@ export class DashboardPage {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
     }
-    if (trendWeight == null || weeklyRate == null || userSettings == null) {
+    if (trendWeight == null || rawWeeklyRate == null || userSettings == null) {
       return 'Log weight at least 2 times to unlock custom recommendations.';
     }
 
@@ -431,9 +431,9 @@ export class DashboardPage {
     // prettier-ignore
     const { maxLossRate, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRangePct } = userSettings.coaching;
 
-    const bwPct = Math.abs((weeklyRate / trendWeight) * 100);
-    const isGaining = weeklyRate > 0.01;
-    const isLosing = weeklyRate < -0.01;
+    const bwPct = Math.abs((rawWeeklyRate / trendWeight) * 100);
+    const isGaining = rawWeeklyRate > 0.01;
+    const isLosing = rawWeeklyRate < -0.01;
 
     // --- Schedule awareness (uses same ±1 week range as the visual) ---
     let scheduleStatus: 'ahead' | 'behind' | 'on-track' | null = null;
@@ -556,32 +556,21 @@ export class DashboardPage {
           return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + customAdvice;
         }
 
-        // 2. Too Fast
-        if (bwPct > 1.0) {
+        // 2. Above Ceiling (Gaining Too Fast)
+        if (bwPct > idealGainCeilingPct) {
           if (nearGainGoal) {
-            return `You are practically at your goal! Since you're moving very fast, you can start trimming your surplus now to ease smoothly into maintenance.`;
+            return `You are practically at your goal! Since your gain rate is above your target ceiling (${idealGainCeilingPct}% BW/week), start trimming your surplus now to ease into maintenance.`;
           }
           if (scheduleStatus === 'ahead') {
-            return `Gaining faster than 1% BW/week and already ahead of schedule. Pull back surplus by ~${surplusStep} kcal — no need to rush.`;
-          }
-          return `Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~${surplusStep} kcal.`;
-        }
-
-        // 3. Moderate Pace
-        if (bwPct >= idealGainCeilingPct) {
-          if (nearGainGoal) {
-            return `Almost at your goal! Since your gain rate is on the higher end, you can start trimming back your surplus slightly to ease into maintenance.`;
-          }
-          if (scheduleStatus === 'ahead') {
-            return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
+            return `Gaining faster than your target ceiling (${idealGainCeilingPct}% BW/week) and ahead of schedule. Pull back surplus by ~${surplusStep} kcal — no need to add excess fat.`;
           }
           return (
-            `Gain rate is moderate. Monitor body composition — if your waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` +
+            `Gain rate of ${bwPct.toFixed(2)}% BW/week exceeds your optimal ceiling (${idealGainCeilingPct}%). Excess weight is likely fat accumulation — pull back surplus by ~${minorSurplusStep} kcal.` +
             customAdvice
           );
         }
 
-        // 4. Ideal Range
+        // 3. Optimal Lean-Gain Band
         if (bwPct >= idealGainFloorPct) {
           if (nearGainGoal) {
             return 'Almost at your goal with an optimal lean-gain pace! Keep going, no changes needed.';
@@ -592,7 +581,7 @@ export class DashboardPage {
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
 
-        // 5. Slow
+        // 4. Slow
         if (isGaining) {
           if (nearGainGoal) {
             return `Nearly at your goal but progress has slowed. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
@@ -607,7 +596,7 @@ export class DashboardPage {
           );
         }
 
-        // 6. Flat / Stalled
+        // 5. Flat / Stalled
         if (nearGainGoal) {
           return `Nearly at your goal but progress has stalled. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
         }
