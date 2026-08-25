@@ -435,11 +435,11 @@ export class DashboardPage {
     const isGaining = rawWeeklyRate > 0.01;
     const isLosing = rawWeeklyRate < -0.01;
 
-    // --- Schedule awareness (uses same ±1 week range as the visual) ---
     let scheduleStatus: 'ahead' | 'behind' | 'on-track' | null = null;
     if (idealCurrentWeight) {
       const deviation = Math.abs(trendWeight - idealCurrentWeight.projectedWeight);
-      if (idealCurrentWeight.range > 0 && deviation > idealCurrentWeight.range) {
+      const warnRange = idealCurrentWeight.range / 1.5; // Use 2/3 of the range as the threshold for being "on-track"
+      if (idealCurrentWeight.range > 0 && deviation > warnRange) {
         if (goalType === 'Weight Loss') {
           scheduleStatus = trendWeight < idealCurrentWeight.projectedWeight ? 'ahead' : 'behind';
         } else {

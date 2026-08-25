@@ -19,8 +19,8 @@
                   <div
                     class="maint-indicator"
                     [style.left.%]="vm.maintPercent"
-                    [class.warn]="vm.maintPercent <= 25 || vm.maintPercent >= 75"
-                    [class.danger]="vm.maintPercent <= 5 || vm.maintPercent >= 95"
+                    [class.warn]="vm.maintPercent <= 50 - 100 / 3 || vm.maintPercent >= 50 + 100 / 3"
+                    [class.danger]="vm.maintPercent <= 0 || vm.maintPercent >= 100"
                   ></div>
                   <div class="maint-bounds">
                     <span>{{ vm.maintRange ? -vm.maintRange : '--' }}</span>
@@ -33,8 +33,8 @@
                   <div
                     class="maint-indicator"
                     [style.left.%]="vm.schedulePercent"
-                    [class.warn]="vm.schedulePercent <= 25 || vm.schedulePercent >= 75"
-                    [class.danger]="vm.schedulePercent <= 5 || vm.schedulePercent >= 95"
+                    [class.warn]="vm.schedulePercent <= 50 - 100 / 3 || vm.schedulePercent >= 50 + 100 / 3"
+                    [class.danger]="vm.schedulePercent <= 0 || vm.schedulePercent >= 100"
                   ></div>
                   <div class="maint-bounds">
                     <span>Behind</span>
