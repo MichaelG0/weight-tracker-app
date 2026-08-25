@@ -480,12 +480,13 @@ export class DashboardPage {
             return `Loss rate exceeds ${maxLossRate}% BW/week, but you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
           return (
-            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + customAdvice
+            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` +
+            customAdvice
           );
         }
         if (bwPct >= 0.5) {
-          if (scheduleStatus === 'ahead') {
-            return "Rate is ideal for fat loss and you're ahead of schedule. Great position — maintain or even relax slightly.";
+          if (scheduleStatus === 'behind') {
+            return "Loss rate is in an ideal range. You're behind schedule, but cutting more calories now risks muscle loss and fatigue. Stay the course.";
           }
           return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
         }
@@ -500,7 +501,7 @@ export class DashboardPage {
         if (isLosing) {
           if (scheduleStatus === 'behind') {
             return (
-              `Progress is slow and you\'re behind schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
+              `Progress is slow and you're behind schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
               customAdvice
             );
           }
@@ -511,7 +512,7 @@ export class DashboardPage {
         }
         if (scheduleStatus === 'behind') {
           return (
-            `Weight is flat and you\'re falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal or add ~2,000 daily steps to get things moving.` +
+            `Weight is flat and you're falling behind schedule. Create a deficit now — cut ~${deficitStep} kcal or add ~2,000 daily steps to get things moving.` +
             customAdvice
           );
         }
@@ -525,7 +526,7 @@ export class DashboardPage {
         if (isLosing) {
           if (scheduleStatus === 'behind') {
             return (
-              "Weight is dropping and you're falling behind schedule. Increase calories significantly — add 2 snacks or a calorie-dense shake daily." +
+              `Weight is dropping and you're falling behind schedule. Increase calories significantly — add ~${surplusStep + 100} kcal (e.g., 2 snacks or a dense shake) daily.` +
               customAdvice
             );
           }
@@ -550,15 +551,13 @@ export class DashboardPage {
             return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
           return (
-            `Gain rate is moderate. Monitor body composition — if waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` +
+            `Gain rate is moderate. Monitor body composition — if your waist is growing fast, trim surplus by ~${minorSurplusStep} kcal.` +
             customAdvice
           );
         }
         if (bwPct >= idealGainFloorPct) {
           if (scheduleStatus === 'behind') {
-            return (
-              `Lean-gain pace is steady but you\'re behind schedule. Try adding ~${surplusStep} kcal to pick up the pace.` + customAdvice
-            );
+            return `Lean-gain pace is biologically optimal. You're behind your calendar target, but adding calories now risks unnecessary fat gain. Stay the course.`;
           }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
@@ -574,12 +573,12 @@ export class DashboardPage {
         }
         if (scheduleStatus === 'behind') {
           return (
-            `Weight is flat and you\'re behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` +
+            `Weight is flat and you're behind schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` +
             customAdvice
           );
         }
         return (
-          `Weight is flat. Increase intake — an extra ${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` +
+          `Weight is flat. Increase intake — an extra ~${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` +
           customAdvice
         );
       }
