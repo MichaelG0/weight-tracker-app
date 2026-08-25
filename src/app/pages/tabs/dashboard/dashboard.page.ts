@@ -106,12 +106,8 @@ export class DashboardPage {
     const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, recentEntries);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
 
-    const {
-      maintRangePct = 1.0,
-      scheduleToleranceWeeks = 2.0,
-      rangeCap = kgToUnit(2.0, weightUnit),
-      noiseFloor = kgToUnit(0.5, weightUnit),
-    } = userSettings?.coaching ?? {};
+    // prettier-ignore
+    const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit)} = userSettings?.coaching ?? {};
     let maintRange: number | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
@@ -170,6 +166,7 @@ export class DashboardPage {
         userSettings,
         scheduleProjection,
         goalReached,
+        this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings),
       ),
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntries(reversed),
@@ -280,9 +277,9 @@ export class DashboardPage {
 
     // Find the entry closest to 7 days before the latest entry, excluding the latest itself
     const candidates = entries.filter(e => e.dateMs < latestMs);
-    if (!candidates.length) return null;
+    const closest = this.closestEntry(candidates, targetMs);
+    if (!closest) return null;
 
-    const closest = candidates.reduce((best, e) => (Math.abs(e.dateMs - targetMs) < Math.abs(best.dateMs - targetMs) ? e : best));
     const daysBetween = (latestMs - closest.dateMs) / 86400000;
     if (daysBetween < 1) return null;
 
@@ -409,6 +406,49 @@ export class DashboardPage {
     return { projectedWeight, range };
   }
 
+  /**
+   * Count consecutive weeks (looking backward from today) where the trend
+   * has not moved meaningfully toward the goal. A week is "stalled" when
+   * the absolute trend change over that 7-day window is <= 0.1kg.
+   */
+  private stallWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, userSettings: UserSettingsExtended | null): number {
+    if (!activeGoal || entriesAfterGoalStart.length < 2 || !userSettings) return 0;
+
+    const today = todayLocalMidnightMs();
+    const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
+
+    const noiseFloorPct = activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : 0.5;
+    const msPerWeek = 7 * 86400000;
+    let weeks = 0;
+
+    // Walk backward week by week starting from today
+    for (let weekEnd = today; ; weekEnd -= msPerWeek) {
+      const weekStart = weekEnd - msPerWeek;
+
+      // Find the entry closest to weekEnd and weekStart
+      const endEntry = this.closestEntry(fourWeeksMaxEntries, weekEnd);
+      const startEntry = this.closestEntry(fourWeeksMaxEntries, weekStart);
+
+      // Stop if we can't find entries spanning at least half a week
+      if (!endEntry || !startEntry || endEntry === startEntry) break;
+      if (Math.abs(endEntry.dateMs - startEntry.dateMs) < 3 * 86400000) break;
+
+      const trendDelta = Math.abs(endEntry.trend - startEntry.trend);
+      if (trendDelta > endEntry.trend * noiseFloorPct / 100) break; // meaningful movement → not stalled
+
+      weeks++;
+      if (weekStart <= activeGoal.startDateMs) break; // don't look before goal start
+    }
+
+    console.log('Stall weeks calculated:', weeks);
+    return weeks;
+  }
+
+  private closestEntry(entries: WeightEntry[], targetMs: number): WeightEntry | null {
+    if (!entries.length) return null;
+    return entries.reduce((best, e) => (Math.abs(e.dateMs - targetMs) < Math.abs(best.dateMs - targetMs) ? e : best));
+  }
+
   private recommendation(
     trendWeight: number | null,
     rawWeeklyRate: number | null,
@@ -417,6 +457,7 @@ export class DashboardPage {
     userSettings: UserSettingsExtended | null,
     idealCurrentWeight: { projectedWeight: number; range: number } | null,
     goalReached: boolean,
+    stallWeeks: number,
   ): string {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
@@ -516,9 +557,16 @@ export class DashboardPage {
           if (nearLossGoal) {
             return `You're incredibly close to your goal! Just a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will get you across the finish line.`;
           }
+          if (stallWeeks >= 3) {
+            return 'Progress has been slow for a while. If diet fatigue is setting in, consider switching to a Maintenance goal for a planned break — then restart with fresh momentum.';
+          }
+          if (stallWeeks >= 2) {
+            return 'Progress has been sluggish for two weeks now. Common culprits: larger weekend portions, liquid calories you forgot about, or less movement than usual. Try swapping one snack or cutting a sugary drink.';
+          }
           if (scheduleStatus === 'behind') {
             return (
-              `Losing steadily but ${scheduleLabel} schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + customAdvice
+              `Losing steadily but ${scheduleLabel} schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` +
+              customAdvice
             );
           }
           return `Losing steadily. If progress stalls, a small nudge — trim ~${minorDeficitStep} kcal or add ~1,500 daily steps — can help.`;
@@ -528,6 +576,12 @@ export class DashboardPage {
         if (isLosing) {
           if (nearLossGoal) {
             return `You're incredibly close to your goal! Progress has slowed, but a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will close the gap.`;
+          }
+          if (stallWeeks >= 3) {
+            return 'Progress has been minimal for several weeks. If motivation is fading, consider a short Maintenance phase to reset — a structured break beats burnout.';
+          }
+          if (stallWeeks >= 2) {
+            return 'Still losing, but barely. This pattern has persisted for two weeks — look for easy wins: cut a liquid calorie, reduce cooking oil by a tablespoon, or add a 15-min daily walk.';
           }
           if (scheduleStatus === 'behind') {
             return (
@@ -544,6 +598,12 @@ export class DashboardPage {
         // 6. Flat / Stalled
         if (nearLossGoal) {
           return `You're incredibly close to your goal! Progress has paused, but a tiny final push — cut ~${minorDeficitStep} kcal or take a short walk — will get you across the finish line.`;
+        }
+        if (stallWeeks >= 3) {
+          return 'Weight has been flat for 3+ weeks. Repeating the same approach is unlikely to break through. Consider a Maintenance phase to recover, then restart your deficit with a fresh plan.';
+        }
+        if (stallWeeks >= 2) {
+          return "Weight hasn't budged in two weeks. Look for sneaky extras — cooking oils, sauces, weekend portions, or that extra handful of snacks. Cutting one of these is often enough to restart progress.";
         }
         if (scheduleStatus === 'behind') {
           return (
@@ -601,9 +661,16 @@ export class DashboardPage {
           if (nearGainGoal) {
             return `Nearly at your goal but progress has slowed. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
           }
+          if (stallWeeks >= 3) {
+            return 'Gains have been minimal for several weeks. If appetite is the bottleneck, try calorie-dense liquids (shakes, smoothies) or eating more frequently rather than bigger meals.';
+          }
+          if (stallWeeks >= 2) {
+            return 'Gaining very slowly for two weeks running. Make sure you are not skipping meals on busy days — try adding a snack or a calorie-dense shake to fill the gap without forcing bigger meals.';
+          }
           if (scheduleStatus === 'behind') {
             return (
-              `Gaining slowly and ${scheduleLabel} schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + customAdvice
+              `Gaining slowly and ${scheduleLabel} schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` +
+              customAdvice
             );
           }
           return (
@@ -614,6 +681,12 @@ export class DashboardPage {
         // 5. Flat / Stalled
         if (nearGainGoal) {
           return `Nearly at your goal but progress has stalled. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
+        }
+        if (stallWeeks >= 3) {
+          return 'Weight has been flat for 3+ weeks during a gain phase. If eating more feels unsustainable, consider switching to a Maintenance goal — holding your current weight is still progress.';
+        }
+        if (stallWeeks >= 2) {
+          return "Scale hasn't moved in two weeks. Try adding an easy calorie source you won't skip — a handful of nuts, a glass of whole milk, or a peanut butter toast.";
         }
         if (scheduleStatus === 'behind') {
           return (
@@ -647,6 +720,18 @@ export class DashboardPage {
         const stable = !noData && stabilityScore >= 75;
         const moderate = !noData && stabilityScore >= 50 && stabilityScore < 75;
         const fluctuating = !noData && stabilityScore < 50;
+
+        // --- Persistent drift escalation (maintenance) ---
+        if ((isAbove || isBelow) && !movingToward && stallWeeks >= 3) {
+          return isAbove
+            ? 'Weight has sat above your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.'
+            : 'Weight has sat below your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.';
+        }
+        if ((isAbove || isBelow) && !movingToward && stallWeeks >= 2) {
+          return isAbove
+            ? 'Weight has been stuck above target for two weeks. Before making calorie cuts, check for consistency gaps — weekend eating, alcohol, or stress-related snacking may be the culprit.'
+            : 'Weight has been stuck below target for two weeks. Check whether you are consistently eating enough — skipped meals, busy days, or underfueling around workouts may be holding you back.';
+        }
 
         // --- High drift (>0.5% BW/week) → major correction ---
         if (bwPct > 0.5) {
