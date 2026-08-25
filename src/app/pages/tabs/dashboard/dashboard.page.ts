@@ -451,11 +451,14 @@ export class DashboardPage {
     }
 
     if (goalReached) {
-      return 'You have reached your goal weight. Consider setting a maintenance or new target.';
+      return 'You have reached your goal weight! Consider setting a maintenance or new target.';
     }
 
     switch (goalType) {
       case 'Weight Loss': {
+        const nearLossGoal = goalWeight != null && goalWeight > 0 && (trendWeight - goalWeight) / goalWeight < 0.01;
+
+        // 1. Moving Backwards
         if (isGaining) {
           if (scheduleStatus === 'behind') {
             return (
@@ -468,29 +471,36 @@ export class DashboardPage {
           );
         }
 
-        const nearLossGoal = goalWeight != null && goalWeight > 0 && (trendWeight - goalWeight) / goalWeight < 0.01;
-        if (nearLossGoal) {
-          return isLosing
-            ? 'Almost at your goal — keep going, no changes needed.'
-            : `Nearly at your goal but progress has stalled. A small nudge — cut ~${minorDeficitStep} kcal or take a short daily walk — should close the gap.`;
-        }
-
+        // 2. Too Fast
         if (bwPct > maxLossRate) {
+          if (nearLossGoal) {
+            return `You are practically at your goal! Since you're moving very fast, you can start adding back a few calories now to ease smoothly into maintenance.`;
+          }
           if (scheduleStatus === 'ahead') {
-            return `Loss rate exceeds ${maxLossRate}% BW/week, but you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
+            return `Loss rate exceeds ${maxLossRate}% BW/week and you're ahead of schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
           return (
             `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` +
             customAdvice
           );
         }
+
+        // 3. Ideal Range
         if (bwPct >= 0.5) {
+          if (nearLossGoal) {
+            return 'Almost at your goal and losing at a perfect pace! Finish strong — no changes needed.';
+          }
           if (scheduleStatus === 'behind') {
             return "Loss rate is in an ideal range. You're behind schedule, but cutting more calories now risks muscle loss and fatigue. Stay the course.";
           }
           return 'Rate is in an ideal range for fat loss. Maintain current calories and activity.';
         }
+
+        // 4. Steady / Slightly Slow
         if (bwPct >= 0.25) {
+          if (nearLossGoal) {
+            return `You're incredibly close to your goal! Just a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will get you across the finish line.`;
+          }
           if (scheduleStatus === 'behind') {
             return (
               `Losing steadily but behind schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` + customAdvice
@@ -498,7 +508,12 @@ export class DashboardPage {
           }
           return `Losing steadily. If progress stalls, a small nudge — trim ~${minorDeficitStep} kcal or add ~1,500 daily steps — can help.`;
         }
+
+        // 5. Very Slow
         if (isLosing) {
+          if (nearLossGoal) {
+            return `You're incredibly close to your goal! Progress has slowed, but a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will close the gap.`;
+          }
           if (scheduleStatus === 'behind') {
             return (
               `Progress is slow and you're behind schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
@@ -509,6 +524,11 @@ export class DashboardPage {
             `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` +
             customAdvice
           );
+        }
+
+        // 6. Flat / Stalled
+        if (nearLossGoal) {
+          return `You're incredibly close to your goal! Progress has paused, but a tiny final push — cut ~${minorDeficitStep} kcal or take a short walk — will get you across the finish line.`;
         }
         if (scheduleStatus === 'behind') {
           return (
@@ -523,6 +543,9 @@ export class DashboardPage {
       }
 
       case 'Weight Gain': {
+        const nearGainGoal = goalWeight != null && goalWeight > 0 && (goalWeight - trendWeight) / goalWeight < 0.005;
+
+        // 1. Moving Backwards
         if (isLosing) {
           if (scheduleStatus === 'behind') {
             return (
@@ -533,20 +556,22 @@ export class DashboardPage {
           return 'Weight is dropping during a gain phase. Increase calories — add a snack or larger portion to one meal.' + customAdvice;
         }
 
-        const nearGainGoal = goalWeight != null && goalWeight > 0 && (goalWeight - trendWeight) / goalWeight < 0.01;
-        if (nearGainGoal) {
-          return isGaining
-            ? 'Almost at your goal — keep going, no changes needed.'
-            : `Nearly at your goal but progress has stalled. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
-        }
-
+        // 2. Too Fast
         if (bwPct > 1.0) {
+          if (nearGainGoal) {
+            return `You are practically at your goal! Since you're moving very fast, you can start trimming your surplus now to ease smoothly into maintenance.`;
+          }
           if (scheduleStatus === 'ahead') {
             return `Gaining faster than 1% BW/week and already ahead of schedule. Pull back surplus by ~${surplusStep} kcal — no need to rush.`;
           }
           return `Gaining faster than 1% BW/week — excess is likely fat. Pull back surplus by ~${surplusStep} kcal.`;
         }
+
+        // 3. Moderate Pace
         if (bwPct >= idealGainCeilingPct) {
+          if (nearGainGoal) {
+            return `Almost at your goal! Since your gain rate is on the higher end, you can start trimming back your surplus slightly to ease into maintenance.`;
+          }
           if (scheduleStatus === 'ahead') {
             return "Gain rate is moderate and you're ahead of schedule. Consider maintaining current intake without increasing further.";
           }
@@ -555,13 +580,23 @@ export class DashboardPage {
             customAdvice
           );
         }
+
+        // 4. Ideal Range
         if (bwPct >= idealGainFloorPct) {
+          if (nearGainGoal) {
+            return 'Almost at your goal with an optimal lean-gain pace! Keep going, no changes needed.';
+          }
           if (scheduleStatus === 'behind') {
             return `Lean-gain pace is biologically optimal. You're behind your calendar target, but adding calories now risks unnecessary fat gain. Stay the course.`;
           }
           return 'Lean-gain pace is on track. Keep training hard and calories consistent.';
         }
+
+        // 5. Slow
         if (isGaining) {
+          if (nearGainGoal) {
+            return `Nearly at your goal but progress has slowed. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
+          }
           if (scheduleStatus === 'behind') {
             return (
               `Gaining slowly and behind schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` + customAdvice
@@ -570,6 +605,11 @@ export class DashboardPage {
           return (
             `Gaining slowly. If strength is not progressing, try adding ~${minorSurplusStep} kcal from protein or carbs.` + customAdvice
           );
+        }
+
+        // 6. Flat / Stalled
+        if (nearGainGoal) {
+          return `Nearly at your goal but progress has stalled. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
         }
         if (scheduleStatus === 'behind') {
           return (
