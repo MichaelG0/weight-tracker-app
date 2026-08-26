@@ -103,8 +103,8 @@ export class DashboardPage {
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, recentEntries);
-    const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(reversed, weightUnit) : null;
+    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, entriesAfterGoalStart);
+    const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
 
     // prettier-ignore
     const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit)} = userSettings?.coaching ?? {};
@@ -157,7 +157,7 @@ export class DashboardPage {
       daysToGoal: this.daysToGoal(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
-      consistency: this.consistencyLabel(reversed),
+      consistency: this.consistencyLabel(entriesAfterGoalStart),
       recommendation: this.recommendation(
         rawTrend,
         rawWeeklyRateAbs,
@@ -273,20 +273,21 @@ export class DashboardPage {
   private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entries: WeightEntry[]): number | null {
     if (latestEntry == null || entries.length < 2) return null;
     const latestMs = latestEntry.dateMs;
-    const targetMs = latestMs - 7 * 86400000;
+    const lookbackStartMs = latestMs - 14 * 86400000;
+    const samples = entries.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
+    if (samples.length < 2) return null;
 
-    // Find the entry closest to 7 days before the latest entry, excluding the latest itself
-    const candidates = entries.filter(e => e.dateMs < latestMs);
-    const closest = this.closestEntry(candidates, targetMs);
-    if (!closest) return null;
+    const points = samples.map(entry => ({
+      x: (entry.dateMs - latestMs) / 86400000,
+      y: entry.trend,
+    }));
+    const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+    const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+    const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
+    if (denominator === 0) return null;
 
-    const daysBetween = (latestMs - closest.dateMs) / 86400000;
-    if (daysBetween < 1) return null;
-
-    console.log('Calculating weekly rate: latest: ', latestEntry, 'closest: ', closest, 'daysBetween: ', daysBetween);
-    const weeklyRate = ((latestEntry.trend - closest.trend) / daysBetween) * 7;
-    console.log('Weekly rate calculated: ', weeklyRate);
-    return weeklyRate;
+    const slopePerDay = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0) / denominator;
+    return slopePerDay * 7;
   }
 
   private daysMaintained(entriesAfterGoalStart: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
@@ -330,9 +331,9 @@ export class DashboardPage {
     return goalDate.toLocaleDateString(undefined, opts);
   }
 
-  private stabilityScore(reversedEntries: WeightEntry[], unitLabel: WeightUnit): number | null {
+  private stabilityScore(entriesAfterGoalStart: WeightEntry[], unitLabel: WeightUnit): number | null {
     const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
-    const recent = reversedEntries.filter(e => e.dateMs >= cutoffMs);
+    const recent = entriesAfterGoalStart.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
     const weights = recent.map(e => e.weight);
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
