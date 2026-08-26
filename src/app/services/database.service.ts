@@ -95,6 +95,8 @@ export interface UserSettingsExtended extends UserSettings {
     scheduleToleranceWeeks: number;
     rangeCap: number;
     noiseFloor: number;
+    idealLossFloorPct: number;
+    steadyLossFloorPct: number;
     maxLossRate: number;
     idealGainFloorPct: number;
     idealGainCeilingPct: number;
@@ -500,7 +502,7 @@ export class DatabaseService {
     const weightUnit = settings.weightUnit;
     const isFemale = settings.gender === 'Female';
 
-    // ── Dynamic thresholds (gender × experience) ──
+    // ── Dynamic tracking thresholds (gender × experience) ──
     let maintRangePct: number;
     let scheduleToleranceWeeks: number;
     let rangeCapKg: number;
@@ -519,29 +521,29 @@ export class DatabaseService {
       switch (settings.experience) {
         case 'Beginner':
           maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
-          maxLossRate = 0.6; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
+          maxLossRate = 1.0; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
           break;
         case 'Advanced':
           maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 0.8; idealGainFloorPct = 0.05; idealGainCeilingPct = 0.15; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 0.5; idealGainFloorPct = 0.05; idealGainCeilingPct = 0.15; deficitStep = 150; surplusStep = 200;
           break;
         default:
           maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 0.7; idealGainFloorPct = 0.10; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
+          maxLossRate = 0.8; idealGainFloorPct = 0.10; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
       }
     } else {
       switch (settings.experience) {
         case 'Beginner':
           maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 0.7; idealGainFloorPct = 0.25; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
+          maxLossRate = 1.0; idealGainFloorPct = 0.25; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
           break;
         case 'Advanced':
           maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
-          maxLossRate = 1.0; idealGainFloorPct = 0.1; idealGainCeilingPct = 0.25; deficitStep = 250; surplusStep = 200;
+          maxLossRate = 0.5; idealGainFloorPct = 0.1; idealGainCeilingPct = 0.25; deficitStep = 200; surplusStep = 200;
           break;
         default:
           maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 1.0; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
+          maxLossRate = 0.8; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
       }
     }
 
@@ -557,12 +559,11 @@ export class DatabaseService {
     }
 
     if (settings.bodyType === 'Endomorph') {
-      maxLossRate = Math.min(maxLossRate, 0.8);
-      if (goalType === 'Weight Gain') customAdvice = ' Monitor waist measurements closely — endomorphs tend to store fat more easily.';
+      if (goalType === 'Weight Gain') customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
     } else if (settings.bodyType === 'Ectomorph') {
-      if (goalType === 'Weight Gain') surplusStep = Math.max(surplusStep, 300);
       if (goalType === 'Weight Gain')
-        customAdvice = ' Ectomorphs often need a larger surplus — calorie-dense foods like nuts, oils, and shakes help.';
+        customAdvice =
+          ' You may have a highly adaptive metabolism. If the scale refuses to move, rely on calorie-dense foods like nuts, oils, and liquid calories.';
     }
 
     if (settings.age != null && settings.age >= 50) {
@@ -581,6 +582,8 @@ export class DatabaseService {
       rangeCap: kgToUnit(rangeCapKg, weightUnit),
       noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
       maxLossRate,
+      idealLossFloorPct: maxLossRate * 0.5,
+      steadyLossFloorPct: maxLossRate * 0.25,
       idealGainFloorPct,
       idealGainCeilingPct,
       deficitStep,

@@ -409,7 +409,7 @@ export class DashboardPage {
   /**
    * Count consecutive weeks (looking backward from today) where the trend
    * has not moved meaningfully toward the goal. A week is "stalled" when
-   * the absolute trend change over that 7-day window is <= 0.1kg.
+   * the absolute trend change over that 7-day window is <= noiseFloorPct.
    */
   private stallWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, userSettings: UserSettingsExtended | null): number {
     if (!activeGoal || entriesAfterGoalStart.length < 2 || !userSettings) return 0;
@@ -417,7 +417,7 @@ export class DashboardPage {
     const today = todayLocalMidnightMs();
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
 
-    const noiseFloorPct = activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : 0.5;
+    const noiseFloorPct = activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.idealLossFloorPct;
     const msPerWeek = 7 * 86400000;
     let weeks = 0;
 
@@ -434,7 +434,9 @@ export class DashboardPage {
       if (Math.abs(endEntry.dateMs - startEntry.dateMs) < 3 * 86400000) break;
 
       const trendDelta = Math.abs(endEntry.trend - startEntry.trend);
-      if (trendDelta > endEntry.trend * noiseFloorPct / 100) break; // meaningful movement → not stalled
+      const thresholdAbs = endEntry.trend * noiseFloorPct / 100
+      console.log('Stall week check - trendDelta:', trendDelta, 'thresholdAbs:', thresholdAbs);
+      if (trendDelta > thresholdAbs) break; // meaningful movement → not stalled
 
       weeks++;
       if (weekStart <= activeGoal.startDateMs) break; // don't look before goal start
@@ -470,7 +472,7 @@ export class DashboardPage {
     const goalType = activeGoal.type;
 
     // prettier-ignore
-    const { maxLossRate, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRangePct } = userSettings.coaching;
+    const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRangePct } = userSettings.coaching;
 
     const bwPct = Math.abs((rawWeeklyRate / trendWeight) * 100);
     const isGaining = rawWeeklyRate > 0.01;
@@ -542,7 +544,7 @@ export class DashboardPage {
         }
 
         // 3. Ideal Range
-        if (bwPct >= 0.5) {
+        if (bwPct >= idealLossFloorPct) {
           if (nearLossGoal) {
             return 'Almost at your goal and losing at a perfect pace! Finish strong — no changes needed.';
           }
@@ -553,7 +555,7 @@ export class DashboardPage {
         }
 
         // 4. Steady / Slightly Slow
-        if (bwPct >= 0.25) {
+        if (bwPct >= steadyLossFloorPct) {
           if (nearLossGoal) {
             return `You're incredibly close to your goal! Just a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will get you across the finish line.`;
           }
