@@ -50,6 +50,7 @@ interface DashboardVm {
   stabilityLabel: string | null;
   goalReached: boolean;
   consistency: string;
+  dataQualityLabel: string | null;
   recommendation: string;
   rateLabel: string;
   recentEntries: Array<{ label: string; weight: string }>;
@@ -105,6 +106,7 @@ export class DashboardPage {
     const goalType = activeGoal?.type ?? null;
     const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, entriesAfterGoalStart);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
+    const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart) : null;
 
     // prettier-ignore
     const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit)} = userSettings?.coaching ?? {};
@@ -158,6 +160,7 @@ export class DashboardPage {
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       consistency: this.consistencyLabel(entriesAfterGoalStart),
+      dataQualityLabel,
       recommendation: this.recommendation(
         rawTrend,
         rawWeeklyRateAbs,
@@ -349,6 +352,14 @@ export class DashboardPage {
     if (stabilityScore >= 75) return 'Stable';
     if (stabilityScore >= 50) return 'Some variation';
     return 'Fluctuating';
+  }
+
+  private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
+    if (entriesAfterGoalStart.length < 2) return null;
+    if (entriesAfterGoalStart.length < 4) return 'Rough estimate';
+    if (entriesAfterGoalStart.length < 7) return 'Early estimate';
+    if (entriesAfterGoalStart.length < 14) return 'Good estimate';
+    return 'Strong estimate';
   }
 
   private consistencyLabel(reversedEntries: WeightEntry[]): string {

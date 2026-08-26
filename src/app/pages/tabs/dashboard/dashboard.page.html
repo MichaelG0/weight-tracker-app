@@ -76,7 +76,12 @@
       </section>
 
       <section class="list-group">
-        <p class="list-group-label">Statistics</p>
+        <div class="list-group-label stats-label-row">
+          <span>Statistics</span>
+          @if (vm.dataQualityLabel) {
+            <ion-badge class="data-quality-badge">{{ vm.dataQualityLabel }}</ion-badge>
+          }
+        </div>
         <ion-grid class="stats-grid">
           <ion-row>
             @if (vm.goalType !== 'Maintenance') {

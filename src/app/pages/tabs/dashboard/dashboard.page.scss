@@ -145,7 +145,7 @@ ion-card {
     position: relative;
     z-index: 1;
   }
-  
+
   .set-goal-link {
     color: var(--ion-color-primary);
   }
@@ -169,6 +169,23 @@ ion-card {
   }
 }
 
+.stats-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.data-quality-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(var(--ion-color-tertiary-rgb), 0.12);
+  color: var(--ion-color-tertiary);
+  text-transform: none;
+}
+
 .stats-grid {
   --ion-grid-padding: 0;
 
@@ -181,6 +198,7 @@ ion-card {
   }
 }
 
+// prettier-ignore
 @keyframes tap-bounce {
   0% { transform: scale(1); }
   50% { transform: scale(0.97); }
