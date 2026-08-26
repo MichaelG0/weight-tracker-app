@@ -87,6 +87,7 @@ interface DashboardVm {
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly weeklyRateLookbackDays = 14;
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
 
@@ -273,11 +274,11 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
-  private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entries: WeightEntry[]): number | null {
-    if (latestEntry == null || entries.length < 2) return null;
+  private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entriesAfterGoalStart: WeightEntry[]): number | null {
+    if (latestEntry == null || entriesAfterGoalStart.length < 2) return null;
     const latestMs = latestEntry.dateMs;
-    const lookbackStartMs = latestMs - 14 * 86400000;
-    const samples = entries.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
+    const lookbackStartMs = latestMs - this.weeklyRateLookbackDays * 86400000;
+    const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
     if (samples.length < 2) return null;
 
     const points = samples.map(entry => ({
@@ -356,10 +357,21 @@ export class DashboardPage {
 
   private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
     if (entriesAfterGoalStart.length < 2) return null;
-    if (entriesAfterGoalStart.length < 4) return 'Rough estimate';
-    if (entriesAfterGoalStart.length < 7) return 'Early estimate';
-    if (entriesAfterGoalStart.length < 14) return 'Good estimate';
-    return 'Strong estimate';
+
+    const todayMs = todayLocalMidnightMs();
+    const twoWeekCutoffMs = todayMs - this.weeklyRateLookbackDays * 86400000;
+    const oneWeekCutoffMs = todayMs - 7 * 86400000;
+    const twoWeekEntries = entriesAfterGoalStart.filter(e => e.dateMs >= twoWeekCutoffMs);
+    const oneWeekEntries = entriesAfterGoalStart.filter(e => e.dateMs >= oneWeekCutoffMs);
+    const hasLargeTwoWeekGap = twoWeekEntries.some((entry, index) => {
+      if (index === 0) return false;
+      const previousEntry = twoWeekEntries[index - 1];
+      return (entry.dateMs - previousEntry.dateMs) / 86400000 > 7;
+    });
+
+    const hasReliableTwoWeekEstimate = twoWeekEntries.length >= 5 && !hasLargeTwoWeekGap;
+    const hasReliableOneWeekEstimate = oneWeekEntries.length >= 5;
+    return hasReliableTwoWeekEstimate || hasReliableOneWeekEstimate ? null : 'Rough estimate';
   }
 
   private consistencyLabel(reversedEntries: WeightEntry[]): string {
@@ -429,7 +441,8 @@ export class DashboardPage {
     const today = todayLocalMidnightMs();
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
 
-    const noiseFloorPct = activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.idealLossFloorPct;
+    const noiseFloorPct =
+      activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.idealLossFloorPct;
     const msPerWeek = 7 * 86400000;
     let weeks = 0;
 
@@ -446,7 +459,7 @@ export class DashboardPage {
       if (Math.abs(endEntry.dateMs - startEntry.dateMs) < 3 * 86400000) break;
 
       const trendDelta = Math.abs(endEntry.trend - startEntry.trend);
-      const thresholdAbs = endEntry.trend * noiseFloorPct / 100
+      const thresholdAbs = (endEntry.trend * noiseFloorPct) / 100;
       console.log('Stall week check - trendDelta:', trendDelta, 'thresholdAbs:', thresholdAbs);
       if (trendDelta > thresholdAbs) break; // meaningful movement → not stalled
 
