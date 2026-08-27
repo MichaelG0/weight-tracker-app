@@ -365,8 +365,6 @@ export class DashboardPage {
     const lookbackStartMs = latestEntry.dateMs - this.weeklyRateLookbackDays * 86400000;
     const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs);
 
-    console.log('Data quality check: samples:', samples);
-
     if (samples.length < 2) return null;
 
     // Slope stops reflecting current behavior after several days without data
