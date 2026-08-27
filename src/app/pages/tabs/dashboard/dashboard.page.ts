@@ -383,7 +383,7 @@ export class DashboardPage {
     // 2 points is the mathematical minimum; 4+ gives a meaningful fit
     const hasEnoughPoints = samples.length >= 4;
 
-    return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimate';
+    return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimates';
   }
 
   private consistencyLabel(reversedEntries: WeightEntry[]): string {
