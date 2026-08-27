@@ -358,20 +358,34 @@ export class DashboardPage {
   private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
     if (entriesAfterGoalStart.length < 2) return null;
 
+    const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const todayMs = todayLocalMidnightMs();
-    const twoWeekCutoffMs = todayMs - this.weeklyRateLookbackDays * 86400000;
-    const oneWeekCutoffMs = todayMs - 7 * 86400000;
-    const twoWeekEntries = entriesAfterGoalStart.filter(e => e.dateMs >= twoWeekCutoffMs);
-    const oneWeekEntries = entriesAfterGoalStart.filter(e => e.dateMs >= oneWeekCutoffMs);
-    const hasLargeTwoWeekGap = twoWeekEntries.some((entry, index) => {
-      if (index === 0) return false;
-      const previousEntry = twoWeekEntries[index - 1];
-      return (entry.dateMs - previousEntry.dateMs) / 86400000 > 7;
+
+    // Mirror the exact window rawWeeklyRateAbs uses (anchored to latest entry, not today)
+    const lookbackStartMs = latestEntry.dateMs - this.weeklyRateLookbackDays * 86400000;
+    const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs);
+
+    console.log('Data quality check: samples:', samples);
+
+    if (samples.length < 2) return null;
+
+    // Slope stops reflecting current behavior after several days without data
+    const isStale = (todayMs - latestEntry.dateMs) / 86400000 > 6;
+
+    // Entries must span at least half the lookback window for a stable slope
+    const spanDays = (samples[samples.length - 1].dateMs - samples[0].dateMs) / 86400000;
+    const hasMinSpan = spanDays >= 6;
+
+    // A >7-day gap means the regression bridges a data desert
+    const hasLargeGap = samples.some((entry, i) => {
+      if (i === 0) return false;
+      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > 7;
     });
 
-    const hasReliableTwoWeekEstimate = twoWeekEntries.length >= 5 && !hasLargeTwoWeekGap;
-    const hasReliableOneWeekEstimate = oneWeekEntries.length >= 5;
-    return hasReliableTwoWeekEstimate || hasReliableOneWeekEstimate ? null : 'Rough estimate';
+    // 2 points is the mathematical minimum; 4+ gives a meaningful fit
+    const hasEnoughPoints = samples.length >= 4;
+
+    return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimate';
   }
 
   private consistencyLabel(reversedEntries: WeightEntry[]): string {
