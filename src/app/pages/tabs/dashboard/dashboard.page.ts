@@ -739,6 +739,7 @@ export class DashboardPage {
         );
       }
 
+      // prettier-ignore
       case 'Maintenance': {
         if (goalWeight == null || maintRangePct == null) {
           return 'No target weight set for maintenance. Keep logging to maintain current trends or set a clear goal.';
@@ -747,10 +748,15 @@ export class DashboardPage {
         const offset = trendWeight - goalWeight;
         const offsetPct = (offset / goalWeight) * 100;
         const absOffsetPct = Math.abs(offsetPct);
-        const thresholdPct = maintRangePct / 2;
-        const isAbove = offsetPct > thresholdPct;
-        const isBelow = offsetPct < -thresholdPct;
+        
+        // Use 2/3 of the allowed range as the "early warning" threshold
+        const warnThresholdPct = maintRangePct * (2 / 3);
+        const isAbove = offsetPct > warnThresholdPct;
+        const isBelow = offsetPct < -warnThresholdPct;
         const onTarget = !isAbove && !isBelow;
+
+        // True Out-of-Range breach
+        const isOutOfRange = absOffsetPct > maintRangePct;
 
         const movingAway = (isAbove && isGaining) || (isBelow && isLosing);
         const movingToward = (isAbove && isLosing) || (isBelow && isGaining);
@@ -772,12 +778,37 @@ export class DashboardPage {
             : 'Weight has been stuck below target for two weeks. Check whether you are consistently eating enough — skipped meals, busy days, or underfueling around workouts may be holding you back.';
         }
 
-        // --- High drift (>0.5% BW/week) → major correction ---
+        // --- 1. BOUNDARY BREACH (Out of Range) ---
+        // Address absolute deviations first, regardless of speed
+        if (isOutOfRange) {
+          if (movingToward) {
+            return isAbove
+              ? 'Weight is outside your target zone but successfully heading back down. Stay the course — no drastic changes needed until you are back in range.'
+              : 'Weight is outside your target zone but successfully heading back up. Stay the course — no drastic changes needed until you are back in range.';
+          }
+          if (movingAway) {
+            return isAbove
+              ? `Weight has breached your upper limit and is still climbing. Cut ~${maintMajorCut} kcal and add daily steps to aggressively reverse the trend.`
+              : `Weight has breached your lower limit and is still falling. Add ~${maintMajorAdd} kcal immediately to halt the loss and reverse the trend.`;
+          }
+          if (isAbove) {
+            return fluctuating
+              ? 'Weight is fluctuating outside your upper limit. Focus on strict dietary consistency for a few days before making large calorie cuts.'
+              : `Weight has settled outside your maintenance zone. Cut ~${maintMajorCut} kcal to return to your range.`;
+          }
+          if (isBelow) {
+            return fluctuating
+              ? 'Weight is fluctuating outside your lower limit. Focus on regular, structured meals before blindly adding calories.'
+              : `Weight has settled outside your maintenance zone. Add ~${maintMajorAdd} kcal — a daily snack or slightly larger portions — to return to your range.`;
+          }
+        }
+
+        // --- 2. IN-RANGE, HIGH DRIFT (>0.5% BW/week) ---
         if (bwPct > 0.5) {
           if (movingAway) {
             return isGaining
-              ? `Drifting rapidly above target. Cut ~${maintMajorCut} kcal or add ~2,500 daily steps to correct course.`
-              : `Drifting rapidly below target. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to stabilize.`;
+              ? `Drifting rapidly toward your upper limit. Cut ~${maintMajorCut} kcal or add ~2,500 daily steps to correct course before you breach the zone.`
+              : `Drifting rapidly toward your lower limit. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to stabilize.`;
           }
           if (movingToward) {
             return isGaining
@@ -786,7 +817,7 @@ export class DashboardPage {
           }
           if (onTarget) {
             if (fluctuating) {
-              return 'Weight is near target but swinging rapidly. Focus on strict hydration and sodium consistency.';
+              return 'Weight is right on target but swinging rapidly. Focus on strict hydration and sodium consistency.';
             }
             return isGaining
               ? `Weight is near target but trending up quickly. Trim ~${maintMajorCut} kcal now to prevent a larger correction later.`
@@ -794,17 +825,17 @@ export class DashboardPage {
           }
         }
 
-        // --- Moderate drift (0.2–0.5% BW/week) → minor correction ---
+        // --- 3. IN-RANGE, MODERATE DRIFT (0.2–0.5% BW/week) ---
         if (bwPct > 0.2) {
           if (movingAway) {
             if (fluctuating) {
               return isGaining
-                ? 'Drifting above target with high variability. Tighten up meal consistency and watch sodium intake.'
-                : 'Drifting below target with high variability. Ensure consistent meal timing and adequate calories.';
+                ? 'Drifting upward with high variability. Tighten up meal consistency and watch sodium intake.'
+                : 'Drifting downward with high variability. Ensure consistent meal timing and adequate calories.';
             }
             return isGaining
-              ? `Slowly trending above target. Trim ~${maintMinorStep} kcal — like skipping a liquid calorie or adding a short walk — to level off.`
-              : `Slowly trending below target. Add ~${maintMinorStep} kcal — a small snack or slightly larger portion — to support recovery.`;
+              ? `Slowly trending toward the top of your range. Trim ~${maintMinorStep} kcal — like skipping a liquid calorie or adding a short walk — to level off.`
+              : `Slowly trending toward the bottom of your range. Add ~${maintMinorStep} kcal — a small snack or slightly larger portion — to support recovery.`;
           }
           if (movingToward) {
             if (fluctuating) {
@@ -823,44 +854,20 @@ export class DashboardPage {
         }
 
         // --- Low drift (<=0.2% BW/week) ---
-        // Address large deviations first
-        if (absOffsetPct > 1.5) {
-          if (movingToward) {
-            return isAbove
-              ? 'Weight is well above target but slowly heading back down. Stay consistent — no drastic changes needed.'
-              : 'Weight is well below target but slowly heading back up. Stay consistent — no drastic changes needed.';
-          }
-          if (movingAway) {
-            return isAbove
-              ? `Weight is far above target and still creeping up. Cut ~${maintMajorCut} kcal and add ~2,000 daily steps to reverse the trend.`
-              : `Weight is far below target and still creeping down. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to reverse the trend.`;
-          }
-          if (isAbove) {
-            return fluctuating
-              ? 'Weight is fluctuating significantly above target. Focus on consistency before making large calorie cuts.'
-              : `Weight is settled far above target. Cut ~${maintMajorCut} kcal to return to your maintenance range.`;
-          }
-          if (isBelow) {
-            return fluctuating
-              ? 'Weight is fluctuating significantly below target. Focus on regular meals before blindly adding calories.'
-              : `Weight is settled far below target. Add ~${maintMajorAdd} kcal — a daily snack or slightly larger portions — to return to your range.`;
-          }
-        }
-
         if (fluctuating) {
           return 'Weight is fluctuating near target. Review sodium, sleep, and stress — these often drive short-term swings.';
         }
 
         if (stable) {
           if (onTarget) return 'Excellent stability right on target. Maintain your current routine.';
-          if (isAbove) return `Weight is stable but sitting slightly above target. Trim ~${maintMinorStep} kcal to realign it.`;
-          if (isBelow) return `Weight is stable but sitting slightly below target. Add ~${maintMinorStep} kcal to realign it.`;
+          if (isAbove) return `Weight is stable but sitting near the top edge of your range. Trim ~${maintMinorStep} kcal to realign it.`;
+          if (isBelow) return `Weight is stable but sitting near the bottom edge of your range. Add ~${maintMinorStep} kcal to realign it.`;
         }
 
         if (moderate) {
           if (onTarget) return 'Good stability near target. Minor day-to-day fluctuations are normal — stay the course.';
-          if (isAbove) return `Moderate stability slightly above target. Keep meal timing consistent and trim ~${maintMinorStep} kcal.`;
-          if (isBelow) return `Moderate stability slightly below target. Keep meal timing consistent and add ~${maintMinorStep} kcal.`;
+          if (isAbove) return `Moderate stability, slowly nearing the top edge of your range. Keep meal timing consistent and trim ~${maintMinorStep} kcal.`;
+          if (isBelow) return `Moderate stability, slowly nearing the bottom edge of your range. Keep meal timing consistent and add ~${maintMinorStep} kcal.`;
         }
 
         if (noData) {
