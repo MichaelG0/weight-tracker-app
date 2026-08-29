@@ -765,22 +765,22 @@ export class DashboardPage {
         const stable = !noData && stabilityScore >= 75;
         const moderate = !noData && stabilityScore >= 50 && stabilityScore < 75;
         const fluctuating = !noData && stabilityScore < 50;
-
-        // --- Persistent drift escalation (maintenance) ---
-        if ((isAbove || isBelow) && !movingToward && stallWeeks >= 3) {
-          return isAbove
-            ? 'Weight has sat above your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.'
-            : 'Weight has sat below your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.';
-        }
-        if ((isAbove || isBelow) && !movingToward && stallWeeks >= 2) {
-          return isAbove
-            ? 'Weight has been stuck above target for two weeks. Before making calorie cuts, check for consistency gaps — weekend eating, alcohol, or stress-related snacking may be the culprit.'
-            : 'Weight has been stuck below target for two weeks. Check whether you are consistently eating enough — skipped meals, busy days, or underfueling around workouts may be holding you back.';
-        }
-
+        
         // --- 1. BOUNDARY BREACH (Out of Range) ---
         // Address absolute deviations first, regardless of speed
         if (isOutOfRange) {
+          // --- Persistent drift escalation (maintenance) ---
+          if (!movingToward && stallWeeks >= 3) {
+            return isAbove
+              ? 'Weight has sat above your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.'
+              : 'Weight has sat below your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.';
+          }
+          if (!movingToward && stallWeeks >= 2) {
+            return isAbove
+              ? 'Weight has been stuck above target for two weeks. Before making calorie cuts, check for consistency gaps — weekend eating, alcohol, or stress-related snacking may be the culprit.'
+              : 'Weight has been stuck below target for two weeks. Check whether you are consistently eating enough — skipped meals, busy days, or underfueling around workouts may be holding you back.';
+          }
+          // --- Out of range for less then 2 weeks ---
           if (movingToward) {
             return isAbove
               ? 'Weight is outside your target zone but successfully heading back down. Stay the course — no drastic changes needed until you are back in range.'
