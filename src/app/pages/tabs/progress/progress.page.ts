@@ -40,7 +40,7 @@ import 'hammerjs';
 import { FormatWeightPipe } from '../../../pipes/format-weight.pipe';
 Chart.register(zoomPlugin);
 
-type RangeMode = 'journey' | 'month' | 'to-goal' | 'full';
+type RangeMode = 'journey' | 'month' | 'to-goal' | 'history';
 interface Pt {
   x: number;
   y: number;
@@ -60,6 +60,7 @@ interface ChartColors {
   scaleDotBorder: string;
   scaleDotBorderHover: string;
   trendLine: string;
+  trendDotHover: string;
   trendDotBorderHover: string;
   axisGrid: string;
   axisBorder: string;
@@ -137,10 +138,10 @@ export class ProgressPage {
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
       const canvas = this.weightChart()?.nativeElement as HTMLCanvasElement;
 
-      // Filter entries and goals: cut off before the most recent goal's start date (unless 'full')
+      // Filter entries and goals: cut off before the most recent goal's start date (unless 'history')
       let filteredEntries = allEntries;
       let filteredGoals = goals;
-      if (range !== 'full' && latestGoal) {
+      if (range !== 'history' && latestGoal) {
         const cutoff = latestGoal.startDateMs;
         filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
         filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
@@ -251,8 +252,8 @@ export class ProgressPage {
     const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
     const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayMs;
     const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => g.startDateMs)) : Infinity;
-    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs, todayMs - 30 * 86400000) - 1 * 86400000;
-    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0, todayMs) + 1 * 86400000;
+    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs, todayMs - 30 * 86400000);
+    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0, todayMs);
 
     const config = {
       type: 'line',
@@ -267,18 +268,19 @@ export class ProgressPage {
                   data: dots,
                   borderColor: colors['scaleLine'],
                   backgroundColor: colors['scaleDot'],
-                  borderWidth: 1.5,
+                  borderWidth: 2.5,
                   borderDash: [2, 3],
                   pointRadius: 3,
                   pointHitRadius: 26,
-                  pointHoverRadius: 7,
+                  pointHoverRadius: 5,
                   pointBorderColor: colors['scaleDotBorder'],
                   pointBorderWidth: 2,
                   hoverBackgroundColor: colors['scaleDotHover'],
                   hoverBorderColor: colors['scaleDotBorderHover'],
-                  hoverBorderWidth: 3,
+                  hoverBorderWidth: 2,
                   tension: 0,
                   fill: false,
+                  clip: { left: 7, top: false, right: false, bottom: false },
                   order: 2,
                 } as any,
               ]
@@ -293,10 +295,12 @@ export class ProgressPage {
                   borderWidth: 3,
                   pointRadius: 0,
                   pointHoverRadius: 5,
+                  hoverBackgroundColor: colors['trendDotHover'],
                   hoverBorderColor: colors['trendDotBorderHover'],
                   hoverBorderWidth: 2,
                   tension: 0.35,
                   fill: false,
+                  clip: { left: 7, top: false, right: false, bottom: false },
                   order: 1,
                 } as any,
               ]
@@ -317,11 +321,15 @@ export class ProgressPage {
             type: 'linear',
             min: bounds.xMin,
             max: bounds.xMax,
-            grid: { color: colors['axisGrid'] },
+            grid: {
+              color: 'transparent',
+              tickColor: colors['axisGrid'],
+            },
             border: { color: colors['axisBorder'] },
             ticks: {
               color: colors['axisTick'],
-              maxTicksLimit: 5,
+              count: 3,
+              align: 'end',
               callback: (v: any) => {
                 const date = new Date(Number(v));
                 const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
@@ -331,16 +339,35 @@ export class ProgressPage {
                 return date.toLocaleDateString(undefined, opts);
               },
             },
+            afterBuildTicks: (scale: any) => {
+              const desiredVisibleCount = 3;
+              const targetGeneratedCount = desiredVisibleCount + 1; // one extra, since we drop the first
+              // Fallback: if auto-generation produced fewer than needed, build evenly-spaced ticks
+              if (scale.ticks.length < targetGeneratedCount) {
+                const { min, max } = scale;
+                const step = (max - min) / (targetGeneratedCount - 1);
+                scale.ticks = Array.from({ length: targetGeneratedCount }, (_, i) => ({
+                  value: min + step * i,
+                }));
+              }
+              // Drop the first tick entirely so remaining ticks reclaim its space
+              if (scale.ticks.length > 1) {
+                scale.ticks.shift();
+              }
+            },
           },
           y: {
             min: bounds.yMin,
             max: bounds.yMax,
-            grid: { color: colors['axisGrid'] },
-            border: { color: colors['axisBorder'] },
+            grid: {
+              color: colors['axisGrid'],
+              tickColor: 'transparent',
+            },
+            border: { display: false },
             ticks: {
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: number) => formatWeight(v, unitLbl),
+              callback: (v: number) => formatWeight(v, unitLbl, -1),
             },
           },
         },
@@ -487,6 +514,7 @@ export class ProgressPage {
         pointHoverRadius: 5,
         tension: 0,
         fill: false,
+        clip: { left: 7, top: false, right: false, bottom: false },
         order: 4,
       });
     }
@@ -525,7 +553,7 @@ export class ProgressPage {
     } else if (range === 'to-goal' && futureGoals.length > 0) {
       xMin = futureGoals[0].startDateMs;
       xMax = Math.min(...futureGoals.map(g => g.goalDateMs));
-    } else if (range === 'full') {
+    } else if (range === 'history') {
       xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
       xMax = todayMs;
     } else {
@@ -563,10 +591,11 @@ export class ProgressPage {
       guideBand: this.cssTheme.rgbaVar('--ion-color-primary-rgb', 0.1, '0, 179, 155'),
       scaleLine: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.4, '6, 182, 212'),
       scaleDot: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
-      scaleDotHover: this.cssTheme.rgbaVar('--ion-color-step-200-rgb', 1, '203, 213, 225'),
+      scaleDotHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 1, '203, 213, 225'),
       scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '6, 182, 212'),
       scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 1, '6, 182, 212'),
       trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
+      trendDotHover: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       trendDotBorderHover: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
       axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),

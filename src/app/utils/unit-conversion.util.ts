@@ -27,12 +27,12 @@ export function unitToKgFixed(value: number, unit: WeightUnit): number {
 }
 
 // For UI display
-export function formatWeight(value: number, unit: WeightUnit): string {
+export function formatWeight(value: number, unit: WeightUnit, toFixedOffset: number = 0): string {
   switch (unit) {
     case 'st':
-      return value.toFixed(2);
+      return value.toFixed(2 + toFixedOffset);
     default:
-      return value.toFixed(1);
+      return value.toFixed(1 + toFixedOffset);
   }
 }
 

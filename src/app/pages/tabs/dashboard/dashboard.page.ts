@@ -242,8 +242,7 @@ export class DashboardPage {
   private absoluteRatePerWeek(weeklyRate: number | null, weightUnit: WeightUnit): string | null {
     if (weeklyRate == null) return null;
     const sign = weeklyRate > 0 ? '+' : '';
-    const fixed = weightUnit === 'st' ? 3 : 2;
-    return `${sign}${weeklyRate.toFixed(fixed)}`;
+    return `${sign}${formatWeight(weeklyRate, weightUnit, 1)}`;
   }
 
   private remaining(trendWeight: number | null, goalWeight: number | null, unitLabel: WeightUnit): string | null {
@@ -397,8 +396,7 @@ export class DashboardPage {
       return 'Need more data';
     }
     const sign = weeklyRate > 0 ? '+' : '';
-    const fixed = unitLabel === 'st' ? 3 : 2;
-    return `${sign}${weeklyRate.toFixed(fixed)} ${unitLabel}/week`;
+    return `${sign}${formatWeight(weeklyRate, unitLabel, 1)} ${unitLabel}/week`;
   }
 
   private goalReached(trendToFixed: string | null, activeGoal: Goal | null): boolean {
