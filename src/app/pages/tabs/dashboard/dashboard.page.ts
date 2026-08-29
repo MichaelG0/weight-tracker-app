@@ -283,7 +283,7 @@ export class DashboardPage {
 
     const points = samples.map(entry => ({
       x: (entry.dateMs - latestMs) / 86400000,
-      y: entry.trend,
+      y: entry.weight,
     }));
     const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
     const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
