@@ -145,8 +145,7 @@ export class ProgressPage {
     effect(() => {
       const allEntries = this.allEntries();
       const goals = this.goals();
-      const latestGoal = this.db.activeOrLatestGoal();
-      const futureGoals = this.db.futureGoals();
+      const activeOrLastPastGoal = this.db.activeOrLastPastGoal();
       const range = this.rangeMode();
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
@@ -159,8 +158,8 @@ export class ProgressPage {
       // Filter entries and goals: cut off before the most recent goal's start date (unless 'history')
       let filteredEntries = allEntries;
       let filteredGoals = goals;
-      if (range !== 'history' && latestGoal) {
-        const cutoff = latestGoal.startDateMs;
+      if (range !== 'history' && activeOrLastPastGoal) {
+        const cutoff = activeOrLastPastGoal.startDateMs;
         filteredEntries = allEntries.filter(e => e.dateMs >= cutoff);
         filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
       }
@@ -170,7 +169,17 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(canvas, filteredEntries, filteredGoals, futureGoals, range, showDaily, showTrend, unitLbl, today, todayMs);
+      this.renderChart(
+        canvas,
+        filteredEntries,
+        filteredGoals,
+        range,
+        showDaily,
+        showTrend,
+        unitLbl,
+        today,
+        todayMs,
+      );
     });
   }
 
@@ -250,7 +259,6 @@ export class ProgressPage {
     canvas: HTMLCanvasElement,
     entries: WeightEntry[],
     goals: Goal[],
-    futureGoals: Goal[],
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
@@ -264,14 +272,15 @@ export class ProgressPage {
     const trendLine: Pt[] = this.getTrendLine(entries);
     const maintRange = kgToUnit(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
-    const latestGoalMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : null;
-    const bounds = this.getBounds(entries, goals, futureGoals, range, maintRange, unitLbl, today, todayMs);
+    const bounds = this.getBounds(entries, goals, range, maintRange, unitLbl, todayMs);
 
-    const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
-    const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : todayMs;
-    const earliestGoalMs = goals.length > 0 ? Math.min(...goals.map(g => g.startDateMs)) : Infinity;
-    const xMinLimit = Math.min(earliestEntryMs, earliestGoalMs, todayMs - 30 * 86400000);
-    const xMaxLimit = Math.max(latestEntryMs, latestGoalMs ?? 0, todayMs);
+    const earliestEntryMs = entries.length > 0 ? entries[0].dateMs : Infinity;
+    const latestEntryMs = entries.length > 0 ? entries[entries.length - 1].dateMs : 0;
+    const activeOrLastPastGoalStartMs = goals.length > 0 ? goals[0].startDateMs : Infinity;
+    const latestGoalEndMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : 0;
+    const monthMinMs = range === 'month' ? todayMs - 30 * 86400000 : Infinity;
+    const xMinLimit = Math.min(earliestEntryMs, activeOrLastPastGoalStartMs, monthMinMs);
+    const xMaxLimit = Math.max(latestEntryMs, latestGoalEndMs, todayMs);
 
     const config = {
       type: 'line',
@@ -486,6 +495,7 @@ export class ProgressPage {
           pointRadius: 0,
           tension: 0,
           fill: false,
+          clip: { left: 7, top: false, right: false, bottom: false },
           order: 5,
         });
         datasets.push({
@@ -499,6 +509,7 @@ export class ProgressPage {
           pointRadius: 0,
           tension: 0,
           fill: '-1',
+          clip: { left: 7, top: false, right: false, bottom: false },
           backgroundColor: colors['guideBand'],
           order: 6,
         });
@@ -530,11 +541,9 @@ export class ProgressPage {
   private getBounds(
     entries: WeightEntry[],
     goals: Goal[],
-    futureGoals: Goal[],
     range: RangeMode,
     maintRange: number,
     unitLbl: WeightUnit,
-    today: Date,
     todayMs: number,
   ): { xMin: number; xMax: number; yMin: number; yMax: number } {
     const weights = entries.map(e => e.weight);
@@ -547,28 +556,21 @@ export class ProgressPage {
       }
     }
 
-    let xMin: number;
-    let xMax: number;
+    let xMin = todayMs - 30 * 86400000;
+    let xMax = todayMs;
 
-    if (range === 'month') {
-      const cutoff = today;
-      cutoff.setDate(cutoff.getDate() - 30);
-      xMin = +cutoff;
-      xMax = todayMs;
-    } else if (range === 'to-goal' && futureGoals.length > 0) {
-      xMin = futureGoals[0].startDateMs;
+    if (range === 'journey' && (entries.length || goals.length)) {
+      xMin = Math.min(entries[0].dateMs, goals[0].startDateMs);
+    } else if (range === 'to-goal' && goals.length > 0) {
+      xMin = goals[0].startDateMs;
+      const futureGoals = goals.filter(g => g.goalDateMs >= todayMs);
       xMax = Math.min(...futureGoals.map(g => g.goalDateMs));
-    } else if (range === 'history') {
-      xMin = entries.length > 0 ? entries[0].dateMs : todayMs - 30 * 86400000;
-      xMax = todayMs;
-    } else {
-      xMin = entries.length > 0 ? entries[0].dateMs : futureGoals.length > 0 ? futureGoals[0].startDateMs : todayMs - 30 * 86400000;
-      xMax = todayMs;
+    } else if (range === 'history' && (entries.length || goals.length)) {
+      xMin = Math.min(entries[0].dateMs, goals[0].startDateMs);
     }
 
     // Ensure the visible range is at least 5 days
     if (xMax - xMin < 5 * 86400000) {
-      xMin -= 0.25 * 86400000;
       xMax = xMin + 5 * 86400000;
     }
 
@@ -583,7 +585,7 @@ export class ProgressPage {
       yMax = mid + minYrange / 2;
     }
 
-    return { xMin, xMax, yMin: yMin, yMax: yMax };
+    return { xMin, xMax, yMin, yMax };
   }
 
   // ── Chart Colors ─────────────────────────────────────────────────────────────

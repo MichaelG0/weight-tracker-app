@@ -176,14 +176,14 @@ export class DatabaseService {
     map(([entriesDB, unit]) => {
       if (!entriesDB.length || !unit) return [];
       // Alphabetical string comparison is way faster and yields the exact same chronological result
-      const ordered = entriesDB.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
+      entriesDB.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
       const entries: WeightEntry[] = [];
-      let ewma = kgToUnit(ordered[0].weight_kg, unit);
-      let prevDateMs = +new Date(ordered[0].logged_at);
+      let ewma = kgToUnit(entriesDB[0].weight_kg, unit);
+      let prevDateMs = +new Date(entriesDB[0].logged_at);
 
-      for (let i = 0; i < ordered.length; i++) {
-        const entry = ordered[i];
+      for (let i = 0; i < entriesDB.length; i++) {
+        const entry = entriesDB[i];
         const convertedWeight = kgToUnit(entry.weight_kg, unit);
         const currentDateMs = +new Date(entry.logged_at);
 
@@ -234,6 +234,9 @@ export class DatabaseService {
   private readonly goals$: Observable<Goal[]> = combineLatest([this._goals$, this._settings$.pipe(map(s => s?.weight_unit))]).pipe(
     map(([goalsDB, unit]) => {
       if (!goalsDB.length || !unit) return [];
+
+      goalsDB.sort((a, b) => a.start_date.localeCompare(b.start_date));
+
       const goals: Goal[] = goalsDB.map(g => ({
         id: g.id,
         startWeight: kgToUnit(g.start_weight_kg, unit),
@@ -271,7 +274,7 @@ export class DatabaseService {
     const today = todayLocalMidnightMs();
     return goals.find(g => g.goalDateMs >= today && g.startDateMs <= today) ?? null;
   });
-  readonly activeOrLatestGoal: Signal<Goal | null> = computed(() => {
+  readonly activeOrLastPastGoal: Signal<Goal | null> = computed(() => {
     const active = this.activeGoal();
     if (active) return active;
     const goals = this.goals();
@@ -280,10 +283,6 @@ export class DatabaseService {
     const started = goals.filter(g => g.startDateMs <= today);
     if (!started.length) return null;
     return started.reduce((latest, g) => (g.startDateMs > latest.startDateMs ? g : latest));
-  });
-  readonly futureGoals: Signal<Goal[]> = computed(() => {
-    const today = todayLocalMidnightMs();
-    return this.goals().filter(g => g.goalDateMs > today);
   });
 
   readonly settings: Signal<UserSettings | null> = toSignal(this.settings$, { initialValue: null });
