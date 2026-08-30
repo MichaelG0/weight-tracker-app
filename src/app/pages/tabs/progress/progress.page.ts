@@ -390,6 +390,7 @@ export class ProgressPage {
             },
             border: { display: false },
             ticks: {
+              precision: unitLbl === 'st' ? undefined : 0,
               color: colors['axisTick'],
               maxTicksLimit: 8,
               callback: (v: number) => formatWeight(v, unitLbl, -1),
