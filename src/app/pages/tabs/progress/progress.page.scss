@@ -30,12 +30,14 @@ section.stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   justify-items: center;
+  align-items: center;
   gap: 10px;
   margin: 0 18px;
 
   .stat-card {
     display: flex;
     flex-direction: column;
+    height: 100%;
     gap: 3px;
     position: relative;
     overflow: hidden;
@@ -49,16 +51,17 @@ section.stats-row {
     }
 
     .stat-value {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--ion-text-color);
       line-height: 1.15;
-
+      
       &.stat-scale-value {
         color: var(--ion-color-tertiary);
       }
       &.stat-trend-value {
+        font-size: 1.15rem;
         color: var(--ion-color-secondary);
       }
       &.stat-goal-value {
