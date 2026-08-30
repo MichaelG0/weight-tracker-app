@@ -7,14 +7,15 @@ section.stats-row {
   align-items: center;
   gap: 10px;
   margin: 0 18px;
-
+  
   .stat-card {
     display: flex;
     flex-direction: column;
     height: 100%;
     gap: 3px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    padding-bottom: 18px;
 
     .stat-label {
       font-size: 0.68rem;
@@ -51,6 +52,9 @@ section.stats-row {
     }
 
     .stat-date {
+      position: absolute;
+      bottom: -2px;
+      width: 200%;
       font-size: 0.72rem;
       color: var(--ion-color-step-500);
       font-weight: 500;
