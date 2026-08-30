@@ -16,6 +16,34 @@
   } @else {
     <ion-card class="chart-card">
       <ion-card-content>
+        <section class="stats-row">
+          @if (selectedEntry(); as entry) {
+            <div class="stat-card">
+              <span class="stat-label">Scale</span>
+              <span class="stat-value stat-scale-value">
+                {{ entry.weight | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              </span>
+              <span class="stat-date">{{ entry.date | formatDate }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Average</span>
+              <span class="stat-value stat-trend-value">
+                {{ entry.trend | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              </span>
+              <span class="stat-date">{{ entry.date | formatDate }}</span>
+            </div>
+          }
+          @if (activeGoal(); as goal) {
+            <div class="stat-card">
+              <span class="stat-label">Goal</span>
+              <span class="stat-value stat-goal-value">
+                {{ goal.goalWeight | formatWeight: weightUnit() }}<small>{{ weightUnit() }} </small>
+              </span>
+              <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
+            </div>
+          }
+        </section>
+
         <div class="chart-wrap">
           <canvas #weightChart></canvas>
         </div>
@@ -59,13 +87,7 @@
         </svg>
         <ion-label>Trend</ion-label>
       </ion-chip>
-      <ion-button
-        fill="clear"
-        id="trend-info-trigger"
-        class="info-btn"
-        aria-label="What is weight trend?"
-        title="What is weight trend?"
-      >
+      <ion-button fill="clear" id="trend-info-trigger" class="info-btn" aria-label="What is weight trend?" title="What is weight trend?">
         <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
       </ion-button>
 

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -65,10 +65,6 @@ interface ChartColors {
   axisGrid: string;
   axisBorder: string;
   axisTick: string;
-  tooltipBackground: string;
-  tooltipTitle: string;
-  tooltipBody: string;
-  tooltipBorder: string;
 }
 
 @Component({
@@ -117,6 +113,28 @@ export class ProgressPage {
   readonly allEntries = this.db.entries;
   readonly goals = this.db.goals;
   readonly weightUnit = this.db.weightUnit;
+  readonly activeGoal = this.db.activeGoal;
+  readonly selectedDateMs = signal<number | null>(null);
+
+  readonly selectedEntry = computed(() => {
+    const entries = this.allEntries();
+    if (!entries.length) return null;
+
+    const selMs = this.selectedDateMs();
+    if (selMs == null) return entries[entries.length - 1]; // default: latest
+
+    // Find the entry closest to the selected x position
+    let closest = entries[0];
+    let minDiff = Math.abs(closest.dateMs - selMs);
+    for (const e of entries) {
+      const diff = Math.abs(e.dateMs - selMs);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = e;
+      }
+    }
+    return closest;
+  });
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
@@ -316,6 +334,11 @@ export class ProgressPage {
           axis: 'x',
           intersect: false,
         },
+        onClick: (evt: any, _elements: any, chart: any) => this.handleChartInteraction(evt, chart),
+        onHover: (evt: any, _elements: any, chart: any) => {
+          if (evt.type === 'mouseout') return;
+          this.handleChartInteraction(evt, chart);
+        },
         scales: {
           x: {
             type: 'linear',
@@ -373,33 +396,7 @@ export class ProgressPage {
         },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: colors['tooltipBackground'],
-            titleColor: colors['tooltipTitle'],
-            bodyColor: colors['tooltipBody'],
-            borderColor: colors['tooltipBorder'],
-            borderWidth: 1,
-            padding: 12,
-            caretPadding: 20,
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false,
-            filter: (item: any) => item.dataset.label !== 'Guide Upper' && item.dataset.label !== 'Guide Lower',
-            callbacks: {
-              title: (items: any[]) => {
-                const x = items[0]?.parsed?.x;
-                return x ? new Date(x).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
-              },
-              label: (ctx: any) => {
-                const val = formatWeight(ctx.parsed.y, unitLbl);
-                if (ctx.dataset.label === 'Guide') {
-                  const tag = ctx.dataIndex === 0 ? 'Start' : 'Goal';
-                  return `  ${tag}: ${val} ${unitLbl}`;
-                }
-                return `  ${val} ${unitLbl}`;
-              },
-            },
-          } as any,
+          tooltip: { enabled: false },
           zoom: {
             limits: {
               x: { min: xMinLimit, max: xMaxLimit, minRange: 5 * 86400000 },
@@ -443,6 +440,14 @@ export class ProgressPage {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  private handleChartInteraction(evt: any, chart: any): void {
+    if (evt.x == null) return; // e.g. mouseout events have no position
+    const xScale = chart.scales['x'];
+    const valueMs = xScale.getValueForPixel(evt.x);
+    if (!Number.isFinite(valueMs)) return;
+    this.selectedDateMs.set(valueMs);
+  }
 
   private getTrendLine(entries: WeightEntry[]): Pt[] {
     if (!entries.length) return [];
@@ -578,9 +583,7 @@ export class ProgressPage {
       yMax = mid + minYrange / 2;
     }
 
-    const yPad = (yMax - yMin) * 0.05; // 5% padding
-
-    return { xMin, xMax, yMin: yMin - yPad, yMax: yMax + yPad };
+    return { xMin, xMax, yMin: yMin, yMax: yMax };
   }
 
   // ── Chart Colors ─────────────────────────────────────────────────────────────
@@ -600,10 +603,6 @@ export class ProgressPage {
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
       axisBorder: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.2, '15, 23, 42'),
       axisTick: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.65, '15, 23, 42'),
-      tooltipBackground: this.cssTheme.rgbaVar('--ion-background-color-deep-rgb', 0.95, '248, 250, 252'),
-      tooltipTitle: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
-      tooltipBody: this.cssTheme.themeVar('--ion-text-color', '#0f172a'),
-      tooltipBorder: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.3, '99, 102, 241'),
     };
   }
 }
