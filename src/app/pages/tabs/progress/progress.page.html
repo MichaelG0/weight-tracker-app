@@ -44,18 +44,22 @@
               <span class="stat-date">--</span>
             </div>
           }
-          <div class="stat-card">
-            <span class="stat-label">Goal</span>
-            @if (activeGoal(); as goal) {
+          @if (activeGoal(); as goal) {
+            <div class="stat-card">
+              <span class="stat-label">Goal</span>
               <span class="stat-value stat-goal-value">
                 {{ goal.goalWeight | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
               </span>
               <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
-            } @else {
-              <span class="stat-value stat-goal-value"> -- </span>
-              <span class="stat-date">--</span>
-            }
-          </div>
+            </div>
+          } @else {
+            <div class="stat-card stat-goal-card-empty">
+              <span class="stat-label">Goal</span>
+              <ion-button fill="clear" slot="end" class="refresh-btn" (click)="openSetGoal()" aria-label="Set a goal">
+                <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          }
         </section>
 
         <div class="chart-wrap">

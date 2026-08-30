@@ -56,7 +56,7 @@ section.stats-row {
       letter-spacing: -0.02em;
       color: var(--ion-text-color);
       line-height: 1.15;
-      
+
       &.stat-scale-value {
         color: var(--ion-color-tertiary);
       }
@@ -80,6 +80,27 @@ section.stats-row {
       font-size: 0.72rem;
       color: var(--ion-color-step-500);
       font-weight: 500;
+    }
+
+    &.stat-goal-card-empty {
+      ion-button {
+        margin: 0;
+        min-width: 32px;
+        min-height: 32px;
+        border-radius: 14px;
+        --border-radius: 14px;
+        border: 1.5px dashed rgba(var(--ion-color-primary-rgb), 0.5);
+        color: var(--ion-color-primary);
+
+        ion-icon {
+          font-size: 1rem;
+        }
+      }
+
+      .stat-date {
+        color: var(--ion-color-primary);
+        font-weight: 700;
+      }
     }
   }
 }
