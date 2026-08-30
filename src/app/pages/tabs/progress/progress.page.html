@@ -32,16 +32,30 @@
               </span>
               <span class="stat-date">{{ entry.date | formatDate }}</span>
             </div>
-          }
-          @if (activeGoal(); as goal) {
+          } @else {
             <div class="stat-card">
-              <span class="stat-label">Goal</span>
-              <span class="stat-value stat-goal-value">
-                {{ goal.goalWeight | formatWeight: weightUnit() }}<small>{{ weightUnit() }} </small>
-              </span>
-              <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
+              <span class="stat-label">Scale</span>
+              <span class="stat-value stat-scale-value"> -- </span>
+              <span class="stat-date">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Average</span>
+              <span class="stat-value stat-trend-value"> -- </span>
+              <span class="stat-date">--</span>
             </div>
           }
+          <div class="stat-card">
+            <span class="stat-label">Goal</span>
+            @if (activeGoal(); as goal) {
+              <span class="stat-value stat-goal-value">
+                {{ goal.goalWeight | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              </span>
+              <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
+            } @else {
+              <span class="stat-value stat-goal-value"> -- </span>
+              <span class="stat-date">--</span>
+            }
+          </div>
         </section>
 
         <div class="chart-wrap">
@@ -77,13 +91,7 @@
       </ion-chip>
       <ion-chip class="trend-chip" [class.active]="showTrend()" (click)="toggleShowTrend()">
         <svg class="chip-icon trend" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M2 16C2 16 5 7 10 12C15 17 19 8 22 8"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+          <path d="M2 16C2 16 5 7 10 12C15 17 19 8 22 8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <ion-label>Trend</ion-label>
       </ion-chip>
@@ -98,14 +106,14 @@
             <p>Your body weight naturally fluctuates daily due to water retention, sodium, and digestion.</p>
 
             <p>
-              <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true
-              physical progress.
+              <strong>Daily</strong> shows your raw daily weight. <strong>Trend</strong> filters out this daily noise to show your true physical
+              progress.
             </p>
 
             <div class="tech-note">
               <p>
-                <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in <em>The Hacker's Diet</em>.
-                It dampens sudden daily spikes so you can focus on long-term body tissue changes, not temporary water weight.
+                <strong>How it works:</strong> We use an exponential smoothing algorithm famously detailed in <em>The Hacker's Diet</em>. It dampens
+                sudden daily spikes so you can focus on long-term body tissue changes, not temporary water weight.
               </p>
             </div>
           </ion-content>
