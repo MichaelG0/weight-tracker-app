@@ -60,6 +60,7 @@ interface ChartColors {
   scaleDotBorder: string;
   scaleDotBorderHover: string;
   trendLine: string;
+  trendBand: string;
   trendDotHover: string;
   trendDotBorderHover: string;
   axisGrid: string;
@@ -169,17 +170,7 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(
-        canvas,
-        filteredEntries,
-        filteredGoals,
-        range,
-        showDaily,
-        showTrend,
-        unitLbl,
-        today,
-        todayMs,
-      );
+      this.renderChart(canvas, filteredEntries, filteredGoals, range, showDaily, showTrend, unitLbl, today, todayMs);
     });
   }
 
@@ -326,7 +317,8 @@ export class ProgressPage {
                   hoverBorderColor: colors['trendDotBorderHover'],
                   hoverBorderWidth: 2,
                   tension: 0.35,
-                  fill: false,
+                  fill: true,
+                  backgroundColor: colors['trendBand'],
                   clip: { left: 7, top: false, right: false, bottom: false },
                   order: 1,
                 } as any,
@@ -509,8 +501,8 @@ export class ProgressPage {
           pointRadius: 0,
           tension: 0,
           fill: '-1',
-          clip: { left: 7, top: false, right: false, bottom: false },
           backgroundColor: colors['guideBand'],
+          clip: { left: 7, top: false, right: false, bottom: false },
           order: 6,
         });
       } else {
@@ -600,6 +592,7 @@ export class ProgressPage {
       scaleDotBorder: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 0.85, '6, 182, 212'),
       scaleDotBorderHover: this.cssTheme.rgbaVar('--ion-color-tertiary-rgb', 1, '6, 182, 212'),
       trendLine: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
+      trendBand: this.cssTheme.rgbaVar('--ion-color-secondary-rgb', 0.075, '99, 102, 241'),
       trendDotHover: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       trendDotBorderHover: this.cssTheme.themeVar('--ion-color-secondary', '#6366f1'),
       axisGrid: this.cssTheme.rgbaVar('--ion-text-color-rgb', 0.1, '15, 23, 42'),
