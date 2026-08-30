@@ -165,7 +165,7 @@ export class ProgressPage {
         filteredGoals = goals.filter(g => g.startDateMs >= cutoff);
       }
 
-      if (!canvas || (filteredEntries.length === 0 && filteredGoals.length === 0)) {
+      if (!canvas) {
         this.destroyChart();
         return;
       }
@@ -270,7 +270,8 @@ export class ProgressPage {
     const activeOrLastPastGoalStartMs = goals.length > 0 ? goals[0].startDateMs : Infinity;
     const latestGoalEndMs = goals.length > 0 ? Math.max(...goals.map(g => g.goalDateMs)) : 0;
     const monthMinMs = range === 'month' ? todayMs - 30 * 86400000 : Infinity;
-    const xMinLimit = Math.min(earliestEntryMs, activeOrLastPastGoalStartMs, monthMinMs);
+    const xMinLimitTemp = Math.min(earliestEntryMs, activeOrLastPastGoalStartMs, monthMinMs);
+    const xMinLimit = xMinLimitTemp === Infinity ? todayMs - 30 * 86400000 : xMinLimitTemp;
     const xMaxLimit = Math.max(latestEntryMs, latestGoalEndMs, todayMs);
 
     const config = {
