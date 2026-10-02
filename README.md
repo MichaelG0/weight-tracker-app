@@ -6,6 +6,15 @@ Weight Tracker is designed around more than simply recording scale readings. It 
 
 The project also serves as an exploration of modern Angular architecture, reactive state management, local-first persistence and mobile-oriented UI development.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" width="220" alt="Weight Tracker dashboard">
+  <img src="docs/screenshots/progress.png" width="220" alt="Weight Tracker progress chart">
+  <img src="docs/screenshots/history.png" width="220" alt="Weight Tracker history">
+  <img src="docs/screenshots/settings.png" width="220" alt="Weight Tracker settings">
+</p>
+
 ## Features
 
 - Log, edit and delete weight entries
