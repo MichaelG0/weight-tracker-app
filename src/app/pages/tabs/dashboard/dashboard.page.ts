@@ -110,13 +110,11 @@ export class DashboardPage {
     const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart) : null;
 
     // prettier-ignore
-    const { maintRangePct = 1.0, scheduleToleranceWeeks = 2.0, rangeCap = kgToUnit(2.0, weightUnit), noiseFloor = kgToUnit(0.5, weightUnit)} = userSettings?.coaching ?? {};
-    let maintRange: number | null = null;
+    const maintRange = userSettings?.coaching.maintRange ?? null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
 
-    if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null) {
-      maintRange = Math.min(Math.max(goalWeight * (maintRangePct / 100), noiseFloor), rangeCap);
+    if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null && maintRange !== null) {
       maintOffset = rawTrend - goalWeight;
       // Map [maintRange, -maintRange] to [0%, 100%]
       maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
@@ -126,9 +124,12 @@ export class DashboardPage {
     let scheduleOffset: number | null = null;
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
+    const stallWeeks = goalType !== 'Maintenance' ? this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings) : 0;
+    const maintenanceOutOfRangeDays =
+      goalType === 'Maintenance' ? this.outOfRangeStreakWeeks(entriesAfterGoalStart, activeGoal, maintRange) : 0;
 
     if (goalType == 'Weight Loss' || (goalType == 'Weight Gain' && rawTrend !== null)) {
-      scheduleProjection = this.scheduleProjection(rawTrend, activeGoal, scheduleToleranceWeeks, noiseFloor, rangeCap);
+      scheduleProjection = this.scheduleProjection(rawTrend, activeGoal, userSettings);
       if (scheduleProjection) {
         scheduleRange = scheduleProjection.range;
         scheduleOffset = rawTrend! - scheduleProjection.projectedWeight;
@@ -170,7 +171,8 @@ export class DashboardPage {
         userSettings,
         scheduleProjection,
         goalReached,
-        this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings),
+        stallWeeks,
+        maintenanceOutOfRangeDays,
       ),
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntries(reversed),
@@ -258,12 +260,7 @@ export class DashboardPage {
     return `${sign}${formatWeight(diff, unitLabel)}`;
   }
 
-  private daysToGoal(
-    trendWeight: number | null,
-    goalWeight: number | null,
-    weeklyRate: number | null,
-    goalReached: boolean,
-  ): string | null {
+  private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null, goalReached: boolean): string | null {
     if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
     const remaining = goalWeight - trendWeight;
     if (goalReached) return '0 days';
@@ -412,17 +409,9 @@ export class DashboardPage {
   private scheduleProjection(
     trendWeight: number | null,
     activeGoal: Goal | null,
-    scheduleToleranceWeeks: number,
-    noiseFloor: number,
-    rangeCap: number,
+    userSettings: UserSettingsExtended | null,
   ): { projectedWeight: number; range: number } | null {
-    if (
-      trendWeight == null ||
-      !activeGoal ||
-      activeGoal.goalWeight == null ||
-      activeGoal.startWeight == null ||
-      activeGoal.type === 'Maintenance'
-    ) {
+    if (!trendWeight || !activeGoal || activeGoal.type === 'Maintenance' || !userSettings?.coaching) {
       return null;
     }
     console.log('Calculating schedule projection for trendWeight:', trendWeight, 'activeGoal:', activeGoal);
@@ -434,6 +423,11 @@ export class DashboardPage {
     const delta = activeGoal.goalWeight - activeGoal.startWeight;
     const projectedWeight = activeGoal.startWeight + delta * (elapsed / totalDuration);
     const totalDays = totalDuration / 86400000;
+    const {
+      scheduleToleranceWeeks = 2.0,
+      rangeCap = kgToUnit(2.0, userSettings.weightUnit),
+      noiseFloor = kgToUnit(0.5, userSettings.weightUnit),
+    } = userSettings?.coaching ?? {};
     const range = Math.min(Math.max(Math.abs(delta / totalDays) * scheduleToleranceWeeks * 7, noiseFloor), rangeCap);
 
     console.log('Schedule projection:', { projectedWeight, range });
@@ -446,7 +440,7 @@ export class DashboardPage {
    * the absolute trend change over that 7-day window is <= noiseFloorPct.
    */
   private stallWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, userSettings: UserSettingsExtended | null): number {
-    if (!activeGoal || entriesAfterGoalStart.length < 2 || !userSettings) return 0;
+    if (!activeGoal || entriesAfterGoalStart.length < 2 || !userSettings || activeGoal.type === 'Maintenance') return 0;
 
     const today = todayLocalMidnightMs();
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
@@ -481,6 +475,23 @@ export class DashboardPage {
     return weeks;
   }
 
+  private outOfRangeStreakWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, maintRange: number | null): number {
+    if (entriesAfterGoalStart.length < 2 || !activeGoal || !maintRange || maintRange <= 0 || activeGoal.type !== 'Maintenance') return 0;
+
+    const latest = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
+    if (Math.abs(latest.trend - activeGoal.goalWeight) <= maintRange) return 0;
+
+    let streakStartIndex = entriesAfterGoalStart.length - 1;
+    for (let i = entriesAfterGoalStart.length - 1; i >= 0; i--) {
+      if (Math.abs(entriesAfterGoalStart[i].trend - activeGoal.goalWeight) <= maintRange) break;
+      streakStartIndex = i;
+    }
+
+    const outOfRangeDays = Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStartIndex].dateMs) / 86400000));
+    console.log('Maintenance out-of-range days calculated:', outOfRangeDays);
+    return Math.floor(outOfRangeDays / 7);
+  }
+
   private closestEntry(entries: WeightEntry[], targetMs: number): WeightEntry | null {
     if (!entries.length) return null;
     return entries.reduce((best, e) => (Math.abs(e.dateMs - targetMs) < Math.abs(best.dateMs - targetMs) ? e : best));
@@ -495,6 +506,7 @@ export class DashboardPage {
     idealCurrentWeight: { projectedWeight: number; range: number } | null,
     goalReached: boolean,
     stallWeeks: number,
+    maintenanceOutOfRangeWeeks: number,
   ): string {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
@@ -507,7 +519,7 @@ export class DashboardPage {
     const goalType = activeGoal.type;
 
     // prettier-ignore
-    const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRangePct } = userSettings.coaching;
+    const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRange } = userSettings.coaching;
 
     const bwPct = Math.abs((rawWeeklyRate / trendWeight) * 100);
     const isGaining = rawWeeklyRate > 0.01;
@@ -573,8 +585,7 @@ export class DashboardPage {
             return `Loss rate exceeds ${maxLossRate}% BW/week and you're ${scheduleLabel} schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
           return (
-            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` +
-            customAdvice
+            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + customAdvice
           );
         }
 
@@ -627,8 +638,7 @@ export class DashboardPage {
             );
           }
           return (
-            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` +
-            customAdvice
+            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` + customAdvice
           );
         }
 
@@ -739,22 +749,21 @@ export class DashboardPage {
 
       // prettier-ignore
       case 'Maintenance': {
-        if (goalWeight == null || maintRangePct == null) {
+        if (goalWeight == null || maintRange == null || maintRange <= 0) {
           return 'No target weight set for maintenance. Keep logging to maintain current trends or set a clear goal.';
         }
 
         const offset = trendWeight - goalWeight;
-        const offsetPct = (offset / goalWeight) * 100;
-        const absOffsetPct = Math.abs(offsetPct);
+        const absOffset = Math.abs(offset);
         
         // Use 2/3 of the allowed range as the "early warning" threshold
-        const warnThresholdPct = maintRangePct * (2 / 3);
-        const isAbove = offsetPct > warnThresholdPct;
-        const isBelow = offsetPct < -warnThresholdPct;
+        const warnThreshold = maintRange * (2 / 3);
+        const isAbove = offset > warnThreshold;
+        const isBelow = offset < -warnThreshold;
         const onTarget = !isAbove && !isBelow;
 
         // True Out-of-Range breach
-        const isOutOfRange = absOffsetPct > maintRangePct;
+        const isOutOfRange = absOffset > maintRange;
 
         const movingAway = (isAbove && isGaining) || (isBelow && isLosing);
         const movingToward = (isAbove && isLosing) || (isBelow && isGaining);
@@ -768,17 +777,17 @@ export class DashboardPage {
         // Address absolute deviations first, regardless of speed
         if (isOutOfRange) {
           // --- Persistent drift escalation (maintenance) ---
-          if (!movingToward && stallWeeks >= 3) {
+          if (!movingToward && maintenanceOutOfRangeWeeks >= 3) {
             return isAbove
               ? 'Weight has sat above your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.'
               : 'Weight has sat below your target for 3+ weeks. Your maintenance calories may have shifted — consider recalculating your baseline or adjusting your target weight to match your current lifestyle.';
           }
-          if (!movingToward && stallWeeks >= 2) {
+          if (!movingToward && maintenanceOutOfRangeWeeks >= 2) {
             return isAbove
               ? 'Weight has been stuck above target for two weeks. Before making calorie cuts, check for consistency gaps — weekend eating, alcohol, or stress-related snacking may be the culprit.'
               : 'Weight has been stuck below target for two weeks. Check whether you are consistently eating enough — skipped meals, busy days, or underfueling around workouts may be holding you back.';
           }
-          // --- Out of range for less then 2 weeks ---
+          // --- Out of range for less than 2 weeks ---
           if (movingToward) {
             return isAbove
               ? 'Weight is outside your target zone but successfully heading back down. Stay the course — no drastic changes needed until you are back in range.'

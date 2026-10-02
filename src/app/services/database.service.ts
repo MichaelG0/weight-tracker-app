@@ -92,6 +92,7 @@ export interface UserSettings {
 export interface UserSettingsExtended extends UserSettings {
   coaching: {
     maintRangePct: number;
+    maintRange: number;
     scheduleToleranceWeeks: number;
     rangeCap: number;
     noiseFloor: number;
@@ -292,7 +293,7 @@ export class DatabaseService {
     const settings = this.settings();
     const activeGoal = this.activeGoal();
     if (!settings) return null;
-    return { ...settings, coaching: this.computeCoaching(settings, activeGoal?.type ?? null) };
+    return { ...settings, coaching: this.computeCoaching(settings, activeGoal ?? null) };
   });
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
@@ -497,7 +498,7 @@ export class DatabaseService {
 
   // ── Utils ─────────────────────────────────────────────────────────
 
-  private computeCoaching(settings: UserSettings, goalType: GoalType | null): UserSettingsExtended['coaching'] {
+  private computeCoaching(settings: UserSettings, activeGoal: Goal | null): UserSettingsExtended['coaching'] {
     const weightUnit = settings.weightUnit;
     const isFemale = settings.gender === 'Female';
 
@@ -558,9 +559,9 @@ export class DatabaseService {
     }
 
     if (settings.bodyType === 'Endomorph') {
-      if (goalType === 'Weight Gain') customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
+      if (activeGoal?.type === 'Weight Gain') customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
     } else if (settings.bodyType === 'Ectomorph') {
-      if (goalType === 'Weight Gain')
+      if (activeGoal?.type === 'Weight Gain')
         customAdvice =
           ' You may have a highly adaptive metabolism. If the scale refuses to move, rely on calorie-dense foods like nuts, oils, and liquid calories.';
     }
@@ -575,11 +576,16 @@ export class DatabaseService {
     const minorSurplusStep = Math.round(surplusStep * 0.6);
     const maintMinorStep = Math.max(100, Math.min(minorDeficitStep, 150));
 
+    const rangeCap = kgToUnit(rangeCapKg, weightUnit);
+    const noiseFloor = kgToUnit(noiseFloorKg, weightUnit);
+    const maintRange = activeGoal?.goalWeight ? Math.min(Math.max(activeGoal?.goalWeight * (maintRangePct / 100), noiseFloor), rangeCap) : 0;
+
     return {
       maintRangePct,
+      maintRange,
       scheduleToleranceWeeks,
-      rangeCap: kgToUnit(rangeCapKg, weightUnit),
-      noiseFloor: kgToUnit(noiseFloorKg, weightUnit),
+      rangeCap,
+      noiseFloor,
       maxLossRate,
       idealLossFloorPct: maxLossRate * 0.5,
       steadyLossFloorPct: maxLossRate * 0.25,

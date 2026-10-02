@@ -151,6 +151,7 @@ export class ProgressPage {
       const showDaily = this.showDaily();
       const showTrend = this.showTrend();
       const unitLbl = this.weightUnit();
+      const maintRange = this.db.extendedSettings()?.coaching.maintRange ?? 0;
       const today = todayLocalMidnightDate();
       const todayMs = today.getTime();
       this.cssTheme.isDarkMode(); // Trigger re-render on theme change
@@ -170,7 +171,7 @@ export class ProgressPage {
         return;
       }
 
-      this.renderChart(canvas, filteredEntries, filteredGoals, range, showDaily, showTrend, unitLbl, today, todayMs);
+      this.renderChart(canvas, filteredEntries, filteredGoals, maintRange, range, showDaily, showTrend, unitLbl, today, todayMs);
     });
   }
 
@@ -250,6 +251,7 @@ export class ProgressPage {
     canvas: HTMLCanvasElement,
     entries: WeightEntry[],
     goals: Goal[],
+    maintRange: number,
     range: RangeMode,
     showDaily: boolean,
     showTrend: boolean,
@@ -261,7 +263,6 @@ export class ProgressPage {
 
     const dots: Pt[] = entries.map(e => ({ x: e.dateMs, y: e.weight }));
     const trendLine: Pt[] = this.getTrendLine(entries);
-    const maintRange = kgToUnit(0.907186, unitLbl);
     const guideDatasets = this.buildGuideDatasets(goals, colors, maintRange);
     const bounds = this.getBounds(entries, goals, range, maintRange, unitLbl, todayMs);
 
