@@ -399,6 +399,17 @@ export class DatabaseService {
     );
   }
 
+  // ── Weight entries - DERIVED ────────────────────────────────────────────────────────
+
+  /** Trend of the most recent entry on or before `date` (YYYY-MM-DD), or null if there is none. */
+  trendOnOrBefore(date: string): number | null {
+    const entries = this.entries();
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].date.substring(0, 10) <= date) return entries[i].trend;
+    }
+    return null;
+  }
+
   // ── User settings ─────────────────────────────────────────────────────────
 
   // Upserts the single settings row (user_id = 1).
@@ -494,15 +505,6 @@ export class DatabaseService {
         map(() => undefined),
       ),
     );
-  }
-
-  /** Trend of the most recent entry on or before `date` (YYYY-MM-DD), or null if there is none. */
-  trendOnOrBefore(date: string): number | null {
-    const entries = this.entries();
-    for (let i = entries.length - 1; i >= 0; i--) {
-      if (entries[i].date.substring(0, 10) <= date) return entries[i].trend;
-    }
-    return null;
   }
 
   // ── Utils ─────────────────────────────────────────────────────────

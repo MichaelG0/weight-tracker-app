@@ -15,8 +15,8 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { closeOutline, refreshOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalDB, GoalType, WeightUnit } from 'src/app/services/database.service';
+import { closeOutline, refreshOutline, sparklesOutline } from 'ionicons/icons';
+import { DatabaseService, Goal, GoalDB, GoalType, UserSettingsExtended, WeightUnit } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
@@ -39,8 +39,8 @@ import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/d
     IonItem,
     IonInput,
     IonToggle,
-    PureFnPipe
-],
+    PureFnPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SetGoalModalComponent implements OnInit {
@@ -53,6 +53,7 @@ export class SetGoalModalComponent implements OnInit {
   useCustomEndDate = false;
   weeklyRate = 0.5;
   readonly weightUnit: Signal<WeightUnit> = this.db.weightUnit;
+  readonly extendedSettings: Signal<UserSettingsExtended | null> = this.db.extendedSettings;
 
   readonly formData = {
     startWeight: null as number | null,
@@ -63,12 +64,13 @@ export class SetGoalModalComponent implements OnInit {
   };
 
   constructor() {
-    addIcons({ closeOutline, refreshOutline });
+    addIcons({ closeOutline, refreshOutline, sparklesOutline });
   }
 
   ngOnInit(): void {
     if (!this.isEditing) {
       this.formData.startDate = this.getDefaultStartDate();
+      this.weeklyRate = this.minimumRecommendedRate(this.formData.type);
     }
 
     this.refreshStartWeight();
@@ -106,11 +108,7 @@ export class SetGoalModalComponent implements OnInit {
     if (this.formData.type === 'Maintenance') {
       this.formData.weight = this.formData.startWeight;
     } else if (!this.goal) {
-      if (this.formData.type === 'Weight Gain') {
-        this.weeklyRate = 0.25;
-      } else {
-        this.weeklyRate = 0.5;
-      }
+      this.weeklyRate = this.minimumRecommendedRate(this.formData.type);
     }
     this.recalculateEndDate();
   }
@@ -213,12 +211,32 @@ export class SetGoalModalComponent implements OnInit {
     return lastEnd > today ? lastEnd : todayForForm;
   }
 
+  private minimumRecommendedRate(goalType: GoalType): number {
+    const coaching = this.db.extendedSettings()?.coaching;
+    if (goalType === 'Weight Gain') return coaching?.idealGainFloorPct ?? 0.25;
+    return coaching?.idealLossFloorPct ?? 0.5;
+  }
+
   // ── Piped Methods ───────────────────────────────────────────────────────
 
-  getSpeedLabel = (label: GoalType): string => {
-    if (label === 'Weight Loss') return 'Rate (%/week) — recommended: 0.5–1.0';
-    if (label === 'Weight Gain') return 'Rate (%/week) — recommended: 0.25–0.5';
-    return 'Rate (%/week)';
+  getRecommendedRateText = (goalType: GoalType, settings: UserSettingsExtended | null): string | null => {
+    const coaching = settings?.coaching;
+    if (!coaching) return null;
+
+    let low: number;
+    let high: number;
+    if (goalType === 'Weight Loss') {
+      low = coaching.idealLossFloorPct;
+      high = coaching.maxLossRate;
+    } else if (goalType === 'Weight Gain') {
+      low = coaching.idealGainFloorPct;
+      high = coaching.idealGainCeilingPct;
+    } else {
+      return null;
+    }
+
+    const fmt = (n: number) => parseFloat(n.toFixed(2));
+    return `Based on your profile, we recommend a rate of ${fmt(low)}% to ${fmt(high)}% of your body weight per week.`;
   };
 
   getWeightDirectionError = (weight: number | null, startWeight: number | null, label: GoalType): string => {

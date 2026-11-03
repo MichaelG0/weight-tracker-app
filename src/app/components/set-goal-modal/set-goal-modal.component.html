@@ -8,18 +8,9 @@
   <form #goalForm="ngForm" (ngSubmit)="submit()">
     <ion-list lines="none" class="goal-form-list">
       <div class="goal-type-chips">
-        <ion-chip
-          [class.selected]="formData.type === 'Weight Loss'"
-          (click)="selectGoalType('Weight Loss')"
-        >Weight Loss</ion-chip>
-        <ion-chip
-          [class.selected]="formData.type === 'Weight Gain'"
-          (click)="selectGoalType('Weight Gain')"
-        >Weight Gain</ion-chip>
-        <ion-chip
-          [class.selected]="formData.type === 'Maintenance'"
-          (click)="selectGoalType('Maintenance')"
-        >Maintenance</ion-chip>
+        <ion-chip [class.selected]="formData.type === 'Weight Loss'" (click)="selectGoalType('Weight Loss')">Weight Loss</ion-chip>
+        <ion-chip [class.selected]="formData.type === 'Weight Gain'" (click)="selectGoalType('Weight Gain')">Weight Gain</ion-chip>
+        <ion-chip [class.selected]="formData.type === 'Maintenance'" (click)="selectGoalType('Maintenance')">Maintenance</ion-chip>
       </div>
 
       <ion-item>
@@ -73,7 +64,7 @@
         ></ion-input>
       </ion-item>
 
-      @if (formData.weight | pureFn:getWeightDirectionError:formData.startWeight:formData.type; as wdError) {
+      @if (formData.weight | pureFn: getWeightDirectionError : formData.startWeight : formData.type; as wdError) {
         @if (goalForm.controls['weight']?.touched && goalForm.controls['weight']?.dirty) {
           <p class="error-msg">{{ wdError }}</p>
         }
@@ -85,7 +76,7 @@
             type="number"
             inputmode="decimal"
             placeholder="0.0"
-            [label]="formData.type | pureFn:getSpeedLabel"
+            label="Rate (%/week)"
             labelPlacement="stacked"
             step="0.05"
             name="weeklyRate"
@@ -98,10 +89,17 @@
           ></ion-input>
         </ion-item>
 
+        @if (formData.type | pureFn: getRecommendedRateText : extendedSettings(); as recommendation) {
+          <div class="rate-badge">
+            <ion-icon name="sparkles-outline"></ion-icon>
+            <span>{{ recommendation }}</span>
+          </div>
+        }
+
         <ion-item class="toggle-item">
-          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ionChange)="onCustomEndDateToggle()"
-            >Custom end date</ion-toggle
-          >
+          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ionChange)="onCustomEndDateToggle()">
+            Custom end date
+          </ion-toggle>
         </ion-item>
       }
 
@@ -117,14 +115,14 @@
         ></ion-input>
       </ion-item>
 
-      @if (formData.startDate | pureFn:getDateError:formData.endDate; as dtError) {
+      @if (formData.startDate | pureFn: getDateError : formData.endDate; as dtError) {
         @if (goalForm.controls['endDate']?.touched && goalForm.controls['endDate']?.dirty) {
           <p class="error-msg">{{ dtError }}</p>
         }
       }
     </ion-list>
 
-    @if (formData.startDate | pureFn:getOverlapError:formData.endDate; as olError) {
+    @if (formData.startDate | pureFn: getOverlapError : formData.endDate; as olError) {
       <p class="error-msg">{{ olError }}</p>
     }
 
