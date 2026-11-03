@@ -19,6 +19,10 @@ ion-content {
   background: var(--ion-color-step-50);
 }
 
+ion-list {
+  padding: 0;
+}
+
 .log-weight-form {
   display: flex;
   flex-direction: column;
