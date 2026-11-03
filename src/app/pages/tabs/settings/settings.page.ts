@@ -75,7 +75,7 @@ export class SettingsPage {
   private modalCtrl = inject(ModalController);
 
   name = this.db.settings()?.name ?? '';
-  age: number | null = this.db.settings()?.age ?? null;
+  birthDate = this.db.settings()?.birthDate ?? '';
   gender = this.db.settings()?.gender ?? '';
   heightCm: number | null = this.db.settings()?.heightCm ?? null;
   heightFt: number | null = null;
@@ -123,7 +123,7 @@ export class SettingsPage {
   saveSettings(): void {
     const settings: Omit<UserSettingsDB, 'user_id'> = {
       name: this.name || undefined,
-      age: this.age ?? undefined,
+      birth_date: this.birthDate || undefined,
       gender: this.gender || undefined,
       weight_unit: this.weightUnit,
       height_unit: this.heightUnit,

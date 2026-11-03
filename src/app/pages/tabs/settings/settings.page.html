@@ -48,11 +48,10 @@
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
           <ion-input
-            label="Age"
+            label="Birth date"
             labelPlacement="stacked"
-            type="number"
-            placeholder="Years"
-            [(ngModel)]="age"
+            type="date"
+            [(ngModel)]="birthDate"
             (ionBlur)="saveSettings()"
           ></ion-input>
         </ion-item>

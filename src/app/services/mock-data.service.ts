@@ -7,9 +7,9 @@ import { GoalDB } from './database.service';
 export class MockDataService {
   async seed(db: SQLiteDBConnection): Promise<void> {
     await db.run(
-      `INSERT INTO user_settings (user_id, name, age, height_cm, experience)
+      `INSERT INTO user_settings (user_id, name, birth_date, height_cm, experience)
        VALUES (1, ?, ?, ?, ?)`,
-      ['Michael', 31, 178, 'Advanced'],
+      ['Michael', '1994-08-19', 178, 'Advanced'],
     );
 
     const mockGoals: Omit<GoalDB, 'id'>[] = [

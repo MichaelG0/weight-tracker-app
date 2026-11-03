@@ -5,7 +5,7 @@ import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, ftInToCm, unitToKgFixed, kgToUnit } from '../utils/unit-conversion.util';
-import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
+import { ageFromBirthDate, todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 
@@ -30,7 +30,7 @@ export interface GoalDB {
 export interface UserSettingsDB {
   user_id: number;
   name?: string;
-  age?: number;
+  birth_date?: string; // YYYY-MM-DD
   gender?: string;
   height_cm?: number;
   heightFtIn?: HeightFtIn;
@@ -78,7 +78,7 @@ export interface Goal {
 
 export interface UserSettings {
   name?: string;
-  age?: number;
+  birthDate?: string; // YYYY-MM-DD
   gender?: string;
   heightCm?: number;
   heightFtIn?: HeightFtIn;
@@ -125,7 +125,7 @@ const MIGRATIONS = `
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id        INTEGER PRIMARY KEY,
     name           TEXT,
-    age            INTEGER,
+    birth_date     TEXT,
     gender         TEXT,
     height_cm      REAL,
     weight_unit    TEXT DEFAULT 'kg',
@@ -217,7 +217,7 @@ export class DatabaseService {
       if (!settings) return null;
       const converted: UserSettings = {
         name: settings.name,
-        age: settings.age,
+        birthDate: settings.birth_date,
         gender: settings.gender,
         heightCm: settings.height_cm,
         heightFtIn: settings.height_cm ? cmToFtIn(settings.height_cm) : undefined,
@@ -307,6 +307,7 @@ export class DatabaseService {
     this.db = await this.sqlite.createConnection('weight_tracker', false, 'no-encryption', 1, false);
     await this.db.open();
     await this.db.execute(MIGRATIONS);
+    await this.migrateAgeToBirthDate();
 
     if (!environment.production) {
       await this.mockData.seed(this.db);
@@ -318,6 +319,18 @@ export class DatabaseService {
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
+
+  // Existing databases still have the old `age` column: swap it for `birth_date`.
+  private async migrateAgeToBirthDate(): Promise<void> {
+    const info = await this.db.query(`PRAGMA table_info(user_settings)`);
+    const columns = (info.values ?? []).map(c => c.name);
+    if (!columns.includes('birth_date')) {
+      await this.db.execute(`ALTER TABLE user_settings ADD COLUMN birth_date TEXT`);
+    }
+    if (columns.includes('age')) {
+      await this.db.execute(`ALTER TABLE user_settings DROP COLUMN age`);
+    }
+  }
 
   // Gates any operation on DB readiness. Swap the inner Observable for HTTP
   // calls when migrating to a backend — the public API stays identical.
@@ -418,11 +431,11 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, name, age, gender, height_cm, weight_unit, height_unit, activity_level, experience, body_type)
+          `INSERT INTO user_settings (user_id, name, birth_date, gender, height_cm, weight_unit, height_unit, activity_level, experience, body_type)
              VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
              name           = excluded.name,
-             age            = excluded.age,
+             birth_date     = excluded.birth_date,
              gender         = excluded.gender,
              height_cm      = excluded.height_cm,
              weight_unit    = excluded.weight_unit,
@@ -432,7 +445,7 @@ export class DatabaseService {
              body_type      = excluded.body_type`,
           [
             settings.name ?? null,
-            settings.age ?? null,
+            settings.birth_date ?? null,
             settings.gender ?? null,
             heightCm,
             settings.weight_unit ?? 'kg',
@@ -578,7 +591,8 @@ export class DatabaseService {
           ' You may have a highly adaptive metabolism. If the scale refuses to move, rely on calorie-dense foods like nuts, oils, and liquid calories.';
     }
 
-    if (settings.age != null && settings.age >= 50) {
+    const age = ageFromBirthDate(settings.birthDate);
+    if (age != null && age >= 50) {
       maxLossRate = Math.min(maxLossRate, 0.7);
       deficitStep = Math.min(deficitStep, 150);
       customAdvice = customAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
