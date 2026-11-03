@@ -113,6 +113,7 @@ export class ProgressPage {
 
   readonly allEntries = this.db.entries;
   readonly goals = this.db.goals;
+  readonly goalsReversed = computed(() => [...this.goals()].reverse());
   readonly weightUnit = this.db.weightUnit;
   readonly activeGoal = this.db.activeGoal;
   readonly selectedDateMs = signal<number | null>(null);

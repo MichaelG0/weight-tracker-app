@@ -125,7 +125,7 @@
         </ion-button>
       </div>
       <ion-list lines="none">
-        @for (goal of goals(); track goal.id) {
+        @for (goal of goalsReversed(); track goal.id) {
           <ion-item-sliding #slidingItem appDeckCardOptions>
             <ion-item class="goal-item" button (click)="openSetGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>

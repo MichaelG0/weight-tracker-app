@@ -496,6 +496,15 @@ export class DatabaseService {
     );
   }
 
+  /** Trend of the most recent entry on or before `date` (YYYY-MM-DD), or null if there is none. */
+  trendOnOrBefore(date: string): number | null {
+    const entries = this.entries();
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].date.substring(0, 10) <= date) return entries[i].trend;
+    }
+    return null;
+  }
+
   // ── Utils ─────────────────────────────────────────────────────────
 
   private computeCoaching(settings: UserSettings, activeGoal: Goal | null): UserSettingsExtended['coaching'] {
@@ -559,7 +568,8 @@ export class DatabaseService {
     }
 
     if (settings.bodyType === 'Endomorph') {
-      if (activeGoal?.type === 'Weight Gain') customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
+      if (activeGoal?.type === 'Weight Gain')
+        customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
     } else if (settings.bodyType === 'Ectomorph') {
       if (activeGoal?.type === 'Weight Gain')
         customAdvice =

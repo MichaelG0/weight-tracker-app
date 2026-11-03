@@ -67,11 +67,11 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.refreshStartWeight();
-
     if (!this.isEditing) {
       this.formData.startDate = this.getDefaultStartDate();
     }
+
+    this.refreshStartWeight();
 
     if (this.goal) {
       this.isEditing = true;
@@ -93,7 +93,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   refreshStartWeight(): void {
-    this.formData.startWeight = parseFloat(formatWeight(this.db.latestEntry()?.trend ?? 0, this.weightUnit()));
+    this.formData.startWeight = parseFloat(formatWeight(this.db.trendOnOrBefore(this.formData.startDate) ?? 0, this.weightUnit()));
     this.onStartWeightChange();
   }
 
