@@ -71,29 +71,30 @@
       }
 
       @if (formData.type !== 'Maintenance') {
-        <ion-item>
-          <ion-input
-            type="number"
-            inputmode="decimal"
-            placeholder="0.0"
-            label="Rate (%/week)"
-            labelPlacement="stacked"
-            step="0.05"
-            name="weeklyRate"
-            [(ngModel)]="weeklyRate"
-            (ionChange)="recalculateEndDate()"
-            (ionInput)="recalculateEndDate()"
-            required
-            (keydown)="filterKey($event)"
-            [disabled]="useCustomEndDate"
-          ></ion-input>
-        </ion-item>
+        @if (!useCustomEndDate) {
+          <ion-item>
+            <ion-input
+              type="number"
+              inputmode="decimal"
+              placeholder="0.0"
+              label="Rate (%/week)"
+              labelPlacement="stacked"
+              step="0.05"
+              name="weeklyRate"
+              [(ngModel)]="weeklyRate"
+              (ionChange)="recalculateEndDate()"
+              (ionInput)="recalculateEndDate()"
+              required
+              (keydown)="filterKey($event)"
+            ></ion-input>
+          </ion-item>
 
-        @if (formData.type | pureFn: getRecommendedRateText : extendedSettings(); as recommendation) {
-          <div class="rate-badge">
-            <ion-icon name="sparkles-outline"></ion-icon>
-            <span>{{ recommendation }}</span>
-          </div>
+          @if (formData.type | pureFn: getRecommendedRateText : extendedSettings(); as recommendation) {
+            <div class="rate-badge">
+              <ion-icon name="sparkles-outline"></ion-icon>
+              <span>{{ recommendation }}</span>
+            </div>
+          }
         }
 
         <ion-item class="toggle-item">
