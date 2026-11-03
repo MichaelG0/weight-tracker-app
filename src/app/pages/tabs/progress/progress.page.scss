@@ -7,7 +7,7 @@ section.stats-row {
   align-items: center;
   gap: 10px;
   margin: 0 18px;
-  
+
   .stat-card {
     display: flex;
     flex-direction: column;
@@ -36,7 +36,6 @@ section.stats-row {
         color: var(--ion-color-tertiary);
       }
       &.stat-trend-value {
-        font-size: 1.15rem;
         color: var(--ion-color-secondary);
       }
       &.stat-goal-value {
@@ -61,6 +60,8 @@ section.stats-row {
     }
 
     &.stat-goal-card-empty {
+      padding-bottom: 0;
+
       ion-button {
         margin: 0;
         margin-top: 2px;
@@ -76,10 +77,10 @@ section.stats-row {
         }
       }
 
-      .stat-date {
-        color: var(--ion-color-primary);
-        font-weight: 700;
-      }
+      // .stat-date {
+      //   color: var(--ion-color-primary);
+      //   font-weight: 700;
+      // }
     }
   }
 }
