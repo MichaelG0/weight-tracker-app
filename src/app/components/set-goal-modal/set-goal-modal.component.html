@@ -35,15 +35,23 @@
 
       <ion-item>
         <ion-input
-          type="date"
+          id="start-date-trigger"
           label="Start Date"
           labelPlacement="stacked"
-          name="startDate"
-          [(ngModel)]="formData.startDate"
-          (ionChange)="recalculateEndDate()"
-          (ionInput)="recalculateEndDate()"
-          required
+          placeholder="Select date"
+          [readonly]="true"
+          [value]="formData.startDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
         ></ion-input>
+        <ion-modal #startDateModal class="date-modal" trigger="start-date-trigger">
+          <ng-template>
+            <ion-datetime
+              presentation="date"
+              [value]="formData.startDate"
+              [showDefaultButtons]="true"
+              (ionChange)="onStartDateChange($event)"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
       </ion-item>
 
       <ion-item [class.input-disabled]="formData.type === 'Maintenance'">
@@ -106,20 +114,27 @@
 
       <ion-item [class.input-disabled]="!useCustomEndDate && formData.type !== 'Maintenance'">
         <ion-input
-          type="date"
+          id="end-date-trigger"
           label="End Date"
           labelPlacement="stacked"
-          name="endDate"
-          [(ngModel)]="formData.endDate"
-          [readonly]="!useCustomEndDate && formData.type !== 'Maintenance'"
-          required
+          placeholder="End date"
+          [readonly]="true"
+          [value]="formData.endDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
         ></ion-input>
+        <ion-modal #endDateModal class="date-modal" trigger="end-date-trigger">
+          <ng-template>
+            <ion-datetime
+              presentation="date"
+              [value]="formData.endDate"
+              [showDefaultButtons]="true"
+              (ionChange)="onEndDateChange($event)"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
       </ion-item>
 
       @if (formData.startDate | pureFn: getDateError : formData.endDate; as dtError) {
-        @if (goalForm.controls['endDate']?.touched && goalForm.controls['endDate']?.dirty) {
-          <p class="error-msg">{{ dtError }}</p>
-        }
+        <p class="error-msg">{{ dtError }}</p>
       }
     </ion-list>
 

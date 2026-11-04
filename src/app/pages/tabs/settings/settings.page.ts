@@ -11,6 +11,8 @@ import {
   IonToggle,
   IonIcon,
   IonInput,
+  IonModal,
+  IonDatetime,
   IonChip,
   IonButton,
   ModalController,
@@ -43,9 +45,10 @@ import {
 } from 'ionicons/icons';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { take } from 'rxjs/operators';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
+import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
+import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 @Component({
   selector: 'app-settings',
@@ -63,9 +66,12 @@ import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/
     IonToggle,
     IonIcon,
     IonInput,
+    IonModal,
+    IonDatetime,
     IonChip,
     IonButton,
     GlassHeaderBackdropDirective,
+    FormatDatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -89,6 +95,7 @@ export class SettingsPage {
   readonly activityLevels: ActivityLevel[] = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
   readonly experienceLevels: Experience[] = ['Beginner', 'Intermediate', 'Advanced'];
   readonly bodyTypes: BodyType[] = ['Ectomorph', 'Mesomorph', 'Endomorph'];
+  readonly maxBirthDate = todayLocalMidnightString();
 
   constructor() {
     addIcons({
@@ -139,6 +146,12 @@ export class SettingsPage {
     }
 
     this.db.saveSettings(settings).pipe(take(1)).subscribe();
+  }
+
+  onBirthDateChange(event: CustomEvent): void {
+    const value = event.detail.value;
+    this.birthDate = typeof value === 'string' ? value.substring(0, 10) : '';
+    this.saveSettings();
   }
 
   setGender(value: string): void {

@@ -5,9 +5,10 @@ import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, ftInToCm, unitToKgFixed, kgToUnit } from '../utils/unit-conversion.util';
-import { ageFromBirthDate, todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
+import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
+import { ageFromBirthDate } from '../utils/age-calculator.util';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
 

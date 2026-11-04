@@ -48,12 +48,25 @@
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
           <ion-input
+            id="birth-date-trigger"
             label="Birth date"
             labelPlacement="stacked"
-            type="date"
-            [(ngModel)]="birthDate"
-            (ionBlur)="saveSettings()"
+            placeholder="Select date"
+            [readonly]="true"
+            [value]="birthDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
           ></ion-input>
+          <ion-modal #birthDateModal class="date-modal" trigger="birth-date-trigger">
+            <ng-template>
+              <ion-datetime
+                presentation="date"
+                min="1900-01-01"
+                [max]="maxBirthDate"
+                [value]="birthDate"
+                [showDefaultButtons]="true"
+                (ionChange)="onBirthDateChange($event)"
+              ></ion-datetime>
+            </ng-template>
+          </ion-modal>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">

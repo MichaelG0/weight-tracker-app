@@ -283,6 +283,15 @@ ion-toast {
   }
 }
 
+// ── Date Picker Modal ─────────────────────────────────────────────────────────
+
+ion-modal.date-modal {
+  --width: fit-content;
+  --min-width: 250px;
+  --height: fit-content;
+  --border-radius: 16px;
+}
+
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 .empty-state {

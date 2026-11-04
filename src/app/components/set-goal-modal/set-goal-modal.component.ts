@@ -4,11 +4,13 @@ import {
   IonButton,
   IonChip,
   IonContent,
+  IonDatetime,
   IonHeader,
   IonIcon,
   IonInput,
   IonItem,
   IonList,
+  IonModal,
   IonTitle,
   IonToggle,
   IonToolbar,
@@ -21,6 +23,7 @@ import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
+import { FormatDatePipe } from '../../pipes/format-date.pipe';
 
 @Component({
   selector: 'app-set-goal-modal',
@@ -39,7 +42,10 @@ import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/d
     IonItem,
     IonInput,
     IonToggle,
+    IonDatetime,
+    IonModal,
     PureFnPipe,
+    FormatDatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -118,6 +124,15 @@ export class SetGoalModalComponent implements OnInit {
       this.formData.weight = this.formData.startWeight;
     }
     this.recalculateEndDate();
+  }
+
+  onStartDateChange(event: CustomEvent): void {
+    this.formData.startDate = event.detail.value;
+    this.recalculateEndDate();
+  }
+
+  onEndDateChange(event: CustomEvent): void {
+    this.formData.endDate = event.detail.value;
   }
 
   onCustomEndDateToggle(): void {
