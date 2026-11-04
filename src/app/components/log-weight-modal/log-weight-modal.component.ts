@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   ElementRef,
@@ -18,7 +17,6 @@ import {
   IonContent,
   IonDatetime,
   IonHeader,
-  IonInput,
   IonItem,
   IonList,
   IonTextarea,
@@ -29,10 +27,9 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
-import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
+import { WeightPickerComponent } from 'src/app/components/weight-picker/weight-picker.component';
 import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
-import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -46,24 +43,20 @@ import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
     IonTitle,
     IonButton,
     IonContent,
-    IonInput,
     IonTextarea,
     IonDatetime,
     IonList,
     IonItem,
-    FormatWeightPipe
-],
+    WeightPickerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LogWeightModalComponent implements OnInit, AfterViewInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
-  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
-
-  readonly weightUnit = this.db.weightUnit;
-  readonly weightLabel = computed(() => `Weight (${this.db.weightUnit()})`);
+  @ViewChild(WeightPickerComponent) weightPicker!: WeightPickerComponent;
 
   private readonly entriesByDate: Signal<Map<string, WeightEntry>> = computed(() => {
     const map = new Map<string, WeightEntry>();
@@ -102,6 +95,10 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
     requestAnimationFrame(() => {
       this.injectDotStyles();
     });
+  }
+
+  ionViewDidEnter(): void {
+    this.weightPicker.scrollToValue();
   }
 
   private injectDotStyles(): void {
@@ -154,21 +151,6 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
       this.formData.existingEntryId = null;
       this.formData.weight = null;
       this.formData.notes = '';
-    }
-  }
-
-  async openWeightPicker(): Promise<void> {
-    const modal = await this.modalCtrl.create({
-      component: WeightPickerModalComponent,
-      componentProps: { value: this.formData.weight },
-      cssClass: 'weight-picker-modal',
-    });
-    await modal.present();
-
-    const { data, role } = await modal.onDidDismiss<number | null>();
-    if (role === 'confirm' && data != null) {
-      this.formData.weight = data;
-      this.cdr.markForCheck();
     }
   }
 

@@ -1,0 +1,88 @@
+$item-height: 44px;
+$visible-items: 5;
+
+:host {
+  display: block;
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.wheel {
+  position: relative;
+  height: calc(#{$item-height} * #{$visible-items});
+  width: 120px;
+  mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+}
+
+.wheel-highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: $item-height;
+  transform: translateY(-50%);
+  border-radius: 12px;
+  background: var(--list-item-background);
+  pointer-events: none;
+}
+
+.wheel-column {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  // Top/bottom padding lets the first and last items reach the centre of the wheel.
+  padding-block: calc((#{$visible-items} - 1) / 2 * #{$item-height});
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &.whole {
+    text-align: right;
+  }
+
+  &.fraction {
+    text-align: left;
+  }
+}
+
+.wheel-item {
+  height: $item-height;
+  line-height: $item-height;
+  padding: 0 16px;
+  scroll-snap-align: center;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--ion-color-step-500);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color 0.15s ease;
+
+  &.active {
+    color: var(--ion-text-color);
+    font-weight: 800;
+  }
+}
+
+.separator {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--ion-text-color);
+}
+
+.unit {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ion-color-step-600);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

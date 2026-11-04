@@ -6,20 +6,13 @@
 
 <ion-content class="ion-padding">
   <form #logForm="ngForm" (ngSubmit)="save(logForm)" class="log-weight-form">
-    <ion-list lines="none" class="log-form-list">
-      <ion-item>
-        <ion-input
-          placeholder="0.0"
-          [label]="weightLabel()"
-          labelPlacement="stacked"
-          name="weight"
-          [ngModel]="formData.weight | formatWeight: weightUnit()"
-          readonly
-          required
-          (click)="openWeightPicker()"
-        ></ion-input>
-      </ion-item>
-    </ion-list>
+    <div class="weight-wrap">
+      <p class="field-label">Weight</p>
+      <app-weight-picker
+        [value]="formData.weight"
+        (weightChange)="formData.weight = $event"
+      ></app-weight-picker>
+    </div>
 
     <div class="date-wrap">
       <p class="field-label">Date</p>
@@ -52,7 +45,7 @@
       </ion-item>
     </ion-list>
 
-    <ion-button type="submit" expand="block" shape="round" color="primary" class="submit-btn" [disabled]="logForm.invalid">
+    <ion-button type="submit" expand="block" shape="round" color="primary" class="submit-btn" [disabled]="logForm.invalid || !formData.weight">
       Save
     </ion-button>
   </form>

@@ -5,29 +5,7 @@
 </ion-header>
 
 <div class="picker-body">
-  <div class="picker">
-    <div class="wheel">
-      <div class="wheel-highlight"></div>
-      <div #wholeCol class="wheel-column whole" (scroll)="onWholeScroll($event)">
-        @for (n of wholeOptions; track n) {
-          <div class="wheel-item" [class.active]="n === whole()" (click)="selectWhole(n)">{{ n }}</div>
-        }
-      </div>
-    </div>
-
-    <span class="separator">.</span>
-
-    <div class="wheel">
-      <div class="wheel-highlight"></div>
-      <div #fractionCol class="wheel-column fraction" (scroll)="onFractionScroll($event)">
-        @for (label of fractionOptions; track $index; let n = $index) {
-          <div class="wheel-item" [class.active]="n === fraction()" (click)="selectFraction(n)">{{ label }}</div>
-        }
-      </div>
-    </div>
-
-    <p class="unit">{{ unit() }}</p>
-  </div>
+  <app-weight-picker [value]="value"></app-weight-picker>
 
   <ion-buttons>
     <ion-button color="primary" (click)="cancel()">Cancel</ion-button>
