@@ -23,6 +23,16 @@ ion-list {
   padding: 0;
 }
 
+ion-input,
+ion-select,
+ion-textarea {
+  font-weight: 600;
+}
+
+ion-textarea ::ng-deep .native-textarea {
+  font-weight: 400;
+}
+
 .log-weight-form {
   display: flex;
   flex-direction: column;
@@ -41,10 +51,6 @@ ion-list {
     --padding-start: 16px;
     --inner-padding-end: 16px;
   }
-
-  ion-textarea {
-    font-size: 0.9rem;
-  }
 }
 
 .field-label {
@@ -61,14 +67,6 @@ ion-list {
 .weight-wrap {
   border-radius: 14px;
   padding: 16px 0;
-}
-
-.date-wrap {
-  ion-datetime {
-    --background: var(--ion-color-step-100);
-    border-radius: 14px;
-    width: 100%;
-  }
 }
 
 .submit-btn {

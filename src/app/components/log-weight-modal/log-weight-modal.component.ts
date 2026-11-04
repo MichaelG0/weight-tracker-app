@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -17,8 +16,10 @@ import {
   IonContent,
   IonDatetime,
   IonHeader,
+  IonInput,
   IonItem,
   IonList,
+  IonModal,
   IonTextarea,
   IonTitle,
   IonToolbar,
@@ -30,6 +31,7 @@ import { take } from 'rxjs/operators';
 import { WeightPickerComponent } from 'src/app/components/weight-picker/weight-picker.component';
 import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
+import { FormatDatePipe } from '../../pipes/format-date.pipe';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -43,19 +45,22 @@ import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
     IonTitle,
     IonButton,
     IonContent,
+    IonInput,
+    IonModal,
     IonTextarea,
     IonDatetime,
     IonList,
     IonItem,
     WeightPickerComponent,
+    FormatDatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LogWeightModalComponent implements OnInit, AfterViewInit {
+export class LogWeightModalComponent implements OnInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
 
-  @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
+  @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl?: ElementRef<HTMLElement>;
   @ViewChild(WeightPickerComponent) weightPicker!: WeightPickerComponent;
 
   private readonly entriesByDate: Signal<Map<string, WeightEntry>> = computed(() => {
@@ -91,14 +96,14 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngAfterViewInit(): void {
+  ionViewDidEnter(): void {
+    this.weightPicker.scrollToValue();
+  }
+
+  onDateModalPresented(): void {
     requestAnimationFrame(() => {
       this.injectDotStyles();
     });
-  }
-
-  ionViewDidEnter(): void {
-    this.weightPicker.scrollToValue();
   }
 
   private injectDotStyles(): void {
@@ -135,8 +140,8 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
   }
 
   onDateChange(event: CustomEvent): void {
-    const value = event.detail.value as string;
-    this.applyExistingEntry(value);
+    this.formData.selectedDate = event.detail.value as string;
+    this.applyExistingEntry(this.formData.selectedDate);
   }
 
   private applyExistingEntry(dateStr: string): void {
