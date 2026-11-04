@@ -21,6 +21,7 @@ import { closeOutline, refreshOutline, sparklesOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalDB, GoalType, UserSettingsExtended, WeightUnit } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
+import { RatePickerModalComponent } from 'src/app/components/rate-picker-modal/rate-picker-modal.component';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
@@ -150,6 +151,22 @@ export class SetGoalModalComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  async openRatePicker(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: RatePickerModalComponent,
+      componentProps: { value: this.weeklyRate },
+      cssClass: 'rate-picker-modal',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss<number | null>();
+    if (role !== 'confirm' || data == null) return;
+
+    this.weeklyRate = data;
+    this.recalculateEndDate();
+    this.cdr.markForCheck();
+  }
+
   onStartDateChange(event: CustomEvent): void {
     this.formData.startDate = event.detail.value;
     this.recalculateEndDate();
@@ -199,12 +216,6 @@ export class SetGoalModalComponent implements OnInit {
     if (this.getOverlapError(this.formData.startDate, this.formData.endDate)) return false;
 
     return true;
-  }
-
-  filterKey(event: KeyboardEvent): void {
-    if (['e', 'E', '+', '-'].includes(event.key)) {
-      event.preventDefault();
-    }
   }
 
   submit(): void {

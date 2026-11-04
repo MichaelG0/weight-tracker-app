@@ -71,18 +71,14 @@
         @if (!useCustomEndDate) {
           <ion-item>
             <ion-input
-              type="number"
-              inputmode="decimal"
-              placeholder="0.0"
+              placeholder="0.00"
               label="Rate (%/week)"
               labelPlacement="stacked"
-              step="0.05"
               name="weeklyRate"
-              [(ngModel)]="weeklyRate"
-              (ionChange)="recalculateEndDate()"
-              (ionInput)="recalculateEndDate()"
+              [ngModel]="weeklyRate.toFixed(2)"
+              [readonly]="true"
               required
-              (keydown)="filterKey($event)"
+              (click)="openRatePicker()"
             ></ion-input>
           </ion-item>
 
