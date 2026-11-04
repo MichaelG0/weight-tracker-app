@@ -19,9 +19,9 @@
 
     <div class="wheel">
       <div class="wheel-highlight"></div>
-      <div #tenthCol class="wheel-column tenth" (scroll)="onTenthScroll($event)">
-        @for (n of tenthOptions; track n) {
-          <div class="wheel-item" [class.active]="n === tenth()" (click)="selectTenth(n)">{{ n }}</div>
+      <div #fractionCol class="wheel-column fraction" (scroll)="onFractionScroll($event)">
+        @for (label of fractionOptions; track $index; let n = $index) {
+          <div class="wheel-item" [class.active]="n === fraction()" (click)="selectFraction(n)">{{ label }}</div>
         }
       </div>
     </div>

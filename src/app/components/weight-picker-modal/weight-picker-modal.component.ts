@@ -13,8 +13,6 @@ import { IonButton, IonButtons, IonHeader, IonTitle, IonToolbar, ModalController
 import { DatabaseService } from 'src/app/services/database.service';
 
 const ITEM_HEIGHT = 44;
-const WHOLE_MAX = 999;
-const TENTH_MAX = 9;
 
 @Component({
   selector: 'app-weight-picker-modal',
@@ -30,33 +28,39 @@ export class WeightPickerModalComponent implements OnInit {
   @Input() value: number | null = null;
 
   @ViewChild('wholeCol') wholeCol!: ElementRef<HTMLElement>;
-  @ViewChild('tenthCol') tenthCol!: ElementRef<HTMLElement>;
+  @ViewChild('fractionCol') fractionCol!: ElementRef<HTMLElement>;
 
   readonly unit = this.db.weightUnit;
-  readonly wholeOptions = Array.from({ length: WHOLE_MAX + 1 }, (_, i) => i);
-  readonly tenthOptions = Array.from({ length: TENTH_MAX + 1 }, (_, i) => i);
+  // Stones are shown to two decimals (e.g. 12.05 st); kg and lbs to one.
+  private readonly fractionDigits = this.db.weightUnit() === 'st' ? 2 : 1;
+  private readonly fractionScale = 10 ** this.fractionDigits;
+  private readonly wholeMax = this.db.weightUnit() === 'lbs' ? 2999 : this.db.weightUnit() === 'st' ? 199 : 999;
+  readonly wholeOptions = Array.from({ length: this.wholeMax + 1 }, (_, i) => i);
+  readonly fractionOptions = Array.from({ length: this.fractionScale }, (_, i) =>
+    String(i).padStart(this.fractionDigits, '0'),
+  );
 
   readonly whole = signal(0);
-  readonly tenth = signal(0);
-  readonly weight = computed(() => (this.whole() * 10 + this.tenth()) / 10);
+  readonly fraction = signal(0);
+  readonly weight = computed(() => (this.whole() * this.fractionScale + this.fraction()) / this.fractionScale);
 
   ngOnInit(): void {
-    const tenths = Math.round((this.value ?? 0) * 10);
-    this.whole.set(Math.min(Math.floor(tenths / 10), WHOLE_MAX));
-    this.tenth.set(tenths % 10);
+    const scaled = Math.round((this.value ?? 0) * this.fractionScale);
+    this.whole.set(Math.min(Math.floor(scaled / this.fractionScale), this.wholeMax));
+    this.fraction.set(scaled % this.fractionScale);
   }
 
   ionViewDidEnter(): void {
     this.wholeCol.nativeElement.scrollTop = this.whole() * ITEM_HEIGHT;
-    this.tenthCol.nativeElement.scrollTop = this.tenth() * ITEM_HEIGHT;
+    this.fractionCol.nativeElement.scrollTop = this.fraction() * ITEM_HEIGHT;
   }
 
   onWholeScroll(event: Event): void {
-    this.whole.set(this.indexFromScroll(event.target as HTMLElement, WHOLE_MAX));
+    this.whole.set(this.indexFromScroll(event.target as HTMLElement, this.wholeMax));
   }
 
-  onTenthScroll(event: Event): void {
-    this.tenth.set(this.indexFromScroll(event.target as HTMLElement, TENTH_MAX));
+  onFractionScroll(event: Event): void {
+    this.fraction.set(this.indexFromScroll(event.target as HTMLElement, this.fractionScale - 1));
   }
 
   selectWhole(index: number): void {
@@ -64,9 +68,9 @@ export class WeightPickerModalComponent implements OnInit {
     this.wholeCol.nativeElement.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'smooth' });
   }
 
-  selectTenth(index: number): void {
-    this.tenth.set(index);
-    this.tenthCol.nativeElement.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'smooth' });
+  selectFraction(index: number): void {
+    this.fraction.set(index);
+    this.fractionCol.nativeElement.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'smooth' });
   }
 
   confirm(): void {
