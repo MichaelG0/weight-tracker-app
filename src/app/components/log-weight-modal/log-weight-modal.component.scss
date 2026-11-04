@@ -44,6 +44,11 @@ ion-list {
 
   ion-input {
     font-weight: 600;
+
+    ::ng-deep .native-input {
+      margin: 8px 0 4px;
+      font-size: 1.6rem;
+    }
   }
 
   ion-textarea {

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   ElementRef,
@@ -28,8 +29,10 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, checkmarkOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
+import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
 import { WeightEntry, DatabaseService } from 'src/app/services/database.service';
 import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
+import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
 
 @Component({
   selector: 'app-log-weight-modal',
@@ -47,16 +50,19 @@ import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
     IonTextarea,
     IonDatetime,
     IonList,
-    IonItem
+    IonItem,
+    FormatWeightPipe
 ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LogWeightModalComponent implements OnInit, AfterViewInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl!: ElementRef;
 
+  readonly weightUnit = this.db.weightUnit;
   readonly weightLabel = computed(() => `Weight (${this.db.weightUnit()})`);
 
   private readonly entriesByDate: Signal<Map<string, WeightEntry>> = computed(() => {
@@ -77,7 +83,7 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
   readonly maxDate = todayLocalMidnightString();
   @Input() readonly formData = {
     existingEntryId: null as number | null,
-    weight: null as number | null,
+    weight: this.db.latestEntry()?.weight as number | null,
     selectedDate: todayLocalMidnightString(),
     notes: '',
   };
@@ -87,7 +93,9 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.applyExistingEntry(this.formData.selectedDate);
+    if (this.entriesByDate().has(this.formData.selectedDate.substring(0, 10))) {
+      this.applyExistingEntry(this.formData.selectedDate);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -149,19 +157,18 @@ export class LogWeightModalComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onWeightKeydown(event: KeyboardEvent): void {
-    if (['e', 'E', '+', '-'].includes(event.key)) {
-      event.preventDefault();
-    }
-  }
+  async openWeightPicker(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: WeightPickerModalComponent,
+      componentProps: { value: this.formData.weight },
+      cssClass: 'weight-picker-modal',
+    });
+    await modal.present();
 
-  onWeightInput(event: CustomEvent): void {
-    const input = event.target as HTMLIonInputElement | undefined;
-    const raw = String(input?.value ?? '');
-    const match = raw.match(/^(\d*\.\d{1})/);
-    if (match) {
-      input!.value = match[1];
-      this.formData.weight = +match[1];
+    const { data, role } = await modal.onDidDismiss<number | null>();
+    if (role === 'confirm' && data != null) {
+      this.formData.weight = data;
+      this.cdr.markForCheck();
     }
   }
 
