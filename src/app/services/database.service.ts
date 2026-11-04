@@ -146,6 +146,13 @@ const MIGRATIONS = `
   );
 `;
 
+// Dev only: drops every table so the schema is recreated and reseeded on each start.
+const DROP_TABLES = `
+  DROP TABLE IF EXISTS weight_entries;
+  DROP TABLE IF EXISTS user_settings;
+  DROP TABLE IF EXISTS goals;
+`;
+
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
 const ALPHA = 0.1;
@@ -307,6 +314,11 @@ export class DatabaseService {
 
     this.db = await this.sqlite.createConnection('weight_tracker', false, 'no-encryption', 1, false);
     await this.db.open();
+
+    if (!environment.production) {
+      await this.db.execute(DROP_TABLES);
+    }
+
     await this.db.execute(MIGRATIONS);
     await this.migrateAgeToBirthDate();
 

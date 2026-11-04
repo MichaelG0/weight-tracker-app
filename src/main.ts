@@ -8,11 +8,14 @@ import { AppComponent } from './app/app.component';
 import { Capacitor } from '@capacitor/core';
 import { provideAppInitializer, inject } from '@angular/core';
 import { DatabaseService } from './app/services/database.service';
+import { environment } from './environments/environment';
 
 if (Capacitor.getPlatform() === 'web') {
   jeepSqlite(window);
   
-  const jeepSqliteElem = document.createElement('jeep-sqlite');
+  const jeepSqliteElem = document.createElement('jeep-sqlite') as HTMLElement & { autoSave: boolean };
+  // Saves every write to IndexedDB so the Jeep SQLite Browser extension sees changes.
+  jeepSqliteElem.autoSave = !environment.production;
   document.body.appendChild(jeepSqliteElem);
 }
 
