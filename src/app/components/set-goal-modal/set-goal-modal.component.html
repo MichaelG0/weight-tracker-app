@@ -15,18 +15,14 @@
 
       <ion-item>
         <ion-input
-          type="number"
-          inputmode="decimal"
           placeholder="0.0"
           [label]="'Start Weight (' + weightUnit() + ')'"
           labelPlacement="stacked"
-          step="0.1"
           name="startWeight"
-          [(ngModel)]="formData.startWeight"
-          (ionChange)="onStartWeightChange()"
-          (ionInput)="recalculateEndDate()"
+          [ngModel]="formData.startWeight | formatWeight: weightUnit()"
+          readonly
           required
-          (keydown)="filterKey($event)"
+          (click)="openWeightPicker('startWeight')"
         />
         <ion-button fill="clear" slot="end" class="refresh-btn" (click)="refreshStartWeight()" aria-label="Recalculate average">
           <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
@@ -56,26 +52,19 @@
 
       <ion-item [class.input-disabled]="formData.type === 'Maintenance'">
         <ion-input
-          type="number"
-          inputmode="decimal"
           placeholder="0.0"
           [label]="'Target Weight (' + weightUnit() + ')'"
           labelPlacement="stacked"
-          step="0.1"
           name="weight"
-          [(ngModel)]="formData.weight"
-          (ionChange)="recalculateEndDate()"
-          (ionInput)="recalculateEndDate()"
-          [readonly]="formData.type === 'Maintenance'"
+          [ngModel]="formData.weight | formatWeight: weightUnit()"
+          readonly
           required
-          (keydown)="filterKey($event)"
+          (click)="openWeightPicker('weight')"
         ></ion-input>
       </ion-item>
 
       @if (formData.weight | pureFn: getWeightDirectionError : formData.startWeight : formData.type; as wdError) {
-        @if (goalForm.controls['weight']?.touched && goalForm.controls['weight']?.dirty) {
-          <p class="error-msg">{{ wdError }}</p>
-        }
+        <p class="error-msg">{{ wdError }}</p>
       }
 
       @if (formData.type !== 'Maintenance') {

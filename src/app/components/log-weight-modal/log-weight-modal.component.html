@@ -9,14 +9,9 @@
     <ion-list lines="none" class="log-form-list">
       <ion-item>
         <ion-input
-          type="number"
-          inputmode="decimal"
           placeholder="0.0"
           [label]="weightLabel()"
           labelPlacement="stacked"
-          step="0.1"
-          min="1"
-          max="1000"
           name="weight"
           [ngModel]="formData.weight | formatWeight: weightUnit()"
           readonly

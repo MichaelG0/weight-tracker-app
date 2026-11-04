@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, Input, OnInit, Signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnInit, Signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonButton,
@@ -20,10 +20,12 @@ import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, sparklesOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalDB, GoalType, UserSettingsExtended, WeightUnit } from 'src/app/services/database.service';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
+import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
 import { take } from 'rxjs';
 import { formatWeight } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../pipes/format-date.pipe';
+import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
 
 @Component({
   selector: 'app-set-goal-modal',
@@ -46,12 +48,14 @@ import { FormatDatePipe } from '../../pipes/format-date.pipe';
     IonModal,
     PureFnPipe,
     FormatDatePipe,
+    FormatWeightPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SetGoalModalComponent implements OnInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() goal?: Goal;
 
@@ -124,6 +128,26 @@ export class SetGoalModalComponent implements OnInit {
       this.formData.weight = this.formData.startWeight;
     }
     this.recalculateEndDate();
+  }
+
+  async openWeightPicker(field: 'startWeight' | 'weight'): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: WeightPickerModalComponent,
+      componentProps: { value: this.formData[field] },
+      cssClass: 'weight-picker-modal',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss<number | null>();
+    if (role !== 'confirm' || data == null) return;
+
+    this.formData[field] = data;
+    if (field === 'startWeight') {
+      this.onStartWeightChange();
+    } else {
+      this.recalculateEndDate();
+    }
+    this.cdr.markForCheck();
   }
 
   onStartDateChange(event: CustomEvent): void {
