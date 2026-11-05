@@ -21,10 +21,8 @@
             <ion-datetime
               #dateTimePicker
               presentation="date"
-              [class.has-entry]="formData.existingEntryId"
               [value]="formData.selectedDate"
               [max]="maxDate"
-              [highlightedDates]="highlightedDates()"
               [showDefaultButtons]="true"
               (ionChange)="onDateChange($event)"
             ></ion-datetime>

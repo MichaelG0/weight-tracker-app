@@ -82,15 +82,3 @@ ion-textarea ::ng-deep .native-textarea {
     transform: scale(0.97);
   }
 }
-
-::ng-deep ion-datetime.has-entry::part(calendar-day active)::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--ion-color-primary-contrast);
-}

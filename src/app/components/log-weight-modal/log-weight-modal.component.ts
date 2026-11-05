@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
   Input,
+  OnDestroy,
   OnInit,
   Signal,
   ViewChild,
@@ -56,7 +57,7 @@ import { FormatDatePipe } from '../../pipes/format-date.pipe';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LogWeightModalComponent implements OnInit {
+export class LogWeightModalComponent implements OnInit, OnDestroy {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
 
@@ -71,13 +72,6 @@ export class LogWeightModalComponent implements OnInit {
     }
     return map;
   });
-  readonly highlightedDates = computed(() =>
-    [...this.entriesByDate().keys()].map(date => ({
-      date,
-      textColor: 'var(--ion-text-color)',
-      backgroundColor: 'rgba(var(--ion-color-primary-rgb), 0)',
-    })),
-  );
   readonly maxDate = todayLocalMidnightString();
   @Input() readonly formData = {
     existingEntryId: null as number | null,
@@ -98,45 +92,6 @@ export class LogWeightModalComponent implements OnInit {
 
   ionViewDidEnter(): void {
     this.weightPicker.scrollToValue();
-  }
-
-  onDateModalPresented(): void {
-    requestAnimationFrame(() => {
-      this.injectDotStyles();
-    });
-  }
-
-  private injectDotStyles(): void {
-    // Treat this as regular scss that would be written inside global.scss.
-    // It's not possible to write it there only because the selector would have been something like
-    // ion-datetime::part(calendar-day)[style*="background-color"]
-    // which is not supported.
-    const el = this.datetimeEl?.nativeElement;
-    const shadowRoot = el?.shadowRoot;
-    if (!shadowRoot) return;
-
-    const css = `
-      .calendar-day[style*="background-color"] {
-        position: relative;
-        background-color: transparent !important;
-      }
-      .calendar-day[style*="background-color"]::after {
-        content: '';
-        position: absolute;
-        top: 4px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: var(--ion-color-primary);
-      }
-    `;
-
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(css);
-
-    shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, sheet];
   }
 
   onDateChange(event: CustomEvent): void {
@@ -180,5 +135,68 @@ export class LogWeightModalComponent implements OnInit {
     }
 
     this.modalCtrl.dismiss(null, 'confirm');
+  }
+
+  // ── Calendar dot styles ─────────────────────────────────────────────────────────
+
+  private dotObserver?: MutationObserver;
+
+  onDateModalPresented(): void {
+    const shadowRoot = this.datetimeEl?.nativeElement.shadowRoot;
+    if (!shadowRoot) return;
+
+    this.dotObserver?.disconnect();
+    this.injectDotStyles(shadowRoot);
+    this.syncEntryDots(shadowRoot);
+
+    // ion-datetime only emits ionChange on Done, but re-renders its day buttons on every tap,
+    // so the dots are kept in sync from DOM mutations instead.
+    this.dotObserver = new MutationObserver(() => this.syncEntryDots(shadowRoot));
+    this.dotObserver.observe(shadowRoot, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-day', 'data-month', 'data-year'],
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.dotObserver?.disconnect();
+  }
+
+  private injectDotStyles(shadowRoot: ShadowRoot): void {
+    // The day buttons live in ion-datetime's shadow root, so the dot styles are injected there.
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(`
+      .calendar-day[data-day].has-entry-dot {
+        position: relative;
+      }
+      .calendar-day[data-day].has-entry-dot::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--ion-color-primary);
+      }
+      .calendar-day[data-day].has-entry-dot.calendar-day-active::after {
+        background: var(--ion-color-primary-contrast);
+      }
+    `);
+
+    shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, sheet];
+  }
+
+  private syncEntryDots(shadowRoot: ShadowRoot): void {
+    // Each day button carries its own date, so the dot reflects the day itself, not the current selection.
+    shadowRoot.querySelectorAll<HTMLElement>('.calendar-day[data-day]').forEach((button, index) => {
+      const year = button.dataset['year'];
+      const month = String(button.dataset['month']).padStart(2, '0');
+      const day = String(button.dataset['day']).padStart(2, '0');
+      button.classList.toggle('has-entry-dot', this.entriesByDate().has(`${year}-${month}-${day}`));
+    });
   }
 }
