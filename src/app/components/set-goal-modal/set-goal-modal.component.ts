@@ -96,8 +96,8 @@ export class SetGoalModalComponent implements OnInit {
         }
       }
     } else {
-      this.refreshStartWeight();
       this.refreshStartDate();
+      this.refreshStartWeight();
       this.weeklyRate = this.minimumRecommendedRate(this.formData.type);
     }
   }
@@ -271,7 +271,6 @@ export class SetGoalModalComponent implements OnInit {
     weeklyRate: number,
     useCustomEndDate: boolean,
   ): boolean => {
-    console.log('Validating form with:', { weight, startWeight, startDate, endDate, type, weeklyRate, useCustomEndDate });
     if (!weight || !startDate || !endDate || !startWeight) return false;
 
     if (!useCustomEndDate && type !== 'Maintenance' && !weeklyRate) return false;
