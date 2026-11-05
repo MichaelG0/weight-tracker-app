@@ -12,14 +12,18 @@
           <div class="stat-card">
             <span class="stat-label">Scale</span>
             <span class="stat-value stat-scale-value">
-              {{ entry.weight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
+              @for (part of entry.weight | formatWeightParts: weightUnit(); track part.unit) {
+                <span class="weight-part">{{ part.value }}<small>{{ part.unit }}</small></span>
+              }
             </span>
             <span class="stat-date">{{ entry.date | formatDate }}</span>
           </div>
           <div class="stat-card">
             <span class="stat-label">Average</span>
             <span class="stat-value stat-trend-value">
-              {{ entry.trend | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
+              @for (part of entry.trend | formatWeightParts: weightUnit(); track part.unit) {
+                <span class="weight-part">{{ part.value }}<small>{{ part.unit }}</small></span>
+              }
             </span>
             <span class="stat-date">{{ entry.date | formatDate }}</span>
           </div>
@@ -39,7 +43,9 @@
           <div class="stat-card">
             <span class="stat-label">Goal</span>
             <span class="stat-value stat-goal-value">
-              {{ goal.goalWeight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
+              @for (part of goal.goalWeight | formatWeightParts: weightUnit(); track part.unit) {
+                <span class="weight-part">{{ part.value }}<small>{{ part.unit }}</small></span>
+              }
             </span>
             <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
           </div>
@@ -130,7 +136,11 @@
             <ion-item class="goal-item" button (click)="openSetGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
-                <h3>{{ goal.goalWeight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { {{ ' ' + weightUnit() }} }</h3>
+                <h3>
+                  @for (part of goal.goalWeight | formatWeightParts: weightUnit(); track part.unit) {
+                    <span class="weight-part">{{ part.value }}<small>{{ part.unit }}</small></span>
+                  }
+                </h3>
                 <p>{{ goal.goalDate | formatDate }}{{ goal.type ? ' · ' + goal.type : '' }}</p>
               </ion-label>
             </ion-item>

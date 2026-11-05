@@ -37,7 +37,7 @@ import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 import 'hammerjs';
-import { FormatWeightPipe } from '../../../pipes/format-weight.pipe';
+import { FormatWeightPartsPipe } from '../../../pipes/format-weight-parts.pipe';
 Chart.register(zoomPlugin);
 
 type RangeMode = 'journey' | 'month' | 'to-goal' | 'history';
@@ -95,7 +95,7 @@ interface ChartColors {
     DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
     FormatDatePipe,
-    FormatWeightPipe,
+    FormatWeightPartsPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

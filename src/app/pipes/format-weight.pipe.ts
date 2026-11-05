@@ -8,6 +8,6 @@ import { formatWeight } from '../utils/unit-conversion.util';
 export class FormatWeightPipe implements PipeTransform {
   transform(value: number | null | undefined, unit: WeightUnit = 'kg'): string {
     if (value == null) return '';
-    return formatWeight(value, unit);
+    return formatWeight(value, unit).text;
   }
 }

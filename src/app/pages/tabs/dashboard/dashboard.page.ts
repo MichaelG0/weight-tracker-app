@@ -55,7 +55,6 @@ interface DashboardVm {
   rateLabel: string;
   recentEntries: Array<{ label: string; weight: string }>;
   unitLabel: WeightUnit;
-  unitSuffix: string;
 }
 
 @Component({
@@ -142,15 +141,15 @@ export class DashboardPage {
     }
 
     return {
-      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
-      goalWeight: formatWeight(goalWeight ?? 0, weightUnit),
+      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit).text : null,
+      goalWeight: formatWeight(goalWeight ?? 0, weightUnit).text,
       startWeight,
       goalType,
-      maintRange: formatWeight(maintRange ?? 0, weightUnit),
-      maintOffset: formatWeight(maintOffset ?? 0, weightUnit),
+      maintRange: formatWeight(maintRange ?? 0, weightUnit).text,
+      maintOffset: formatWeight(maintOffset ?? 0, weightUnit).text,
       maintPercent,
-      scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit),
-      scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit),
+      scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit).text,
+      scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit).text,
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRateAbs),
@@ -177,7 +176,6 @@ export class DashboardPage {
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
-      unitSuffix: weightUnit === 'st' ? '' : ' ' + weightUnit,
     };
   });
 
@@ -216,7 +214,7 @@ export class DashboardPage {
   private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
     return entries.slice(0, 3).map(entry => ({
       label: this.entryLabel(entry.dateMs),
-      weight: formatWeight(entry.weight, this.databaseService.weightUnit()),
+      weight: formatWeight(entry.weight, this.databaseService.weightUnit()).text,
     }));
   }
 
@@ -245,20 +243,20 @@ export class DashboardPage {
   private absoluteRatePerWeek(weeklyRate: number | null, weightUnit: WeightUnit): string | null {
     if (weeklyRate == null) return null;
     const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${formatWeight(weeklyRate, weightUnit, 1)}`;
+    return `${sign}${formatWeight(weeklyRate, weightUnit, 1).text}`;
   }
 
   private remaining(trendWeight: number | null, goalWeight: number | null, unitLabel: WeightUnit): string | null {
     if (trendWeight == null || goalWeight == null) return null;
     const diff = Math.abs(goalWeight - trendWeight);
-    return diff < 0.01 ? '0' : String(formatWeight(diff, unitLabel));
+    return formatWeight(diff < 0.01 ? 0 : diff, unitLabel).text;
   }
 
   private totalProgress(startWeight: number | null, trendWeight: number | null, unitLabel: WeightUnit): string | null {
     if (startWeight == null || trendWeight == null) return null;
     const diff = trendWeight - startWeight;
     const sign = diff > 0 ? '+' : '';
-    return `${sign}${formatWeight(diff, unitLabel)}`;
+    return `${sign}${formatWeight(diff, unitLabel).text}`;
   }
 
   private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null, goalReached: boolean): string | null {
@@ -394,8 +392,7 @@ export class DashboardPage {
       return 'Need more data';
     }
     const sign = weeklyRate > 0 ? '+' : '';
-    const value = `${sign}${formatWeight(weeklyRate, unitLabel, 1)}`;
-    return unitLabel === 'st' ? `${value}/week` : `${value} ${unitLabel}/week`;
+    return `${sign}${formatWeight(weeklyRate, unitLabel, 1).text}/week`;
   }
 
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {

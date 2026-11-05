@@ -48,9 +48,14 @@ ion-item-option {
   color: var(--ion-color-step-950);
   flex-shrink: 0;
 
+  .weight-part + .weight-part {
+    margin-left: 6px;
+  }
+
   .unit {
     font-size: 0.8rem;
     font-weight: 600;
+    margin-left: 3px;
     color: var(--ion-color-step-500);
   }
 }

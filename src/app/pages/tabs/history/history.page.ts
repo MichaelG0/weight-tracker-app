@@ -26,6 +26,7 @@ import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-ba
 import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 import { FormatDatePipe } from "../../../pipes/format-date.pipe";
 import { FormatWeightPipe } from "../../../pipes/format-weight.pipe";
+import { FormatWeightPartsPipe } from "../../../pipes/format-weight-parts.pipe";
 
 const LIST_PAGE_SIZE = 50;
 
@@ -54,7 +55,8 @@ interface HistoryEntry extends WeightEntry {
     GlassHeaderBackdropDirective,
     DeckCardOptionsDirective,
     FormatDatePipe,
-    FormatWeightPipe
+    FormatWeightPipe,
+    FormatWeightPartsPipe,
 ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -52,6 +52,16 @@ export type ActivityLevel = 'Sedentary' | 'Lightly Active' | 'Moderately Active'
 export type Experience = 'Beginner' | 'Intermediate' | 'Advanced';
 export type BodyType = 'Ectomorph' | 'Mesomorph' | 'Endomorph';
 
+export interface WeightPart {
+  value: string;
+  unit: string;
+}
+
+export interface WeightDisplay {
+  parts: WeightPart[];
+  text: string;
+}
+
 export interface HeightFtIn {
   feet: number | null;
   inches: number | null;

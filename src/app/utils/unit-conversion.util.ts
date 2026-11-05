@@ -1,4 +1,4 @@
-import { WeightUnit, HeightFtIn } from "../services/database.service";
+import { WeightUnit, HeightFtIn, WeightDisplay, WeightPart } from "../services/database.service";
 
 const DEFAULT_DECIMALS = 1;
 const STONE_DECIMALS = 2;
@@ -38,23 +38,31 @@ export function formatWeightDecimal(value: number, unit: WeightUnit, toFixedOffs
   return value.toFixed((unit === 'st' ? STONE_DECIMALS : DEFAULT_DECIMALS) + toFixedOffset);
 }
 
-// For UI display - returns a string like "X st Y lbs" for stone units and a decimal string for other units
-export function formatWeight(value: number, unit: WeightUnit, toFixedOffset: number = 0): string {
-  switch (unit) {
-    case 'st':
-      const decimals = DEFAULT_DECIMALS + toFixedOffset;
-      const totalPounds = Math.abs(value) * 14;
-      let stones = Math.floor(totalPounds / 14);
-      let pounds = parseFloat((totalPounds - stones * 14).toFixed(decimals));
-      if (pounds >= 14) {
-        stones += 1;
-        pounds = 0;
-      }
-      const sign = value < 0 && (stones > 0 || pounds > 0) ? '-' : '';
-      return `${sign}${stones} st ${pounds.toFixed(decimals)} lbs`;
-    default:
-      return value.toFixed(DEFAULT_DECIMALS + toFixedOffset);
+// For UI display - formats stone units like "X st Y lbs" and other units like "X kg" or "X lbs"
+// `parts` lets each unit label be styled separately; `text` is the plain string including units
+export function formatWeight(value: number, unit: WeightUnit, toFixedOffset: number = 0): WeightDisplay {
+  const decimals = DEFAULT_DECIMALS + toFixedOffset;
+  let parts: WeightPart[];
+
+  if (unit === 'st') {
+    const totalPounds = Math.abs(value) * 14;
+    let stones = Math.floor(totalPounds / 14);
+    let pounds = parseFloat((totalPounds - stones * 14).toFixed(decimals));
+    if (pounds >= 14) {
+      stones += 1;
+      pounds = 0;
+    }
+    const sign = value < 0 && (stones > 0 || pounds > 0) ? '-' : '';
+    parts = [
+      { value: `${sign}${stones}`, unit: 'st' },
+      { value: pounds.toFixed(decimals), unit: 'lbs' },
+    ];
+  } else {
+    parts = [{ value: value.toFixed(decimals), unit }];
   }
+
+  const text = parts.map(p => `${p.value} ${p.unit}`).join(' ');
+  return { parts, text };
 }
 
 export function cmToFtIn(cm: number): HeightFtIn {

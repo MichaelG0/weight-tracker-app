@@ -16,7 +16,7 @@
       <ion-item>
         <ion-input
           placeholder="0.0"
-          [label]="'Start Weight (' + weightUnit() + ')'"
+          label="Start Weight"
           labelPlacement="stacked"
           name="startWeight"
           [ngModel]="formData.startWeight | formatWeight: weightUnit()"
@@ -56,7 +56,7 @@
       <ion-item [class.input-disabled]="formData.type === 'Maintenance'">
         <ion-input
           placeholder="0.0"
-          [label]="'Target Weight (' + weightUnit() + ')'"
+          label="Target Weight"
           labelPlacement="stacked"
           name="weight"
           [ngModel]="formData.weight | formatWeight: weightUnit()"
