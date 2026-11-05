@@ -1,5 +1,5 @@
 import { Component, inject, Input, ViewChild } from '@angular/core';
-import { IonButton, IonButtons, IonHeader, IonTitle, IonToolbar, ModalController } from '@ionic/angular/standalone';
+import { IonButton, IonButtons, IonFooter, IonHeader, IonTitle, IonToolbar, ModalController } from '@ionic/angular/standalone';
 import { WeightPickerComponent } from 'src/app/components/weight-picker/weight-picker.component';
 import { DatabaseService } from 'src/app/services/database.service';
 
@@ -7,7 +7,7 @@ import { DatabaseService } from 'src/app/services/database.service';
   selector: 'app-weight-picker-modal',
   templateUrl: './weight-picker-modal.component.html',
   styleUrls: ['./weight-picker-modal.component.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonButton, IonButtons, WeightPickerComponent],
+  imports: [IonHeader, IonFooter, IonToolbar, IonTitle, IonButton, IonButtons, WeightPickerComponent],
 })
 export class WeightPickerModalComponent {
   private readonly modalCtrl = inject(ModalController);

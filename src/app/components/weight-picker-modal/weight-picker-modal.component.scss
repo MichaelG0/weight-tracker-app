@@ -1,4 +1,5 @@
-ion-header ion-toolbar {
+ion-header ion-toolbar,
+ion-footer ion-toolbar {
   --background: var(--ion-color-step-50);
   --border-width: 0;
 
@@ -12,11 +13,4 @@ ion-header ion-toolbar {
 .picker-body {
   background: var(--ion-color-step-50);
   padding: 16px 16px;
-}
-
-ion-buttons {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 24px;
 }
