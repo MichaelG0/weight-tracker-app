@@ -58,7 +58,11 @@
       class="submit-btn"
       [disabled]="logForm.invalid || !formData.weight"
     >
-      Save
+      @if (formData.existingEntryId) {
+        Update
+      } @else {
+        Save
+      }
     </ion-button>
   </form>
 </ion-content>

@@ -85,9 +85,7 @@ export class LogWeightModalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (this.entriesByDate().has(this.formData.selectedDate.substring(0, 10))) {
-      this.applyExistingEntry(this.formData.selectedDate);
-    }
+    this.applyExistingEntry(this.formData.selectedDate);
   }
 
   ionViewDidEnter(): void {
@@ -109,7 +107,6 @@ export class LogWeightModalComponent implements OnInit, OnDestroy {
       this.formData.notes = existing.notes ?? '';
     } else {
       this.formData.existingEntryId = null;
-      this.formData.weight = null;
       this.formData.notes = '';
     }
   }
