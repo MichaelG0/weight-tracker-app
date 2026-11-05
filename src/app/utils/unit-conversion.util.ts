@@ -33,7 +33,7 @@ export function roundWeightNum(value: number, unit: WeightUnit, toFixedOffset: n
   return parseFloat(formatWeightDecimal(value, unit, toFixedOffset));
 }
 
-// For UI display - returns a decimal value for all unit types
+// For UI display - returns a decimal value for all unit types, without unit labels
 export function formatWeightDecimal(value: number, unit: WeightUnit, toFixedOffset: number = 0): string {
   return value.toFixed((unit === 'st' ? STONE_DECIMALS : DEFAULT_DECIMALS) + toFixedOffset);
 }

@@ -1,4 +1,4 @@
-<div class="picker">
+<div class="picker" [class.stone]="isStone">
   <div class="wheel">
     <div class="wheel-highlight"></div>
     <div #wholeCol class="wheel-column whole" (scroll)="onWholeScroll($event)">
@@ -7,6 +7,19 @@
       }
     </div>
   </div>
+
+  @if (isStone) {
+    <p class="unit">st</p>
+
+    <div class="wheel">
+      <div class="wheel-highlight"></div>
+      <div #poundsCol class="wheel-column whole" (scroll)="onPoundsScroll($event)">
+        @for (n of poundsOptions; track n) {
+          <div class="wheel-item" [class.active]="n === pounds()" (click)="selectPounds(n)">{{ n }}</div>
+        }
+      </div>
+    </div>
+  }
 
   <span class="separator">.</span>
 
@@ -19,5 +32,5 @@
     </div>
   </div>
 
-  <p class="unit">{{ unit() }}</p>
+  <p class="unit">{{ isStone ? 'lbs' : unit() }}</p>
 </div>
