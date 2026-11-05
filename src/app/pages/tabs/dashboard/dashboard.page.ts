@@ -26,11 +26,11 @@ import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsE
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
-import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
+import { formatWeight, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
-  trendToFixed: string | null;
+  trendDisplay: string | null;
   goalWeight: string | null;
   startWeight: number | null;
   goalType: GoalType | null;
@@ -54,7 +54,8 @@ interface DashboardVm {
   recommendation: string;
   rateLabel: string;
   recentEntries: Array<{ label: string; weight: string }>;
-  unitLabel: string;
+  unitLabel: WeightUnit;
+  unitSuffix: string;
 }
 
 @Component({
@@ -99,9 +100,8 @@ export class DashboardPage {
     const weightUnit = this.databaseService.weightUnit();
     const latestEntry = this.databaseService.latestEntry();
     const rawTrend = latestEntry?.trend ?? null;
-    const trendToFixed = rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null;
     const activeGoal = this.databaseService.activeGoal();
-    const goalReached = this.goalReached(trendToFixed, activeGoal);
+    const goalReached = this.goalReached(rawTrend, weightUnit, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
@@ -142,7 +142,7 @@ export class DashboardPage {
     }
 
     return {
-      trendToFixed,
+      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit) : null,
       goalWeight: formatWeight(goalWeight ?? 0, weightUnit),
       startWeight,
       goalType,
@@ -177,6 +177,7 @@ export class DashboardPage {
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntries(reversed),
       unitLabel: weightUnit,
+      unitSuffix: weightUnit === 'st' ? '' : ' ' + weightUnit,
     };
   });
 
@@ -393,12 +394,13 @@ export class DashboardPage {
       return 'Need more data';
     }
     const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${formatWeight(weeklyRate, unitLabel, 1)} ${unitLabel}/week`;
+    const value = `${sign}${formatWeight(weeklyRate, unitLabel, 1)}`;
+    return unitLabel === 'st' ? `${value}/week` : `${value} ${unitLabel}/week`;
   }
 
-  private goalReached(trendToFixed: string | null, activeGoal: Goal | null): boolean {
-    if (!activeGoal || trendToFixed == null) return false;
-    const trendValue = parseFloat(trendToFixed);
+  private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {
+    if (!activeGoal || rawTrend == null) return false;
+    const trendValue = roundWeightNum(rawTrend, weightUnit);
     const { goalWeight, type: goalType } = activeGoal;
     const reachedGoal =
       goalWeight != null &&

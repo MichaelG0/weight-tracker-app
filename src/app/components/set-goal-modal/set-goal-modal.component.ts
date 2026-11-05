@@ -23,7 +23,6 @@ import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
 import { RatePickerModalComponent } from 'src/app/components/rate-picker-modal/rate-picker-modal.component';
 import { take } from 'rxjs';
-import { formatWeight } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../pipes/format-date.pipe';
 import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
@@ -103,7 +102,7 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   refreshStartWeight(): void {
-    this.formData.startWeight = parseFloat(formatWeight(this.db.trendOnOrBefore(this.formData.startDate) ?? 0, this.weightUnit()));
+    this.formData.startWeight = this.db.trendOnOrBefore(this.formData.startDate) ?? 0;
     this.onStartWeightChange();
   }
 

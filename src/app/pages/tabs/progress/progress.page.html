@@ -12,14 +12,14 @@
           <div class="stat-card">
             <span class="stat-label">Scale</span>
             <span class="stat-value stat-scale-value">
-              {{ entry.weight | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              {{ entry.weight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
             </span>
             <span class="stat-date">{{ entry.date | formatDate }}</span>
           </div>
           <div class="stat-card">
             <span class="stat-label">Average</span>
             <span class="stat-value stat-trend-value">
-              {{ entry.trend | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              {{ entry.trend | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
             </span>
             <span class="stat-date">{{ entry.date | formatDate }}</span>
           </div>
@@ -39,7 +39,7 @@
           <div class="stat-card">
             <span class="stat-label">Goal</span>
             <span class="stat-value stat-goal-value">
-              {{ goal.goalWeight | formatWeight: weightUnit() }}<small>{{ weightUnit() }}</small>
+              {{ goal.goalWeight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { <small>{{ weightUnit() }}</small> }
             </span>
             <span class="stat-date">{{ goal.goalDate | formatDate }}</span>
           </div>
@@ -130,7 +130,7 @@
             <ion-item class="goal-item" button (click)="openSetGoal(goal)">
               <ion-icon name="flag-outline" slot="start" class="goal-flag"></ion-icon>
               <ion-label>
-                <h3>{{ goal.goalWeight | formatWeight: weightUnit() }} {{ weightUnit() }}</h3>
+                <h3>{{ goal.goalWeight | formatWeight: weightUnit() }}@if (weightUnit() !== 'st') { {{ ' ' + weightUnit() }} }</h3>
                 <p>{{ goal.goalDate | formatDate }}{{ goal.type ? ' · ' + goal.type : '' }}</p>
               </ion-label>
             </ion-item>

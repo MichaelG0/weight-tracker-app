@@ -32,7 +32,7 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { CssThemeService } from 'src/app/services/css-theme.service';
 import { DatabaseService, Goal, WeightEntry, WeightUnit } from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
-import { formatWeight, kgToUnit } from 'src/app/utils/unit-conversion.util';
+import { kgToUnit, formatWeightDecimal } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
@@ -395,7 +395,7 @@ export class ProgressPage {
               precision: unitLbl === 'st' ? undefined : 0,
               color: colors['axisTick'],
               maxTicksLimit: 8,
-              callback: (v: number) => formatWeight(v, unitLbl, -1),
+              callback: (v: number) => formatWeightDecimal(v, unitLbl, -1),
             },
           },
         },

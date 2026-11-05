@@ -10,7 +10,7 @@
       <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
-            <h2>{{ vm.trendToFixed !== null ? vm.trendToFixed + ' ' + vm.unitLabel : '--' }}</h2>
+            <h2>{{ vm.trendDisplay !== null ? vm.trendDisplay + vm.unitSuffix : '--' }}</h2>
             <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
               @if (vm.goalType === 'Maintenance' && vm.maintPercent !== null) {
@@ -50,16 +50,16 @@
                     Goal reached! <span class="set-goal-link" (click)="openSetGoal()">+ Set a new target</span>
                   </p>
                 } @else {
-                  <span>Goal: {{ vm.goalWeight + ' ' + vm.unitLabel }}</span>
+                  <span>Goal: {{ vm.goalWeight + vm.unitSuffix }}</span>
                   <span>
                     @if (vm.goalType === 'Maintenance') {
                       {{
                         vm.maintOffset !== null
-                          ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset + ' ' + vm.unitLabel
+                          ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset + vm.unitSuffix
                           : 'No data'
                       }}
                     } @else if (vm.scheduleOffset !== null) {
-                      {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' ' + vm.unitLabel + ' vs projected' }}
+                      {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + vm.unitSuffix + ' vs projected' }}
                     }
                   </span>
                 }
@@ -92,7 +92,7 @@
                     <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
                   } @else {
                     <p class="label">{{ vm.unitLabel }}/week</p>
-                    <h4>{{ vm.absoluteRatePerWeek !== null ? vm.absoluteRatePerWeek + ' ' + vm.unitLabel : '--' }}</h4>
+                    <h4>{{ vm.absoluteRatePerWeek !== null ? vm.absoluteRatePerWeek + vm.unitSuffix : '--' }}</h4>
                   }
                 </ion-card>
               </ion-col>
@@ -100,10 +100,10 @@
                 <ion-card class="stat-tile" (click)="toggleStat(1)">
                   @if (!statFlip()[1]) {
                     <p class="label">Remaining</p>
-                    <h4>{{ vm.remaining !== null ? vm.remaining + ' ' + vm.unitLabel : '--' }}</h4>
+                    <h4>{{ vm.remaining !== null ? vm.remaining + vm.unitSuffix : '--' }}</h4>
                   } @else {
                     <p class="label">Progress</p>
-                    <h4>{{ vm.totalProgress !== null ? vm.totalProgress + ' ' + vm.unitLabel : '--' }}</h4>
+                    <h4>{{ vm.totalProgress !== null ? vm.totalProgress + vm.unitSuffix : '--' }}</h4>
                   }
                 </ion-card>
               </ion-col>
@@ -175,7 +175,7 @@
           @for (entry of vm.recentEntries; track entry.label) {
             <ion-item class="list-group-item">
               <ion-label>{{ entry.label }}</ion-label>
-              <ion-note slot="end" class="weight-note">{{ entry.weight }} {{ vm.unitLabel }}</ion-note>
+              <ion-note slot="end" class="weight-note">{{ entry.weight }}{{ vm.unitSuffix }}</ion-note>
             </ion-item>
           }
         </ion-list>
