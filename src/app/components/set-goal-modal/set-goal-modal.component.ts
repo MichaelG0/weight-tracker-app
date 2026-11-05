@@ -79,13 +79,6 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (!this.isEditing) {
-      this.formData.startDate = this.getDefaultStartDate();
-      this.weeklyRate = this.minimumRecommendedRate(this.formData.type);
-    }
-
-    this.refreshStartWeight();
-
     if (this.goal) {
       this.isEditing = true;
       this.formData.startWeight = this.goal.startWeight;
@@ -102,12 +95,33 @@ export class SetGoalModalComponent implements OnInit {
           this.weeklyRate = parseFloat(((totalChange / weeks / this.goal.startWeight) * 100).toFixed(2));
         }
       }
+    } else {
+      this.refreshStartWeight();
+      this.refreshStartDate();
+      this.weeklyRate = this.minimumRecommendedRate(this.formData.type);
     }
   }
 
   refreshStartWeight(): void {
     this.formData.startWeight = parseFloat(formatWeight(this.db.trendOnOrBefore(this.formData.startDate) ?? 0, this.weightUnit()));
     this.onStartWeightChange();
+  }
+
+  refreshStartDate(): void {
+    const today = todayLocalMidnightString();
+    const todayForForm = today.substring(0, 10);
+
+    if (this.db.goals().length === 0) {
+      this.formData.startDate = todayForForm;
+      return;
+    }
+
+    // Default to end date of the latest goal
+    const sorted = [...this.db.goals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
+    const lastEnd = sorted[sorted.length - 1].goalDate.substring(0, 10);
+    this.formData.startDate = lastEnd > today ? lastEnd : todayForForm;
+
+    this.recalculateEndDate();
   }
 
   selectGoalType(type: GoalType): void {
@@ -198,28 +212,19 @@ export class SetGoalModalComponent implements OnInit {
     this.formData.endDate = toLocalMidnightString(start).substring(0, 10);
   }
 
-  get isFormValid(): boolean {
-    if (!this.formData.weight || !this.formData.startDate || !this.formData.endDate || !this.formData.startWeight) return false;
-
-    if (!this.useCustomEndDate && this.formData.type !== 'Maintenance' && !this.weeklyRate) return false;
-
-    if (this.formData.startDate >= this.formData.endDate) return false;
-
-    const w = this.formData.weight;
-    const s = this.formData.startWeight;
-
-    if (this.formData.type === 'Weight Loss' && w >= s) return false;
-    if (this.formData.type === 'Weight Gain' && w <= s) return false;
-    if (this.formData.type === 'Maintenance' && w !== s) return false;
-
-    // Overlap check
-    if (this.getOverlapError(this.formData.startDate, this.formData.endDate)) return false;
-
-    return true;
-  }
-
   submit(): void {
-    if (!this.isFormValid) return;
+    if (
+      !this.isFormValid(
+        this.formData.weight,
+        this.formData.startWeight,
+        this.formData.startDate,
+        this.formData.endDate,
+        this.formData.type,
+        this.weeklyRate,
+        this.useCustomEndDate,
+      )
+    )
+      return;
 
     const result: Partial<GoalDB> & {
       start_weight_kg: number;
@@ -249,18 +254,6 @@ export class SetGoalModalComponent implements OnInit {
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
-  private getDefaultStartDate(): string {
-    const today = todayLocalMidnightString();
-    const todayForForm = today.substring(0, 10);
-
-    if (this.db.goals().length === 0) return todayForForm;
-
-    // Default to end date of the latest goal
-    const sorted = [...this.db.goals()].sort((a, b) => a.goalDate.localeCompare(b.goalDate));
-    const lastEnd = sorted[sorted.length - 1].goalDate.substring(0, 10);
-    return lastEnd > today ? lastEnd : todayForForm;
-  }
-
   private minimumRecommendedRate(goalType: GoalType): number {
     const coaching = this.db.extendedSettings()?.coaching;
     if (goalType === 'Weight Gain') return coaching?.idealGainFloorPct ?? 0.25;
@@ -268,6 +261,32 @@ export class SetGoalModalComponent implements OnInit {
   }
 
   // ── Piped Methods ───────────────────────────────────────────────────────
+
+  isFormValid = (
+    weight: number | null,
+    startWeight: number | null,
+    startDate: string,
+    endDate: string,
+    type: GoalType,
+    weeklyRate: number,
+    useCustomEndDate: boolean,
+  ): boolean => {
+    console.log('Validating form with:', { weight, startWeight, startDate, endDate, type, weeklyRate, useCustomEndDate });
+    if (!weight || !startDate || !endDate || !startWeight) return false;
+
+    if (!useCustomEndDate && type !== 'Maintenance' && !weeklyRate) return false;
+
+    if (startDate >= endDate) return false;
+
+    if (type === 'Weight Loss' && weight >= startWeight) return false;
+    if (type === 'Weight Gain' && weight <= startWeight) return false;
+    if (type === 'Maintenance' && weight !== startWeight) return false;
+
+    // Overlap check
+    if (this.getOverlapError(startDate, endDate)) return false;
+
+    return true;
+  };
 
   getRecommendedRateText = (goalType: GoalType, settings: UserSettingsExtended | null): string | null => {
     const coaching = settings?.coaching;
