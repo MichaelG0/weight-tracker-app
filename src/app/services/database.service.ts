@@ -327,7 +327,6 @@ export class DatabaseService {
     }
 
     await this.db.execute(MIGRATIONS);
-    await this.migrateAgeToBirthDate();
     await this.ensureDefaultSettings();
 
     if (!environment.production) {
@@ -340,18 +339,6 @@ export class DatabaseService {
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
-
-  // Existing databases still have the old `age` column: swap it for `birth_date`.
-  private async migrateAgeToBirthDate(): Promise<void> {
-    const info = await this.db.query(`PRAGMA table_info(user_settings)`);
-    const columns = (info.values ?? []).map(c => c.name);
-    if (!columns.includes('birth_date')) {
-      await this.db.execute(`ALTER TABLE user_settings ADD COLUMN birth_date TEXT`);
-    }
-    if (columns.includes('age')) {
-      await this.db.execute(`ALTER TABLE user_settings DROP COLUMN age`);
-    }
-  }
 
   // Gates any operation on DB readiness. Swap the inner Observable for HTTP
   // calls when migrating to a backend — the public API stays identical.
