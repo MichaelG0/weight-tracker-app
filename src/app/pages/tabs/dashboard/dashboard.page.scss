@@ -52,6 +52,17 @@ ion-card {
     position: relative;
     z-index: 1;
     color: var(--ion-text-color);
+
+    .weight-part + .weight-part {
+      margin-left: 8px;
+    }
+
+    .unit {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      margin-left: 3px;
+    }
   }
 
   .delta {

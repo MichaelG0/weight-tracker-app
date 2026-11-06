@@ -22,7 +22,15 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
-import { DatabaseService, Goal, GoalType, WeightEntry, WeightUnit, UserSettingsExtended } from 'src/app/services/database.service';
+import {
+  DatabaseService,
+  Goal,
+  GoalType,
+  WeightEntry,
+  WeightPart,
+  WeightUnit,
+  UserSettingsExtended,
+} from 'src/app/services/database.service';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
@@ -30,7 +38,7 @@ import { formatWeight, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conve
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
-  trendDisplay: string | null;
+  trendDisplay: WeightPart[] | null;
   goalWeight: string | null;
   startWeight: number | null;
   goalType: GoalType | null;
@@ -141,7 +149,7 @@ export class DashboardPage {
     }
 
     return {
-      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit).text : null,
+      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit).parts : null,
       goalWeight: formatWeight(goalWeight ?? 0, weightUnit).text,
       startWeight,
       goalType,

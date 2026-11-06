@@ -10,7 +10,17 @@
       <section class="list-group">
         <ion-card class="balance-card">
           <ion-card-content>
-            <h2>{{ vm.trendDisplay ?? '--' }}</h2>
+            <h2>
+              <!-- prettier-ignore -->
+              @if (vm.trendDisplay; as parts) {
+                @for (part of parts; track part.unit) {
+                  <span class="weight-part">{{ part.value }}<span class="unit">{{ part.unit }}</span></span>
+                }
+              }
+              @else {
+                --
+              }
+            </h2>
             <ion-badge class="delta">{{ vm.rateLabel }}</ion-badge>
             <div class="progress-track" aria-hidden="true">
               @if (vm.goalType === 'Maintenance' && vm.maintPercent !== null) {
@@ -46,18 +56,12 @@
             @if (vm.goalType !== null) {
               <div class="meta-row">
                 @if (vm.goalReached) {
-                  <p class="set-goal-prompt">
-                    Goal reached! <span class="set-goal-link" (click)="openSetGoal()">+ Set a new target</span>
-                  </p>
+                  <p class="set-goal-prompt">Goal reached! <span class="set-goal-link" (click)="openSetGoal()">+ Set a new target</span></p>
                 } @else {
                   <span>Goal: {{ vm.goalWeight }}</span>
                   <span>
                     @if (vm.goalType === 'Maintenance') {
-                      {{
-                        vm.maintOffset !== null
-                          ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset
-                          : 'No data'
-                      }}
+                      {{ vm.maintOffset !== null ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset : 'No data' }}
                     } @else if (vm.scheduleOffset !== null) {
                       {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' vs projected' }}
                     }
