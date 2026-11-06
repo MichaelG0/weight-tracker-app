@@ -56,7 +56,6 @@ interface DashboardVm {
   maintOffset: string | null;
   maintPercent: number | null;
   scheduleOffset: string | null;
-  scheduleRange: string | null;
   schedulePercent: number | null;
   bwPercentPerWeek: string | null;
   absoluteRatePerWeek: string | null;
@@ -165,7 +164,6 @@ export class DashboardPage {
       maintOffset: formatWeight(maintOffset ?? 0, weightUnit).text,
       maintPercent,
       scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit).text,
-      scheduleRange: formatWeight(scheduleRange ?? 0, weightUnit).text,
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRateAbs),
