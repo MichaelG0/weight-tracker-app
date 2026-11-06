@@ -23,8 +23,11 @@ import {
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import {
-  RATE_MIN_SAMPLES,
+  RATE_MAX_GAP_FRACTION,
+  RATE_MIN_SAMPLES_PER_WEEK,
+  RATE_MIN_SPAN_FRACTION,
   RATE_STALE_AFTER_DAYS,
+  STABILITY_MIN_SAMPLES,
   STABILITY_SD_THRESHOLD_KG,
   STABILITY_WINDOW_DAYS,
   WEEKLY_RATE_LOOKBACK_DAYS,
@@ -111,14 +114,13 @@ export class DashboardPage {
     const reversed = [...recentEntries].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
-    const latestEntry = this.databaseService.latestEntry();
-    const rawTrend = latestEntry?.trend ?? null;
+    const rawTrend = this.databaseService.latestEntry()?.trend ?? null;
     const activeGoal = this.databaseService.activeGoal();
     const goalReached = this.goalReached(rawTrend, weightUnit, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(latestEntry, entriesAfterGoalStart);
+    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(entriesAfterGoalStart);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
     const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart) : null;
 
@@ -283,8 +285,9 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
-  private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entriesAfterGoalStart: WeightEntry[]): number | null {
-    if (latestEntry == null || entriesAfterGoalStart.length < 2) return null;
+  private rawWeeklyRateAbs(entriesAfterGoalStart: WeightEntry[]): number | null {
+    if (entriesAfterGoalStart.length < 2) return null;
+    const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const latestMs = latestEntry.dateMs;
     const lookbackStartMs = latestMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
     const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
@@ -345,9 +348,14 @@ export class DashboardPage {
   }
 
   private stabilityScore(entriesAfterGoalStart: WeightEntry[], unitLabel: WeightUnit): number | null {
-    const cutoffMs = todayLocalMidnightMs() - STABILITY_WINDOW_DAYS * 86400000;
-    const recent = entriesAfterGoalStart.filter(e => e.dateMs >= cutoffMs);
-    if (recent.length < 2) return null;
+    if (entriesAfterGoalStart.length < 2) return null;
+    const latestMs = entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs;
+    const cutoffMs = latestMs - STABILITY_WINDOW_DAYS * 86400000;
+    let recent = entriesAfterGoalStart.filter(e => e.dateMs >= cutoffMs);
+    if (recent.length < STABILITY_MIN_SAMPLES) {
+      recent = entriesAfterGoalStart.slice(-STABILITY_MIN_SAMPLES);
+    }
+    if (recent.length < STABILITY_MIN_SAMPLES) return null;
     const weights = recent.map(e => e.weight);
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
@@ -364,6 +372,8 @@ export class DashboardPage {
     return 'Fluctuating';
   }
 
+  // This evaluates the quality of all data, however it is primarily tied to the quality of
+  // the data for rate calculations, which is the most important aspect of overall data quality.
   private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
     if (entriesAfterGoalStart.length < 2) return null;
 
@@ -379,18 +389,19 @@ export class DashboardPage {
     // Slope stops reflecting current behavior after several days without data
     const isStale = (todayMs - latestEntry.dateMs) / 86400000 > RATE_STALE_AFTER_DAYS;
 
-    // Entries must span at least half the lookback window for a stable slope
+    // Entries must span at least RATE_MIN_SPAN_FRACTION of the lookback window for a stable slope
     const spanDays = (samples[samples.length - 1].dateMs - samples[0].dateMs) / 86400000;
-    const hasMinSpan = spanDays >= WEEKLY_RATE_LOOKBACK_DAYS / 2 - 1;
+    const hasMinSpan = spanDays >= WEEKLY_RATE_LOOKBACK_DAYS * RATE_MIN_SPAN_FRACTION - 1;
 
-    // A >1/2 of the lookback window gap means the regression bridges a data desert
+    // A gap >RATE_MAX_GAP_FRACTION of the lookback window means the regression bridges a data desert
     const hasLargeGap = samples.some((entry, i) => {
       if (i === 0) return false;
-      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > WEEKLY_RATE_LOOKBACK_DAYS / 2;
+      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > WEEKLY_RATE_LOOKBACK_DAYS * RATE_MAX_GAP_FRACTION;
     });
 
-    // 2 points is the mathematical minimum; RATE_MIN_SAMPLES gives a meaningful fit
-    const hasEnoughPoints = samples.length >= RATE_MIN_SAMPLES;
+    // 2 points is the mathematical minimum; a per-week density gives a meaningful fit
+    const minSamples = Math.ceil((WEEKLY_RATE_LOOKBACK_DAYS / 7) * RATE_MIN_SAMPLES_PER_WEEK);
+    const hasEnoughPoints = samples.length >= minSamples;
 
     return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimates';
   }
