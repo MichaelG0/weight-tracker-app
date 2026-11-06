@@ -9,6 +9,7 @@ import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-conve
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 import { ageFromBirthDate } from '../utils/age-calculator.util';
+import { TREND_ALPHA } from '../constants/trend.constants';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
 
@@ -163,10 +164,6 @@ const DROP_TABLES = `
   DROP TABLE IF EXISTS goals;
 `;
 
-// ─── Constants ──────────────────────────────────────────────────────────────────
-
-const ALPHA = 0.1;
-
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
@@ -210,7 +207,7 @@ export class DatabaseService {
           ewma = convertedWeight;
         } else {
           const daysDelta = (currentDateMs - prevDateMs) / 86400000; // ms → days
-          const adjustedAlpha = 1 - Math.pow(1 - ALPHA, daysDelta);
+          const adjustedAlpha = 1 - Math.pow(1 - TREND_ALPHA, daysDelta);
           ewma = ewma + adjustedAlpha * (convertedWeight - ewma);
         }
 

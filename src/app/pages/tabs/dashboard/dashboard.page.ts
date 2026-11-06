@@ -23,6 +23,13 @@ import {
 import { addIcons } from 'ionicons';
 import { trendingDownOutline } from 'ionicons/icons';
 import {
+  RATE_MIN_SAMPLES,
+  RATE_STALE_AFTER_DAYS,
+  STABILITY_SD_THRESHOLD_KG,
+  STABILITY_WINDOW_DAYS,
+  WEEKLY_RATE_LOOKBACK_DAYS,
+} from '../../../constants/trend.constants';
+import {
   DatabaseService,
   Goal,
   GoalType,
@@ -95,7 +102,6 @@ interface DashboardVm {
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
-  private readonly weeklyRateLookbackDays = 14;
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
 
@@ -280,7 +286,7 @@ export class DashboardPage {
   private rawWeeklyRateAbs(latestEntry: WeightEntry | null, entriesAfterGoalStart: WeightEntry[]): number | null {
     if (latestEntry == null || entriesAfterGoalStart.length < 2) return null;
     const latestMs = latestEntry.dateMs;
-    const lookbackStartMs = latestMs - this.weeklyRateLookbackDays * 86400000;
+    const lookbackStartMs = latestMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
     const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
     if (samples.length < 2) return null;
 
@@ -339,14 +345,14 @@ export class DashboardPage {
   }
 
   private stabilityScore(entriesAfterGoalStart: WeightEntry[], unitLabel: WeightUnit): number | null {
-    const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
+    const cutoffMs = todayLocalMidnightMs() - STABILITY_WINDOW_DAYS * 86400000;
     const recent = entriesAfterGoalStart.filter(e => e.dateMs >= cutoffMs);
     if (recent.length < 2) return null;
     const weights = recent.map(e => e.weight);
     const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
     const variance = weights.reduce((sum, w) => sum + (w - mean) ** 2, 0) / weights.length;
     const sd = Math.sqrt(variance);
-    const threshold = kgToUnit(1.5, unitLabel);
+    const threshold = kgToUnit(STABILITY_SD_THRESHOLD_KG, unitLabel);
     return Math.max(0, Math.min(100, 100 * (1 - sd / threshold)));
   }
 
@@ -365,26 +371,26 @@ export class DashboardPage {
     const todayMs = todayLocalMidnightMs();
 
     // Mirror the exact window rawWeeklyRateAbs uses (anchored to latest entry, not today)
-    const lookbackStartMs = latestEntry.dateMs - this.weeklyRateLookbackDays * 86400000;
+    const lookbackStartMs = latestEntry.dateMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
     const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs);
 
     if (samples.length < 2) return null;
 
     // Slope stops reflecting current behavior after several days without data
-    const isStale = (todayMs - latestEntry.dateMs) / 86400000 > 6;
+    const isStale = (todayMs - latestEntry.dateMs) / 86400000 > RATE_STALE_AFTER_DAYS;
 
     // Entries must span at least half the lookback window for a stable slope
     const spanDays = (samples[samples.length - 1].dateMs - samples[0].dateMs) / 86400000;
-    const hasMinSpan = spanDays >= 6;
+    const hasMinSpan = spanDays >= WEEKLY_RATE_LOOKBACK_DAYS / 2 - 1;
 
-    // A >7-day gap means the regression bridges a data desert
+    // A >1/2 of the lookback window gap means the regression bridges a data desert
     const hasLargeGap = samples.some((entry, i) => {
       if (i === 0) return false;
-      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > 7;
+      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > WEEKLY_RATE_LOOKBACK_DAYS / 2;
     });
 
-    // 2 points is the mathematical minimum; 4+ gives a meaningful fit
-    const hasEnoughPoints = samples.length >= 4;
+    // 2 points is the mathematical minimum; RATE_MIN_SAMPLES gives a meaningful fit
+    const hasEnoughPoints = samples.length >= RATE_MIN_SAMPLES;
 
     return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimates';
   }
