@@ -72,35 +72,14 @@
           <div class="icon-wrap" slot="start">
             <ion-icon name="resize-outline"></ion-icon>
           </div>
-          @if (heightUnit === 'ft/in') {
-            <div class="ft-in-group">
-              <ion-input
-                label="Height (ft)"
-                labelPlacement="stacked"
-                type="number"
-                placeholder="ft"
-                [(ngModel)]="heightFt"
-                (ionBlur)="saveSettings()"
-              ></ion-input>
-              <ion-input
-                label="(in)"
-                labelPlacement="stacked"
-                type="number"
-                placeholder="in"
-                [(ngModel)]="heightIn"
-                (ionBlur)="saveSettings()"
-              ></ion-input>
-            </div>
-          } @else {
-            <ion-input
-              label="Height (cm)"
-              labelPlacement="stacked"
-              type="number"
-              placeholder="cm"
-              [(ngModel)]="heightCm"
-              (ionBlur)="saveSettings()"
-            ></ion-input>
-          }
+          <ion-input
+            label="Height"
+            labelPlacement="stacked"
+            placeholder="Select height"
+            readonly
+            [value]="heightCm | formatHeight: heightUnit"
+            (click)="openHeightPicker()"
+          ></ion-input>
         </ion-item>
       </ion-list>
     </section>

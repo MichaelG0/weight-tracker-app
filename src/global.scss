@@ -286,13 +286,8 @@ ion-toast {
 // ── Modals ─────────────────────────────────────────────────────────
 
 ion-modal.weight-picker-modal,
-ion-modal.rate-picker-modal {
-  --width: fit-content;
-  --min-width: 250px;
-  --height: fit-content;
-  --border-radius: 16px;
-}
-
+ion-modal.height-picker-modal,
+ion-modal.rate-picker-modal,
 ion-modal.date-modal {
   --width: fit-content;
   --min-width: 250px;

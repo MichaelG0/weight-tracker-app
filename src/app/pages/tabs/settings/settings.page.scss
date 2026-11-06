@@ -47,16 +47,6 @@
   }
 }
 
-.ft-in-group {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-
-  ion-input {
-    flex: 1;
-  }
-}
-
 .list-group.profile-list-group ion-list {
   ion-button {
     --padding-start: 8px;

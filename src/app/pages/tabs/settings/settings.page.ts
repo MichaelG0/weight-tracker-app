@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonHeader,
@@ -45,7 +45,8 @@ import {
 } from 'ionicons/icons';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { take } from 'rxjs/operators';
-import { cmToFtIn } from 'src/app/utils/unit-conversion.util';
+import { FormatHeightPipe } from '../../../pipes/format-height.pipe';
+import { HeightPickerModalComponent } from 'src/app/components/height-picker-modal/height-picker-modal.component';
 import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
@@ -72,6 +73,7 @@ import { FormatDatePipe } from '../../../pipes/format-date.pipe';
     IonButton,
     GlassHeaderBackdropDirective,
     FormatDatePipe,
+    FormatHeightPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -79,13 +81,12 @@ export class SettingsPage {
   private themeService = inject(CssThemeService);
   private db = inject(DatabaseService);
   private modalCtrl = inject(ModalController);
+  private cdr = inject(ChangeDetectorRef);
 
   name = this.db.settings()?.name ?? '';
   birthDate = this.db.settings()?.birthDate ?? '';
   gender = this.db.settings()?.gender ?? '';
   heightCm: number | null = this.db.settings()?.heightCm ?? null;
-  heightFt: number | null = null;
-  heightIn: number | null = null;
   weightUnit: WeightUnit = this.db.settings()?.weightUnit ?? 'kg';
   heightUnit: HeightUnit = this.db.settings()?.heightUnit ?? 'cm';
   activityLevel: ActivityLevel | '' = this.db.settings()?.activityLevel ?? '';
@@ -113,10 +114,6 @@ export class SettingsPage {
       informationCircleOutline,
       swapVerticalOutline,
     });
-
-    const ftIn = this.heightCm ? cmToFtIn(this.heightCm) : null;
-    this.heightFt = ftIn?.feet ?? null;
-    this.heightIn = ftIn?.inches ?? null;
   }
 
   toggleTheme(event: any): void {
@@ -139,10 +136,8 @@ export class SettingsPage {
       body_type: this.bodyType || undefined,
     };
 
-    if (this.heightUnit === 'cm' && this.heightCm) {
+    if (this.heightCm) {
       settings.height_cm = this.heightCm;
-    } else if (this.heightUnit === 'ft/in' && (this.heightFt || this.heightIn)) {
-      settings.heightFtIn = { feet: this.heightFt, inches: this.heightIn };
     }
 
     this.db.saveSettings(settings).pipe(take(1)).subscribe();
@@ -152,6 +147,22 @@ export class SettingsPage {
     const value = event.detail.value;
     this.birthDate = typeof value === 'string' ? value.substring(0, 10) : '';
     this.saveSettings();
+  }
+
+  async openHeightPicker(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: HeightPickerModalComponent,
+      componentProps: { value: this.heightCm, unit: this.heightUnit },
+      cssClass: 'height-picker-modal',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss<number | null>();
+    if (role !== 'confirm' || data == null) return;
+
+    this.heightCm = data;
+    this.saveSettings();
+    this.cdr.markForCheck();
   }
 
   setGender(value: string): void {

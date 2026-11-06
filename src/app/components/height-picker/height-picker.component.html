@@ -1,0 +1,25 @@
+<div class="picker">
+  <div class="wheel">
+    <div class="wheel-highlight"></div>
+    <div #primaryCol class="wheel-column whole" (scroll)="onPrimaryScroll($event)">
+      @for (n of primaryOptions; track n) {
+        <div class="wheel-item" [class.active]="n === primary()" (click)="selectPrimary(n)">{{ n }}</div>
+      }
+    </div>
+  </div>
+
+  <p class="unit">{{ isFtIn ? 'ft' : 'cm' }}</p>
+
+  @if (isFtIn) {
+    <div class="wheel">
+      <div class="wheel-highlight"></div>
+      <div #secondaryCol class="wheel-column whole" (scroll)="onSecondaryScroll($event)">
+        @for (n of secondaryOptions; track n) {
+          <div class="wheel-item" [class.active]="n === secondary()" (click)="selectSecondary(n)">{{ n }}</div>
+        }
+      </div>
+    </div>
+
+    <p class="unit">in</p>
+  }
+</div>

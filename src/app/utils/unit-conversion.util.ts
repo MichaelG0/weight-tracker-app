@@ -1,4 +1,4 @@
-import { WeightUnit, HeightFtIn, WeightDisplay, WeightPart } from "../services/database.service";
+import { WeightUnit, HeightUnit, HeightFtIn, WeightDisplay, WeightPart } from "../services/database.service";
 
 const DEFAULT_DECIMALS = 1;
 const STONE_DECIMALS = 2;
@@ -78,4 +78,11 @@ export function ftInToCm(value: HeightFtIn): number {
   const totalInches = (value.feet ?? 0) * 12 + (value.inches ?? 0);
   const cm = totalInches * 2.54;
   return parseFloat(cm.toFixed(0));
+}
+
+export function formatHeight(cm: number | null | undefined, unit: HeightUnit): string {
+  if (!cm) return '';
+  if (unit === 'cm') return `${Math.round(cm)} cm`;
+  const { feet, inches } = cmToFtIn(cm);
+  return `${feet} ft ${inches} in`;
 }
