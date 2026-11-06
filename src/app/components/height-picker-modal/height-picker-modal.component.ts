@@ -1,3 +1,4 @@
+import { ChangeDetectionStrategy } from '@angular/core';
 import { Component, inject, Input, ViewChild } from '@angular/core';
 import { IonButton, IonButtons, IonFooter, IonHeader, IonTitle, IonToolbar, ModalController } from '@ionic/angular/standalone';
 import { HeightPickerComponent } from 'src/app/components/height-picker/height-picker.component';
@@ -8,6 +9,7 @@ import { HeightUnit } from 'src/app/services/database.service';
   templateUrl: './height-picker-modal.component.html',
   styleUrls: ['./height-picker-modal.component.scss'],
   imports: [IonHeader, IonFooter, IonToolbar, IonTitle, IonButton, IonButtons, HeightPickerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HeightPickerModalComponent {
   private readonly modalCtrl = inject(ModalController);

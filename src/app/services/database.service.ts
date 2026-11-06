@@ -328,6 +328,7 @@ export class DatabaseService {
 
     await this.db.execute(MIGRATIONS);
     await this.migrateAgeToBirthDate();
+    await this.ensureDefaultSettings();
 
     if (!environment.production) {
       await this.mockData.seed(this.db);
@@ -359,6 +360,11 @@ export class DatabaseService {
       take(1),
       switchMap(() => operation()),
     );
+  }
+
+  // The entry and goal streams wait for a weight_unit, so the settings row must always exist.
+  private async ensureDefaultSettings(): Promise<void> {
+    await this.db.run(`INSERT OR IGNORE INTO user_settings (user_id, weight_unit) VALUES (1, 'st')`);
   }
 
   private async syncEntries(): Promise<void> {

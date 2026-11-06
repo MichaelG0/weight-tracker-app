@@ -556,13 +556,13 @@ export class ProgressPage {
     let xMax = todayMs;
 
     if (range === 'journey' && (entries.length || goals.length)) {
-      xMin = Math.min(entries[0].dateMs, goals[0].startDateMs);
+      xMin = Math.min(entries[0]?.dateMs, goals[0]?.startDateMs);
     } else if (range === 'to-goal' && goals.length > 0) {
       xMin = goals[0].startDateMs;
       const futureGoals = goals.filter(g => g.goalDateMs >= todayMs);
       xMax = futureGoals.length ? Math.min(...futureGoals.map(g => g.goalDateMs)) : xMax;
     } else if (range === 'history' && (entries.length || goals.length)) {
-      xMin = Math.min(entries[0].dateMs, goals[0].startDateMs);
+      xMin = Math.min(entries[0]?.dateMs, goals[0]?.startDateMs);
     }
 
     // Ensure the visible range is at least 5 days

@@ -7,8 +7,9 @@ import { GoalDB } from './database.service';
 export class MockDataService {
   async seed(db: SQLiteDBConnection): Promise<void> {
     await db.run(
-      `INSERT INTO user_settings (user_id, name, birth_date, experience, weight_unit)
-       VALUES (1, ?, ?, ?, ?)`,
+      `UPDATE user_settings
+          SET name = ?, birth_date = ?, experience = ?, weight_unit = ?
+        WHERE user_id = 1`,
       ['Michael', '1994-08-19', 'Advanced', 'kg'],
     );
 

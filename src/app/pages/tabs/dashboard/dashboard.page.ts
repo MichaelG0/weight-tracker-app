@@ -21,7 +21,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { trendingDownOutline } from 'ionicons/icons';
+import { scaleOutline, trendingDownOutline } from 'ionicons/icons';
 import {
   RATE_MAX_GAP_FRACTION,
   RATE_MIN_SAMPLES_PER_WEEK,
@@ -106,6 +106,9 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
+  readonly hasEntries = computed(() => {
+    console.log('WHATTHEFUCK', this.databaseService.entries());
+    return this.databaseService.entries().length > 0});
 
   readonly vm: Signal<DashboardVm> = computed(() => {
     const userSettings = this.databaseService.extendedSettings();
@@ -194,7 +197,7 @@ export class DashboardPage {
   });
 
   constructor() {
-    addIcons({ trendingDownOutline });
+    addIcons({ scaleOutline, trendingDownOutline });
   }
 
   async openLogWeight(): Promise<void> {

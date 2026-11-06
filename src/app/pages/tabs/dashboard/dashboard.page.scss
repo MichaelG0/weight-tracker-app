@@ -180,6 +180,25 @@ ion-card {
   }
 }
 
+.dashboard-empty {
+  padding: 60px 32px;
+
+  p {
+    margin-bottom: 28px;
+  }
+
+  .action-btn {
+    --border-radius: 18px;
+    font-size: 1rem;
+    font-weight: 800;
+    height: 56px;
+    letter-spacing: -0.01em;
+    margin: 0 auto;
+    max-width: 320px;
+    width: 100%;
+  }
+}
+
 .stats-label-row {
   display: flex;
   align-items: center;

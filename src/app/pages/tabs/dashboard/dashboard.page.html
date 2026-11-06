@@ -5,7 +5,16 @@
 </ion-header>
 
 <ion-content fullscreen class="tab-content">
-  @if (vm(); as vm) {
+  @if (!hasEntries()) {
+    <div class="empty-state dashboard-empty">
+      <div class="empty-icon-wrap">
+        <ion-icon name="scale-outline"></ion-icon>
+      </div>
+      <h2>No weight data yet</h2>
+      <p>Log your first weigh-in to unlock your trend, goal projection and statistics.</p>
+      <ion-button expand="block" shape="round" color="primary" class="action-btn" (click)="openLogWeight()">Log Weight</ion-button>
+    </div>
+  } @else if (vm(); as vm) {
     <div class="list-group-wrp">
       <section class="list-group">
         <ion-card class="balance-card">
