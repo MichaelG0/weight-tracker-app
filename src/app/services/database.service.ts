@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 'rxjs';
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { cmToFtIn, ftInToCm, unitToKgFixed, kgToUnit } from '../utils/unit-conversion.util';
+import { cmToFtIn, ftInToCm, unitToKg, kgToUnit } from '../utils/unit-conversion.util';
 import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
@@ -329,9 +329,9 @@ export class DatabaseService {
     await this.db.execute(MIGRATIONS);
     await this.ensureDefaultSettings();
 
-    if (!environment.production) {
-      await this.mockData.seed(this.db);
-    }
+    // if (!environment.production) {
+    //   await this.mockData.seed(this.db);
+    // }
 
     // Signal readiness and pre-load reactive state.
     this.ready$.next();
@@ -376,7 +376,7 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
-          unitToKgFixed(entry.weight_kg, this.weightUnit()),
+          unitToKg(entry.weight_kg, this.weightUnit()),
           toLocalMidnightString(entry.logged_at),
           entry.notes ?? null,
         ]),
@@ -391,7 +391,7 @@ export class DatabaseService {
     console.log('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
-    const weightToStore = entry.weight_kg != null ? unitToKgFixed(entry.weight_kg, this.weightUnit()) : null;
+    const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.weightUnit()) : null;
 
     return this.whenReady(() =>
       from(
@@ -483,8 +483,8 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
-          unitToKgFixed(goal.start_weight_kg, this.weightUnit()),
-          unitToKgFixed(goal.goal_weight_kg, this.weightUnit()),
+          unitToKg(goal.start_weight_kg, this.weightUnit()),
+          unitToKg(goal.goal_weight_kg, this.weightUnit()),
           toLocalMidnightString(goal.start_date),
           toLocalMidnightString(goal.goal_date),
           goal.type ?? null,
@@ -509,8 +509,8 @@ export class DatabaseService {
                  type            = COALESCE(?, type)
            WHERE id = ?`,
           [
-            goal.start_weight_kg != null ? unitToKgFixed(goal.start_weight_kg, this.weightUnit()) : null,
-            goal.goal_weight_kg != null ? unitToKgFixed(goal.goal_weight_kg, this.weightUnit()) : null,
+            goal.start_weight_kg != null ? unitToKg(goal.start_weight_kg, this.weightUnit()) : null,
+            goal.goal_weight_kg != null ? unitToKg(goal.goal_weight_kg, this.weightUnit()) : null,
             goal.start_date != null ? toLocalMidnightString(goal.start_date) : null,
             goal.goal_date != null ? toLocalMidnightString(goal.goal_date) : null,
             goal.type ?? null,

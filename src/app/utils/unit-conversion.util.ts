@@ -4,38 +4,51 @@ const DEFAULT_DECIMALS = 1;
 const STONE_DECIMALS = 2;
 
 export function kgToUnitFixed(kg: number, unit: WeightUnit): number {
+  let result: number;
   switch (unit) {
-    case 'lbs': return parseFloat((kg * 2.20462).toFixed(DEFAULT_DECIMALS));
-    case 'st': return parseFloat((kg * 0.157473).toFixed(STONE_DECIMALS));
-    default: return parseFloat(kg.toFixed(DEFAULT_DECIMALS));
+    case 'lbs': result = parseFloat((kg * 2.20462).toFixed(DEFAULT_DECIMALS)); break;
+    case 'st': result = parseFloat((kg * 0.157473).toFixed(STONE_DECIMALS)); break;
+    default: result = parseFloat(kg.toFixed(DEFAULT_DECIMALS));
   }
+  console.log('kgToUnitFixed returned:', result);
+  return result;
 }
 
 // For precise calculations
 export function kgToUnit(kg: number, unit: WeightUnit): number {
+  let result: number;
   switch (unit) {
-    case 'lbs': return kg * 2.20462;
-    case 'st': return kg * 0.157473;
-    default: return kg;
+    case 'lbs': result = kg * 2.20462; break;
+    case 'st': result = kg * 0.157473; break;
+    default: result = kg;
   }
+  console.log('kgToUnit returned:', result);
+  return result;
 }
 
-// For db saves
-export function unitToKgFixed(value: number, unit: WeightUnit): number {
+// For db saves - lbs/st are not rounded, so converting back to the display unit returns the same value
+export function unitToKg(value: number, unit: WeightUnit): number {
+  let result: number;
   switch (unit) {
-    case 'lbs': return parseFloat((value / 2.20462).toFixed(DEFAULT_DECIMALS));
-    case 'st': return parseFloat((value / 0.157473).toFixed(DEFAULT_DECIMALS));
-    default: return parseFloat(value.toFixed(DEFAULT_DECIMALS));
+    case 'lbs': result = value / 2.20462; break;
+    case 'st': result = value / 0.157473; break;
+    default: result = parseFloat(value.toFixed(DEFAULT_DECIMALS));
   }
+  console.log('unitToKg returned:', result);
+  return result;
 }
 
 export function roundWeightNum(value: number, unit: WeightUnit, toFixedOffset: number = 0): number {
-  return parseFloat(formatWeightDecimal(value, unit, toFixedOffset));
+  const result = parseFloat(formatWeightDecimal(value, unit, toFixedOffset));
+  console.log('roundWeightNum returned:', result);
+  return result;
 }
 
 // For UI display - returns a decimal value for all unit types, without unit labels
 export function formatWeightDecimal(value: number, unit: WeightUnit, toFixedOffset: number = 0): string {
-  return value.toFixed((unit === 'st' ? STONE_DECIMALS : DEFAULT_DECIMALS) + toFixedOffset);
+  const result = value.toFixed((unit === 'st' ? STONE_DECIMALS : DEFAULT_DECIMALS) + toFixedOffset);
+  console.log('formatWeightDecimal returned:', result);
+  return result;
 }
 
 // For UI display - formats stone units like "X st Y lbs" and other units like "X kg" or "X lbs"
@@ -62,27 +75,48 @@ export function formatWeight(value: number, unit: WeightUnit, toFixedOffset: num
   }
 
   const text = parts.map(p => `${p.value} ${p.unit}`).join(' ');
-  return { parts, text };
+  const result: WeightDisplay = { parts, text };
+  console.log('formatWeight returned:', result);
+  return result;
 }
 
 export function cmToFtIn(cm: number): HeightFtIn {
-  if (!cm) return { feet: 0, inches: 0 };
-  const totalInches = Math.round(cm / 2.54);
-  const feet = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-  return { feet, inches };
+  let result: HeightFtIn;
+  if (!cm) {
+    result = { feet: 0, inches: 0 };
+  } else {
+    const totalInches = Math.round(cm / 2.54);
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    result = { feet, inches };
+  }
+  console.log('cmToFtIn returned:', result);
+  return result;
 }
 
 export function ftInToCm(value: HeightFtIn): number {
-  if (!value || (!value.feet && !value.inches)) return 0;
-  const totalInches = (value.feet ?? 0) * 12 + (value.inches ?? 0);
-  const cm = totalInches * 2.54;
-  return parseFloat(cm.toFixed(0));
+  let result: number;
+  if (!value || (!value.feet && !value.inches)) {
+    result = 0;
+  } else {
+    const totalInches = (value.feet ?? 0) * 12 + (value.inches ?? 0);
+    const cm = totalInches * 2.54;
+    result = parseFloat(cm.toFixed(0));
+  }
+  console.log('ftInToCm returned:', result);
+  return result;
 }
 
 export function formatHeight(cm: number | null | undefined, unit: HeightUnit): string {
-  if (!cm) return '';
-  if (unit === 'cm') return `${Math.round(cm)} cm`;
-  const { feet, inches } = cmToFtIn(cm);
-  return `${feet} ft ${inches} in`;
+  let result: string;
+  if (!cm) {
+    result = '';
+  } else if (unit === 'cm') {
+    result = `${Math.round(cm)} cm`;
+  } else {
+    const { feet, inches } = cmToFtIn(cm);
+    result = `${feet} ft ${inches} in`;
+  }
+  console.log('formatHeight returned:', result);
+  return result;
 }
