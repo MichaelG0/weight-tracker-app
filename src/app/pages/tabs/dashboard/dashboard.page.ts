@@ -44,6 +44,7 @@ import {
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
+import { LogService } from 'src/app/services/log.service';
 import { formatWeight, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
@@ -104,6 +105,7 @@ interface DashboardVm {
 export class DashboardPage {
   private readonly databaseService = inject(DatabaseService);
   private readonly modalCtrl = inject(ModalController);
+  private readonly logger = inject(LogService);
 
   readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
   readonly hasEntries = computed(() => this.databaseService.entries().length > 0);
@@ -329,7 +331,7 @@ export class DashboardPage {
   ): string | null {
     if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
     const remaining = goalWeight - trendWeight;
-    console.log('Calculating expected goal date: remaining:', remaining);
+    this.logger.debug('Calculating expected goal date: remaining:', remaining);
     if (goalReached) return 'Reached';
     if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
     if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
@@ -437,7 +439,7 @@ export class DashboardPage {
     if (!trendWeight || !activeGoal || activeGoal.type === 'Maintenance' || !userSettings?.coaching) {
       return null;
     }
-    console.log('Calculating schedule projection for trendWeight:', trendWeight, 'activeGoal:', activeGoal);
+    this.logger.debug('Calculating schedule projection for trendWeight:', trendWeight, 'activeGoal:', activeGoal);
     const today = todayLocalMidnightMs();
     const totalDuration = activeGoal.goalDateMs - activeGoal.startDateMs;
     const elapsed = today - activeGoal.startDateMs;
@@ -453,7 +455,7 @@ export class DashboardPage {
     } = userSettings?.coaching ?? {};
     const range = Math.min(Math.max(Math.abs(delta / totalDays) * scheduleToleranceWeeks * 7, noiseFloor), rangeCap);
 
-    console.log('Schedule projection:', { projectedWeight, range });
+    this.logger.debug('Schedule projection:', { projectedWeight, range });
     return { projectedWeight, range };
   }
 
@@ -487,14 +489,14 @@ export class DashboardPage {
 
       const trendDelta = Math.abs(endEntry.trend - startEntry.trend);
       const thresholdAbs = (endEntry.trend * noiseFloorPct) / 100;
-      console.log('Stall week check - trendDelta:', trendDelta, 'thresholdAbs:', thresholdAbs);
+      this.logger.debug('Stall week check - trendDelta:', trendDelta, 'thresholdAbs:', thresholdAbs);
       if (trendDelta > thresholdAbs) break; // meaningful movement → not stalled
 
       weeks++;
       if (weekStart <= activeGoal.startDateMs) break; // don't look before goal start
     }
 
-    console.log('Stall weeks calculated:', weeks);
+    this.logger.debug('Stall weeks calculated:', weeks);
     return weeks;
   }
 
@@ -511,7 +513,7 @@ export class DashboardPage {
     }
 
     const outOfRangeDays = Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStartIndex].dateMs) / 86400000));
-    console.log('Maintenance out-of-range days calculated:', outOfRangeDays);
+    this.logger.debug('Maintenance out-of-range days calculated:', outOfRangeDays);
     return Math.floor(outOfRangeDays / 7);
   }
 

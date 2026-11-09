@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 import { ageFromBirthDate } from '../utils/age-calculator.util';
 import { TREND_ALPHA } from '../constants/trend.constants';
+import { LogService } from './log.service';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ const DROP_TABLES = `
 @Injectable({ providedIn: 'root' })
 export class DatabaseService {
   private readonly sqlite = new SQLiteConnection(CapacitorSQLite);
+  private readonly logger = inject(LogService);
   private readonly mockData = inject(MockDataService);
   private db!: SQLiteDBConnection;
 
@@ -223,7 +225,7 @@ export class DatabaseService {
         prevDateMs = currentDateMs;
       }
 
-      console.log('entries$', entries.slice(-5));
+      this.logger.debug('entries$', entries.slice(-5));
       return entries;
     }),
   );
@@ -243,7 +245,7 @@ export class DatabaseService {
         bodyType: settings.body_type,
       };
 
-      console.log('settings$', converted);
+      this.logger.debug('settings$', converted);
       return converted;
     }),
   );
@@ -264,7 +266,7 @@ export class DatabaseService {
         type: g.type,
       }));
 
-      console.log('goals$', goals);
+      this.logger.debug('goals$', goals);
       return goals;
     }),
   );
@@ -329,9 +331,9 @@ export class DatabaseService {
     await this.db.execute(MIGRATIONS);
     await this.ensureDefaultSettings();
 
-    // if (!environment.production) {
-    //   await this.mockData.seed(this.db);
-    // }
+    if (!environment.production) {
+      await this.mockData.seed(this.db);
+    }
 
     // Signal readiness and pre-load reactive state.
     this.ready$.next();
@@ -372,7 +374,7 @@ export class DatabaseService {
   // ── Weight entries ────────────────────────────────────────────────────────
 
   addEntry(entry: Omit<WeightEntryDB, 'id'>): Observable<void> {
-    console.log('Adding entry:', entry);
+    this.logger.debug('Adding entry:', entry);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
@@ -388,7 +390,7 @@ export class DatabaseService {
   }
 
   updateEntry(entry: Required<Pick<WeightEntryDB, 'id'>> & Partial<WeightEntryDB>): Observable<void> {
-    console.log('Updating entry:', entry);
+    this.logger.debug('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
     const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.weightUnit()) : null;
@@ -479,7 +481,7 @@ export class DatabaseService {
   // ── Goals ──────────────────────────────────────────────────────────────────
 
   addGoal(goal: Omit<GoalDB, 'id'>): Observable<void> {
-    console.log('Adding goal:', goal);
+    this.logger.debug('Adding goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
@@ -497,7 +499,7 @@ export class DatabaseService {
   }
 
   updateGoal(goal: Required<Pick<GoalDB, 'id'>> & Partial<GoalDB>): Observable<void> {
-    console.log('Updating goal:', goal);
+    this.logger.debug('Updating goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(
