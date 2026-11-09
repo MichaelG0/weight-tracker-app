@@ -6,11 +6,10 @@ import { AfterViewInit, Directive, ElementRef, NgZone, OnDestroy, Renderer2, inj
 export class DeckCardOptionsDirective implements AfterViewInit, OnDestroy {
   private observer?: MutationObserver;
   private readonly zone = inject(NgZone);
+  private readonly hostRef = inject(ElementRef<HTMLElement>);
+  private readonly renderer = inject(Renderer2);
 
-  constructor(
-    private readonly hostRef: ElementRef<HTMLElement>,
-    private readonly renderer: Renderer2,
-  ) {}
+  constructor() {}
 
   ngAfterViewInit(): void {
     const host = this.hostRef.nativeElement;

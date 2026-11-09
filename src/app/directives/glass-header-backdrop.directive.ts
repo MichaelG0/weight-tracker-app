@@ -1,4 +1,4 @@
-import { AfterViewInit, Directive, ElementRef, OnDestroy, Renderer2 } from '@angular/core';
+import { AfterViewInit, Directive, ElementRef, inject, OnDestroy, Renderer2 } from '@angular/core';
 
 @Directive({
   selector: 'ion-header[appGlassBackdrop]',
@@ -9,11 +9,10 @@ export class GlassHeaderBackdropDirective implements AfterViewInit, OnDestroy {
   private backdropEl?: HTMLElement;
   private layerEls: HTMLElement[] = [];
   private resizeObserver?: ResizeObserver;
+  private readonly hostRef = inject(ElementRef<HTMLElement>);
+  private readonly renderer = inject(Renderer2);
 
-  constructor(
-    private readonly hostRef: ElementRef<HTMLElement>,
-    private readonly renderer: Renderer2,
-  ) {}
+  constructor() {}
 
   ngAfterViewInit(): void {
     const host = this.hostRef.nativeElement;
