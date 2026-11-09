@@ -374,7 +374,7 @@ export class DatabaseService {
   // ── Weight entries ────────────────────────────────────────────────────────
 
   addEntry(entry: Omit<WeightEntryDB, 'id'>): Observable<void> {
-    this.logger.debug('Adding entry:', entry);
+    this.logger.info('Adding entry:', entry);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
@@ -390,7 +390,7 @@ export class DatabaseService {
   }
 
   updateEntry(entry: Required<Pick<WeightEntryDB, 'id'>> & Partial<WeightEntryDB>): Observable<void> {
-    this.logger.debug('Updating entry:', entry);
+    this.logger.info('Updating entry:', entry);
     const hasNotes = 'notes' in entry;
     const trimmedNotes = hasNotes ? entry.notes?.trim() || null : null;
     const weightToStore = entry.weight_kg != null ? unitToKg(entry.weight_kg, this.weightUnit()) : null;
@@ -481,7 +481,7 @@ export class DatabaseService {
   // ── Goals ──────────────────────────────────────────────────────────────────
 
   addGoal(goal: Omit<GoalDB, 'id'>): Observable<void> {
-    this.logger.debug('Adding goal:', goal);
+    this.logger.info('Adding goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(`INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`, [
@@ -499,7 +499,7 @@ export class DatabaseService {
   }
 
   updateGoal(goal: Required<Pick<GoalDB, 'id'>> & Partial<GoalDB>): Observable<void> {
-    this.logger.debug('Updating goal:', goal);
+    this.logger.info('Updating goal:', goal);
     return this.whenReady(() =>
       from(
         this.db.run(

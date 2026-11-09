@@ -28,6 +28,8 @@
     "@capacitor/keyboard": "8.0.3",
     "@capacitor/status-bar": "8.0.2",
     "@ionic/angular": "^8.0.0",
+    "@sentry/angular": "^10.76.2",
+    "@sentry/capacitor": "^4.5.0",
     "chart.js": "^4.5.1",
     "chartjs-plugin-zoom": "^2.2.0",
     "ionicons": "^7.0.0",
