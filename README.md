@@ -58,7 +58,6 @@ The project also serves as an exploration of modern Angular architecture, reacti
 
 - Chart.js
 - chartjs-plugin-zoom
-- Hammer.js
 
 ## Modern Angular
 

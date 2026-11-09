@@ -36,7 +36,6 @@ import { kgToUnit, formatWeightDecimal } from 'src/app/utils/unit-conversion.uti
 import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
-import 'hammerjs';
 import { FormatWeightPartsPipe } from '../../../pipes/format-weight-parts.pipe';
 Chart.register(zoomPlugin);
 
