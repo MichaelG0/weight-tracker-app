@@ -547,14 +547,14 @@ export class DashboardPage {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
     }
-    if (entriesAfterGoalStart.length < RECOMMENDATION_MIN_ENTRIES_REQUIRED) {
-      return `Log weight at least ${RECOMMENDATION_MIN_ENTRIES_REQUIRED} times since this goal started to unlock custom recommendations.`;
-    }
     if (!this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) {
       return 'Resume logging to unlock custom recommendations.';
     }
     if (rawWeeklyRate == null) {
       return 'Keep logging to unlock custom recommendations.';
+    }
+    if (entriesAfterGoalStart.length < RECOMMENDATION_MIN_ENTRIES_REQUIRED) {
+      return `Log weight at least ${RECOMMENDATION_MIN_ENTRIES_REQUIRED} times since this goal started to unlock custom recommendations.`;
     }
     if (trendWeight == null || userSettings == null) {
       return 'Start logging to unlock custom recommendations.';
