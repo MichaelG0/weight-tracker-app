@@ -27,6 +27,8 @@ import {
   RATE_MIN_SAMPLES_PER_WEEK,
   RATE_MIN_SPAN_FRACTION,
   RATE_STALE_AFTER_DAYS,
+  RATE_OUTDATED_AFTER_DAYS,
+  RECOMMENDATION_MIN_ENTRIES_REQUIRED,
   STABILITY_MIN_SAMPLES,
   STABILITY_SD_THRESHOLD_KG,
   STABILITY_WINDOW_DAYS,
@@ -112,8 +114,7 @@ export class DashboardPage {
 
   readonly vm: Signal<DashboardVm> = computed(() => {
     const userSettings = this.databaseService.extendedSettings();
-    const recentEntries = this.databaseService.recentEntries();
-    const reversed = [...recentEntries].reverse();
+    const recentEntries = [...this.databaseService.recentEntries()].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
     const rawTrend = this.databaseService.latestEntry()?.trend ?? null;
@@ -177,12 +178,13 @@ export class DashboardPage {
       daysToGoal: this.daysToGoal(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
-      consistency: this.consistencyLabel(entriesAfterGoalStart),
+      consistency: this.consistencyLabel(recentEntries),
       dataQualityLabel,
       recommendation: this.recommendation(
         rawTrend,
         rawWeeklyRateAbs,
         activeGoal,
+        entriesAfterGoalStart,
         stabilityScore,
         userSettings,
         scheduleProjection,
@@ -191,7 +193,7 @@ export class DashboardPage {
         maintenanceOutOfRangeDays,
       ),
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
-      recentEntries: this.recentEntries(reversed),
+      recentEntries: this.recentEntriesView(recentEntries),
       unitLabel: weightUnit,
     };
   });
@@ -228,7 +230,7 @@ export class DashboardPage {
     this.statFlip.set(updated);
   }
 
-  private recentEntries(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
+  private recentEntriesView(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
     return entries.slice(0, 3).map(entry => ({
       label: this.entryLabel(entry.dateMs),
       weight: formatWeight(entry.weight, this.databaseService.weightUnit()).text,
@@ -286,8 +288,16 @@ export class DashboardPage {
     return `${Math.ceil(weeks * 7)} days`;
   }
 
+  private hasMinRecentEntriesForMetrics(entriesAfterGoalStart: WeightEntry[]): boolean {
+    if (!entriesAfterGoalStart.length) return false;
+    const cutoffMs = todayLocalMidnightMs() - RATE_OUTDATED_AFTER_DAYS * 86400000;
+    // Entries are sorted ascending, so the newest one tells us whether any falls inside the window.
+    this.logger.info(entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs)
+    return entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs;
+  }
+
   private rawWeeklyRateAbs(entriesAfterGoalStart: WeightEntry[]): number | null {
-    if (entriesAfterGoalStart.length < 2) return null;
+    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
     const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const latestMs = latestEntry.dateMs;
     const lookbackStartMs = latestMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
@@ -349,7 +359,7 @@ export class DashboardPage {
   }
 
   private stabilityScore(entriesAfterGoalStart: WeightEntry[], unitLabel: WeightUnit): number | null {
-    if (entriesAfterGoalStart.length < 2) return null;
+    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
     const latestMs = entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs;
     const cutoffMs = latestMs - STABILITY_WINDOW_DAYS * 86400000;
     let recent = entriesAfterGoalStart.filter(e => e.dateMs >= cutoffMs);
@@ -376,8 +386,8 @@ export class DashboardPage {
   // This evaluates the quality of all data, however it is primarily tied to the quality of
   // the data for rate calculations, which is the most important aspect of overall data quality.
   private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
-    if (entriesAfterGoalStart.length < 2) return null;
-
+    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
+    
     const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const todayMs = todayLocalMidnightMs();
 
@@ -465,7 +475,7 @@ export class DashboardPage {
    * the absolute trend change over that 7-day window is <= noiseFloorPct.
    */
   private stallWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, userSettings: UserSettingsExtended | null): number {
-    if (!activeGoal || entriesAfterGoalStart.length < 2 || !userSettings || activeGoal.type === 'Maintenance') return 0;
+    if (!activeGoal || entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) || !userSettings || activeGoal.type === 'Maintenance') return 0;
 
     const today = todayLocalMidnightMs();
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
@@ -501,7 +511,7 @@ export class DashboardPage {
   }
 
   private outOfRangeStreakWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, maintRange: number | null): number {
-    if (entriesAfterGoalStart.length < 2 || !activeGoal || !maintRange || maintRange <= 0 || activeGoal.type !== 'Maintenance') return 0;
+    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) || !activeGoal || !maintRange || maintRange <= 0 || activeGoal.type !== 'Maintenance') return 0;
 
     const latest = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     if (Math.abs(latest.trend - activeGoal.goalWeight) <= maintRange) return 0;
@@ -526,6 +536,7 @@ export class DashboardPage {
     trendWeight: number | null,
     rawWeeklyRate: number | null,
     activeGoal: Goal | null,
+    entriesAfterGoalStart: WeightEntry[],
     stabilityScore: number | null,
     userSettings: UserSettingsExtended | null,
     idealCurrentWeight: { projectedWeight: number; range: number } | null,
@@ -536,8 +547,17 @@ export class DashboardPage {
     if (!activeGoal) {
       return 'Set a new goal to receive personalized recommendations.';
     }
-    if (trendWeight == null || rawWeeklyRate == null || userSettings == null) {
-      return 'Log weight at least 2 times to unlock custom recommendations.';
+    if (entriesAfterGoalStart.length < RECOMMENDATION_MIN_ENTRIES_REQUIRED) {
+      return `Log weight at least ${RECOMMENDATION_MIN_ENTRIES_REQUIRED} times since this goal started to unlock custom recommendations.`;
+    }
+    if (!this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) {
+      return 'Resume logging to unlock custom recommendations.';
+    }
+    if (rawWeeklyRate == null) {
+      return 'Keep logging to unlock custom recommendations.';
+    }
+    if (trendWeight == null || userSettings == null) {
+      return 'Start logging to unlock custom recommendations.';
     }
 
     const goalWeight = activeGoal.goalWeight;

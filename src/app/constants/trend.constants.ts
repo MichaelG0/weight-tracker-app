@@ -11,6 +11,9 @@ export const WEEKLY_RATE_LOOKBACK_DAYS = 21;
 /** Days since the latest entry after which the rate is considered stale. */
 export const RATE_STALE_AFTER_DAYS = 6;
 
+/** Days since the latest entry after which the rate is considered outdated. */
+export const RATE_OUTDATED_AFTER_DAYS = 14;
+
 /** Minimum samples per week of lookback window for a meaningful fit (2/week → 6 samples over 21 days). */
 export const RATE_MIN_SAMPLES_PER_WEEK = 2;
 
@@ -30,3 +33,8 @@ export const STABILITY_MIN_SAMPLES = 4;
 
 /** Standard deviation in kg at which the stability score reaches zero. */
 export const STABILITY_SD_THRESHOLD_KG = 1.5;
+
+// ─── Recommendations ────────────────────────────────────────────────────────────
+
+/** Minimum number of entries required to unlock personalized recommendations. */
+export const RECOMMENDATION_MIN_ENTRIES_REQUIRED = 4;
