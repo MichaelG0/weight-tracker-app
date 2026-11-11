@@ -273,7 +273,7 @@ export class ProgressPage {
     const monthMinMs = range === 'month' ? todayMs - 30 * 86400000 : Infinity;
     const xMinLimitTemp = Math.min(earliestEntryMs, activeOrLastPastGoalStartMs, monthMinMs);
     const xMinLimit = xMinLimitTemp === Infinity ? todayMs - 30 * 86400000 : xMinLimitTemp;
-    const xMaxLimit = Math.max(latestEntryMs, latestGoalEndMs, todayMs);
+    const xMaxLimit = Math.max(latestEntryMs, latestGoalEndMs, todayMs, xMinLimit + 5 * 86400000);
 
     const config = {
       type: 'line',
@@ -553,15 +553,14 @@ export class ProgressPage {
 
     let xMin = todayMs - 30 * 86400000;
     let xMax = todayMs;
+    const earliestMs = Math.min(...entries.map(e => e.dateMs), ...goals.map(g => g.startDateMs));
 
-    if (range === 'journey' && (entries.length || goals.length)) {
-      xMin = Math.min(entries[0]?.dateMs, goals[0]?.startDateMs);
+    if ((range === 'journey' || range === 'history') && Number.isFinite(earliestMs)) {
+      xMin = earliestMs;
     } else if (range === 'to-goal' && goals.length > 0) {
       xMin = goals[0].startDateMs;
       const futureGoals = goals.filter(g => g.goalDateMs >= todayMs);
       xMax = futureGoals.length ? Math.min(...futureGoals.map(g => g.goalDateMs)) : xMax;
-    } else if (range === 'history' && (entries.length || goals.length)) {
-      xMin = Math.min(entries[0]?.dateMs, goals[0]?.startDateMs);
     }
 
     // Ensure the visible range is at least 5 days
