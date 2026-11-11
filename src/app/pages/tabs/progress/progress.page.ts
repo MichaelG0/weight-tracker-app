@@ -137,6 +137,11 @@ export class ProgressPage {
     return closest;
   });
 
+  readonly historyAvailable = computed(() => {
+    const cutoff = this.db.activeOrLastPastGoal()?.startDateMs ?? Infinity;
+    return this.allEntries().some(e => e.dateMs < cutoff) || this.goals().some(g => g.startDateMs < cutoff);
+  });
+
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
 
