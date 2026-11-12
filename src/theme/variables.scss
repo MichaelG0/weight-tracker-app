@@ -3,12 +3,12 @@
 
 :root {
   /* Core brand palette - Vitality Teal & Deep Sea (Light Mode) */
-  --ion-color-primary: #00b39b;
-  --ion-color-primary-rgb: 0, 179, 155;
+  --ion-color-primary: #33998a;
+  --ion-color-primary-rgb: 51, 153, 138;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #009d88;
-  --ion-color-primary-tint: #1ac0ab;
+  --ion-color-primary-shade: #2d8678;
+  --ion-color-primary-tint: #40bfac;
 
   --ion-color-secondary: #6366f1;
   --ion-color-secondary-rgb: 99, 102, 241;
@@ -17,12 +17,12 @@
   --ion-color-secondary-shade: #5758d4;
   --ion-color-secondary-tint: #7375f2;
 
-  --ion-color-tertiary: #06b6d4;
-  --ion-color-tertiary-rgb: 6, 182, 212;
+  --ion-color-tertiary: #06a9c4;
+  --ion-color-tertiary-rgb: 6, 169, 196;
   --ion-color-tertiary-contrast: #ffffff;
   --ion-color-tertiary-contrast-rgb: 255, 255, 255;
-  --ion-color-tertiary-shade: #05a0bb;
-  --ion-color-tertiary-tint: #1fbdd8;
+  --ion-color-tertiary-shade: #0593ad;
+  --ion-color-tertiary-tint: #1fb3cc;
 
   --ion-color-success: var(--ion-color-tertiary);
   --ion-color-success-rgb: var(--ion-color-tertiary-rgb);
