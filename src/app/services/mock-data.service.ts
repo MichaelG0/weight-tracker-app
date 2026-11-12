@@ -103,7 +103,8 @@ export class MockDataService {
     ];
 
     // Increase iterations to generate additional randomized mock data.
-    for (let i = 0; i < 0; i++) {
+    const numberOfIterations = 0;
+    for (let i = 0; i < numberOfIterations; i++) {
       const date = new Date(2025, 8, 1); // September 1, 2025
       date.setDate(date.getDate() - i);
       const weight = 75 + Math.random() + Math.sin(i / 100); // Random weight with some variation
@@ -112,13 +113,13 @@ export class MockDataService {
       mockData.push([formattedDate, formattedWeight]);
     }
 
-    for (const [date, weight] of mockData) {
-      let notes = Math.random() < 0.5 ? '' : 'Mock seed data (lean bulk)';
-      await db.run(`INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`, [
-        weight,
-        toLocalMidnightString(date),
-        notes,
-      ]);
-    }
+    // One transaction for all rows: per-statement awaits are much slower on the web store
+    await db.executeSet(
+      mockData.map(([date, weight]) => ({
+        statement: `INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`,
+        values: [weight, toLocalMidnightString(date), Math.random() < 0.5 ? '' : 'Mock seed data (lean bulk)'],
+      })),
+      true,
+    );
   }
 }
