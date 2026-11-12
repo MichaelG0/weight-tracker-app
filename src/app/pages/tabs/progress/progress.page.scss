@@ -22,7 +22,7 @@ section.stats-row {
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--ion-color-step-500);
+      color: var(--ion-text-step-500);
     }
 
     .stat-value {
@@ -46,7 +46,7 @@ section.stats-row {
         font-size: 0.65rem;
         font-weight: 700;
         margin-left: 2px;
-        color: var(--ion-color-step-500);
+        color: var(--ion-text-step-500);
       }
 
       .weight-part + .weight-part {
@@ -59,7 +59,7 @@ section.stats-row {
       bottom: -2px;
       width: 200%;
       font-size: 0.72rem;
-      color: var(--ion-color-step-500);
+      color: var(--ion-text-step-500);
       font-weight: 500;
     }
 
@@ -160,7 +160,7 @@ section.trend-chips {
 
   ion-chip {
     --background: var(--list-item-background);
-    --color: var(--ion-color-step-600);
+    --color: var(--ion-text-step-600);
     padding: 11px 18px;
     margin: 0;
     border-radius: 99px;
@@ -227,7 +227,7 @@ ion-popover {
     p {
       font-size: 0.9rem;
       line-height: 1.45;
-      color: var(--ion-color-step-700);
+      color: var(--ion-text-step-700);
       margin-bottom: 10px;
 
       &:last-child {
@@ -242,14 +242,14 @@ ion-popover {
 
       p {
         font-size: 0.8rem;
-        color: var(--ion-color-step-500);
+        color: var(--ion-text-step-500);
         line-height: 1.4;
       }
 
       em {
         font-style: normal;
         font-weight: 600;
-        color: var(--ion-color-step-650);
+        color: var(--ion-text-step-650);
       }
     }
   }
@@ -272,7 +272,7 @@ ion-card.goals-card {
     margin-bottom: 4px;
 
     .goals-label {
-      color: var(--ion-color-step-600);
+      color: var(--ion-text-step-600);
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.05em;
@@ -327,12 +327,12 @@ ion-card.goals-card {
           font-size: 0.75rem;
           font-weight: 600;
           margin-left: 3px;
-          color: var(--ion-color-step-500);
+          color: var(--ion-text-step-500);
         }
       }
       p {
         font-size: 0.8rem;
-        color: var(--ion-color-step-500);
+        color: var(--ion-text-step-500);
         margin: 2px 0 0;
       }
     }

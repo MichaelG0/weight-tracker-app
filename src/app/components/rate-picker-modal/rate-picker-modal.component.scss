@@ -80,7 +80,7 @@ ion-buttons {
   scroll-snap-align: center;
   font-size: 1.6rem;
   font-weight: 600;
-  color: var(--ion-color-step-500);
+  color: var(--ion-text-step-500);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -100,7 +100,7 @@ ion-buttons {
 .unit {
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--ion-color-step-600);
+  color: var(--ion-text-step-600);
   font-variant-numeric: tabular-nums;
   text-transform: uppercase;
   letter-spacing: 0.05em;

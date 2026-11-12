@@ -36,7 +36,7 @@ ion-card {
   }
 
   .label {
-    color: var(--ion-color-step-600);
+    color: var(--ion-text-step-600);
     font-size: 0.8rem;
     font-weight: 600;
     margin: 0;
@@ -131,7 +131,7 @@ ion-card {
         width: 100%;
 
         span {
-          color: var(--ion-color-step-500);
+          color: var(--ion-text-step-500);
           font-size: 0.6rem;
           font-weight: 700;
         }
@@ -140,7 +140,7 @@ ion-card {
   }
 
   .meta-row {
-    color: var(--ion-color-step-600);
+    color: var(--ion-text-step-600);
     display: flex;
     font-size: 0.75rem;
     font-weight: 600;
@@ -250,7 +250,7 @@ ion-card {
   }
 
   .label {
-    color: var(--ion-color-step-600);
+    color: var(--ion-text-step-600);
     font-size: 0.65rem;
     font-weight: 700;
     margin: 0;
@@ -291,7 +291,7 @@ ion-card {
   }
 
   p {
-    color: var(--ion-color-step-800);
+    color: var(--ion-text-step-800);
     font-size: 0.9rem;
     font-weight: 500;
     line-height: 1.5;
