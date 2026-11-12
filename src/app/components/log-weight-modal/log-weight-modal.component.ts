@@ -5,6 +5,7 @@ import {
   computed,
   ElementRef,
   inject,
+  NgZone,
   Input,
   OnDestroy,
   OnInit,
@@ -60,6 +61,7 @@ import { FormatDatePipe } from '../../pipes/format-date.pipe';
 export class LogWeightModalComponent implements OnInit, OnDestroy {
   private readonly modalCtrl = inject(ModalController);
   private readonly db = inject(DatabaseService);
+  private readonly zone = inject(NgZone);
 
   @ViewChild('dateTimePicker', { read: ElementRef }) datetimeEl?: ElementRef<HTMLElement>;
   @ViewChild(WeightPickerComponent) weightPicker!: WeightPickerComponent;
@@ -148,12 +150,15 @@ export class LogWeightModalComponent implements OnInit, OnDestroy {
 
     // ion-datetime only emits ionChange on Done, but re-renders its day buttons on every tap,
     // so the dots are kept in sync from DOM mutations instead.
-    this.dotObserver = new MutationObserver(() => this.syncEntryDots(shadowRoot));
-    this.dotObserver.observe(shadowRoot, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['data-day', 'data-month', 'data-year'],
+    // Created outside the Angular zone so DOM-only updates don't trigger app-wide change detection.
+    this.zone.runOutsideAngular(() => {
+      this.dotObserver = new MutationObserver(() => this.syncEntryDots(shadowRoot));
+      this.dotObserver.observe(shadowRoot, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-day', 'data-month', 'data-year'],
+      });
     });
   }
 
