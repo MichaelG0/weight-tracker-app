@@ -113,6 +113,8 @@ export class MockDataService {
       mockData.push([formattedDate, formattedWeight]);
     }
 
+    if (!mockData.length) return;
+
     // One transaction for all rows: per-statement awaits are much slower on the web store
     await db.executeSet(
       mockData.map(([date, weight]) => ({

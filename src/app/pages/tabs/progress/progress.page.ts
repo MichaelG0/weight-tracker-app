@@ -142,8 +142,9 @@ export class ProgressPage {
   });
 
   readonly historyAvailable = computed(() => {
-    const cutoff = this.db.activeOrLastPastGoal()?.startDateMs ?? Infinity;
-    return this.allEntries().some(e => e.dateMs < cutoff) || this.goals().some(g => g.startDateMs < cutoff);
+    const cutoff = this.db.activeOrLastPastGoal()?.startDateMs ?? 0;
+    const earliestEntryMs = this.allEntries()[0]?.dateMs ?? Infinity;
+    return earliestEntryMs < cutoff || this.goals().some(g => g.startDateMs < cutoff);
   });
 
   private chart: Chart | null = null;

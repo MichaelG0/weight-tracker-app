@@ -71,7 +71,7 @@
           <ion-segment-button value="month">
             <ion-label>Month</ion-label>
           </ion-segment-button>
-          <ion-segment-button value="to-goal">
+          <ion-segment-button value="to-goal" [disabled]="!activeGoal()">
             <ion-label>To Goal</ion-label>
           </ion-segment-button>
           <ion-segment-button value="history" [disabled]="!historyAvailable()">
