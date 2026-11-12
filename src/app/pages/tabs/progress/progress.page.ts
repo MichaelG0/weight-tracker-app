@@ -124,17 +124,21 @@ export class ProgressPage {
     const selMs = this.selectedDateMs();
     if (selMs == null) return entries[entries.length - 1]; // default: latest
 
-    // Find the entry closest to the selected x position
-    let closest = entries[0];
-    let minDiff = Math.abs(closest.dateMs - selMs);
-    for (const e of entries) {
-      const diff = Math.abs(e.dateMs - selMs);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = e;
-      }
+    // Entries are sorted ascending by dateMs, so binary-search for the first entry at or after selMs
+    let lo = 0;
+    let hi = entries.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (entries[mid].dateMs < selMs) lo = mid + 1;
+      else hi = mid;
     }
-    return closest;
+    if (lo === 0) return entries[0];
+    if (lo === entries.length) return entries[entries.length - 1];
+
+    // The closest entry is either the one just before or just at selMs (ties go to the earlier one)
+    const before = entries[lo - 1];
+    const after = entries[lo];
+    return selMs - before.dateMs <= after.dateMs - selMs ? before : after;
   });
 
   readonly historyAvailable = computed(() => {
@@ -144,6 +148,8 @@ export class ProgressPage {
 
   private chart: Chart | null = null;
   private pendingViewport: ViewportState | null = null;
+  private hoverFrame: number | null = null;
+  private pendingHoverMs: number | null = null;
 
   constructor() {
     addIcons({ analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline });
@@ -455,13 +461,18 @@ export class ProgressPage {
     const xScale = chart.scales['x'];
     const valueMs = xScale.getValueForPixel(evt.x);
     if (!Number.isFinite(valueMs)) return;
-    this.selectedDateMs.set(valueMs);
+
+    // Coalesce rapid hover events into one signal update per animation frame
+    this.pendingHoverMs = valueMs;
+    if (this.hoverFrame !== null) return;
+    this.hoverFrame = requestAnimationFrame(() => {
+      this.hoverFrame = null;
+      if (this.pendingHoverMs !== null) this.selectedDateMs.set(this.pendingHoverMs);
+    });
   }
 
   private getTrendLine(entries: WeightEntry[]): Pt[] {
-    if (!entries.length) return [];
-    const startDate = entries[0].dateMs;
-    return entries.filter(p => p.dateMs >= startDate).map(p => ({ x: p.dateMs, y: p.trend }));
+    return entries.map(p => ({ x: p.dateMs, y: p.trend }));
   }
 
   private buildGuideDatasets(goals: Goal[], colors: ChartColors, maintRange: number): any[] {
