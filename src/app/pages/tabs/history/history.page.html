@@ -15,49 +15,61 @@
     </div>
   } @else {
     <div class="list-group-wrp">
-      <section class="list-group">
-        <ion-list lines="none">
-          @for (entry of visibleListEntries(); track entry.id) {
-            <ion-item-sliding appDeckCardOptions>
-              <ion-item class="list-group-item" (click)="onEdit(entry)">
-                <div class="history-card-inner">
-                  <div class="row-primary">
-                    <span class="weight-value">
-                      @for (part of entry.weight | formatWeightParts: weightUnit(); track part.unit) {
-                        <span class="weight-part">{{ part.value }}<span class="unit">{{ part.unit }}</span></span>
-                      }
-                    </span>
-                    <span
-                      class="change-badge"
-                      [class.negative]="(entry.weightChangeKg ?? 0) < 0"
-                      [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
-                    >
-                      @if (entry.weightChangeKg === null) { -- }
-                      @else if (entry.weightChangeKg === 0) { No change }
-                      @else { {{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | formatWeight: weightUnit()) }} }
-                    </span>
-                    <span class="entry-date">{{ entry.date | formatDate }}</span>
+      @for (section of visibleMonthSections(); track section.key) {
+        <section class="list-group">
+          <p class="list-group-label">{{ section.label }}</p>
+          <ion-list lines="none">
+            @for (entry of section.entries; track entry.id) {
+              <ion-item-sliding appDeckCardOptions>
+                <ion-item class="list-group-item" (click)="onEdit(entry)">
+                  <div class="history-card-inner">
+                    <div class="row-primary">
+                      <span class="weight-value">
+                        @for (part of entry.weight | formatWeightParts: weightUnit(); track part.unit) {
+                          <!-- prettier-ignore -->
+                          <span class="weight-part">{{ part.value }}<span class="unit">{{ part.unit }}</span></span>
+                        }
+                      </span>
+                      <span
+                        class="change-badge"
+                        [class.negative]="(entry.weightChangeKg ?? 0) < 0"
+                        [class.neutral]="entry.weightChangeKg === 0 || entry.weightChangeKg === null"
+                      >
+                        @if (entry.weightChangeKg === null) {
+                          --
+                        } @else if (entry.weightChangeKg === 0) {
+                          No change
+                        } @else {
+                          {{ (entry.weightChangeKg > 0 ? '▲ +' : '▼ ') + (entry.weightChangeKg | formatWeight: weightUnit()) }}
+                        }
+                      </span>
+                      <span class="entry-date">{{ entry.date | formatDate }}</span>
+                    </div>
+                    @if (entry.notes) {
+                      <div class="row-notes">{{ entry.notes }}</div>
+                    }
                   </div>
-                  @if (entry.notes) {
-                    <div class="row-notes">{{ entry.notes }}</div>
-                  }
-                </div>
-              </ion-item>
+                </ion-item>
 
-              <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
-                <ion-item-option color="danger" expandable (click)="onDelete(entry)">
-                  <ion-icon slot="top" name="trash-outline"></ion-icon>
-                  <span>Delete</span>
-                </ion-item-option>
-              </ion-item-options>
-            </ion-item-sliding>
-          }
-        </ion-list>
+                <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
+                  <ion-item-option color="danger" (click)="onDelete(entry)">
+                    <ion-icon slot="top" name="trash-outline"></ion-icon>
+                    <span>Delete</span>
+                  </ion-item-option>
+                  <ion-item-option color="danger" expandable (click)="onDelete(entry)">
+                    <ion-icon slot="top" name="trash-outline"></ion-icon>
+                    <span>Delete</span>
+                  </ion-item-option>
+                </ion-item-options>
+              </ion-item-sliding>
+            }
+          </ion-list>
+        </section>
+      }
 
-        <ion-infinite-scroll [disabled]="!hasMoreListEntries()" threshold="100px" (ionInfinite)="onInfiniteScroll($event)">
-          <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Loading more entries..."></ion-infinite-scroll-content>
-        </ion-infinite-scroll>
-      </section>
+      <ion-infinite-scroll [disabled]="!hasMoreListEntries()" threshold="100px" (ionInfinite)="onInfiniteScroll($event)">
+        <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Loading more entries..."></ion-infinite-scroll-content>
+      </ion-infinite-scroll>
     </div>
   }
 </ion-content>

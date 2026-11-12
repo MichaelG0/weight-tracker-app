@@ -184,27 +184,18 @@ input[type='date']::-webkit-calendar-picker-indicator {
     ion-list {
       display: flex;
       flex-direction: column;
-      background: transparent;
+      background: var(--list-item-background);
       overflow: hidden;
       margin: 0;
       padding: 0;
+      border-radius: 18px;
     }
 
     .list-group-item {
-      --background: var(--list-item-background);
+      --background: transparent;
       --inner-padding-end: 16px;
       --padding-start: 16px;
       transition: transform 0.2s ease;
-
-      &:first-child {
-        border-top-left-radius: 18px;
-        border-top-right-radius: 18px;
-      }
-
-      &:last-child {
-        border-bottom-left-radius: 18px;
-        border-bottom-right-radius: 18px;
-      }
 
       &:active {
         transform: scale(0.99);

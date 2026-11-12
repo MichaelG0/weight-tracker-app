@@ -1,3 +1,7 @@
+ion-content.tab-content {
+  --padding-top: 0px;
+}
+
 .list-group-wrp .list-group {
   &.personal-details-list-group,
   &.units-list-group {
@@ -67,7 +71,6 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 0 16px 12px;
-    background: var(--list-item-background);
 
     &:last-child {
       border-bottom-right-radius: 18px;

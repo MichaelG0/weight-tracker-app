@@ -34,6 +34,12 @@ interface HistoryEntry extends WeightEntry {
   weightChangeKg: number | null;
 }
 
+interface HistoryMonthSection {
+  key: string;
+  label: string;
+  entries: HistoryEntry[];
+}
+
 @Component({
   selector: 'app-history',
   templateUrl: 'history.page.html',
@@ -80,6 +86,26 @@ export class HistoryPage {
 
   readonly visibleListEntries = computed(() => this.listEntries().slice(0, this.listVisibleCount()));
   readonly hasMoreListEntries = computed(() => this.visibleListEntries().length < this.listEntries().length);
+
+  // Entries are newest-first, so consecutive entries of the same month form one section.
+  readonly visibleMonthSections = computed<HistoryMonthSection[]>(() => {
+    const sections: HistoryMonthSection[] = [];
+    for (const entry of this.visibleListEntries()) {
+      const date = new Date(entry.date);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      let section = sections[sections.length - 1];
+      if (!section || section.key !== key) {
+        section = {
+          key,
+          label: date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+          entries: [],
+        };
+        sections.push(section);
+      }
+      section.entries.push(entry);
+    }
+    return sections;
+  });
 
   constructor() {
     addIcons({ analyticsOutline, create, trashOutline, documentTextOutline });
