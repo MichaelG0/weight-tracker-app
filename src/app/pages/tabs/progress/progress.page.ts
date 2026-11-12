@@ -342,6 +342,8 @@ export class ProgressPage {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Required by the decimation plugin: data is already {x, y} with numeric x
+        parsing: false,
         animation: { duration: 300 },
         interaction: {
           mode: 'nearest',
@@ -412,6 +414,8 @@ export class ProgressPage {
         plugins: {
           legend: { display: false },
           tooltip: { enabled: false },
+          // Downsamples only the visible range on every update, so zoom and pan stay accurate
+          decimation: { enabled: true, algorithm: 'lttb' },
           zoom: {
             limits: {
               x: { min: xMinLimit, max: xMaxLimit, minRange: 5 * 86400000 },
