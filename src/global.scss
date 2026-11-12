@@ -55,9 +55,9 @@ body {
 
 body.ion-palette-dark {
   background:
-    radial-gradient(circle at 8% -12%, rgba(0, 245, 212, 0.1), transparent 40%),
-    radial-gradient(circle at 96% 10%, rgba(129, 140, 248, 0.08), transparent 40%),
-    linear-gradient(180deg, #080e1a 0%, #121c2c 52%, #080e1a 100%);
+    radial-gradient(circle at 8% -12%, rgba(45, 212, 191, 0.08), transparent 40%),
+    radial-gradient(circle at 96% 10%, rgba(167, 139, 250, 0.1), transparent 40%),
+    linear-gradient(180deg, #030208 0%, #08060e 52%, #030208 100%);
 }
 
 ion-content::part(background) {
