@@ -126,8 +126,8 @@
       }
     </ion-list>
 
-    @if (formData.startDate | pureFn: getOverlapError : formData.endDate; as olError) {
-      <p class="error-msg">{{ olError }}</p>
+    @if (formData.startDate | pureFn: getOverlapWarning : formData.endDate; as olWarning) {
+      <p class="warning-msg">{{ olWarning }}</p>
     }
 
     @let formValid = formData.weight | pureFn: isFormValid : formData.startWeight : formData.startDate : formData.endDate : formData.type : weeklyRate : useCustomEndDate;

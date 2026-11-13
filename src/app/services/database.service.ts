@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, Signal } from '@angular/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
-import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from, of } from 'rxjs';
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, ftInToCm, unitToKg, kgToUnit } from '../utils/unit-conversion.util';
@@ -351,7 +351,7 @@ export class DatabaseService {
 
   // The entry and goal streams wait for a weight_unit, so the settings row must always exist.
   private async ensureDefaultSettings(): Promise<void> {
-    await this.db.run(`INSERT OR IGNORE INTO user_settings (user_id, weight_unit) VALUES (1, 'st')`);
+    await this.db.run(`INSERT OR IGNORE INTO user_settings (user_id, weight_unit) VALUES (1, 'kg')`);
   }
 
   private async syncEntries(): Promise<void> {
@@ -531,6 +531,70 @@ export class DatabaseService {
         map(() => undefined),
       ),
     );
+  }
+
+  /**
+   * Cuts existing goals so none overlap [startDate, endDate]. Goals fully inside the range are deleted,
+   * goals spanning the whole range are split in two, and partially overlapping goals are shortened.
+   */
+  trimOverlappingGoals(rawStartDate: string, rawEndDate: string, excludeId?: number): Observable<void> {
+    this.logger.info('Trimming overlapping goals:', { startDate: rawStartDate, endDate: rawEndDate, excludeId });
+
+    return this.whenReady(() => {
+      const startDate = toDateKey(rawStartDate);
+      const endDate = toDateKey(rawEndDate);
+
+      const statements: { statement: string; values: unknown[] }[] = [];
+
+      for (const g of this._goals$.value) {
+        if (g.id === excludeId) continue;
+        const gStart = g.start_date.substring(0, 10);
+        const gEnd = g.goal_date.substring(0, 10);
+        if (!(startDate < gEnd && endDate > gStart)) continue;
+
+        // Weight on the original line at a given date, so trimmed goals keep the same weekly rate
+        const totalDays = dateKeyToDayNumber(gEnd) - dateKeyToDayNumber(gStart);
+        const weightAt = (date: string): number => {
+          if (totalDays <= 0) return g.start_weight_kg;
+          const fraction = (dateKeyToDayNumber(date) - dateKeyToDayNumber(gStart)) / totalDays;
+          return g.start_weight_kg + (g.goal_weight_kg - g.start_weight_kg) * fraction;
+        };
+
+        if (gStart >= startDate && gEnd <= endDate) {
+          this.logger.info('Deleting goal fully inside the range:', g);
+          statements.push({ statement: `DELETE FROM goals WHERE id = ?`, values: [g.id] });
+        } else if (gStart < startDate && gEnd > endDate) {
+          this.logger.info('Splitting goal spanning the whole range:', g);
+          statements.push({
+            statement: `INSERT INTO goals (start_weight_kg, goal_weight_kg, start_date, goal_date, type) VALUES (?, ?, ?, ?, ?)`,
+            values: [weightAt(endDate), g.goal_weight_kg, toLocalMidnightString(endDate), g.goal_date, g.type],
+          });
+          statements.push({
+            statement: `UPDATE goals SET goal_date = ?, goal_weight_kg = ? WHERE id = ?`,
+            values: [toLocalMidnightString(startDate), weightAt(startDate), g.id],
+          });
+        } else if (gStart < startDate) {
+          this.logger.info('Trimming goal ending after the start of the range:', g);
+          statements.push({
+            statement: `UPDATE goals SET goal_date = ?, goal_weight_kg = ? WHERE id = ?`,
+            values: [toLocalMidnightString(startDate), weightAt(startDate), g.id],
+          });
+        } else {
+          this.logger.info('Trimming goal starting before the end of the range:', g);
+          statements.push({
+            statement: `UPDATE goals SET start_date = ?, start_weight_kg = ? WHERE id = ?`,
+            values: [toLocalMidnightString(endDate), weightAt(endDate), g.id],
+          });
+        }
+      }
+
+      if (!statements.length) return of(undefined);
+
+      return from(this.db.executeSet(statements, true)).pipe(
+        switchMap(() => from(this.syncGoals())),
+        map(() => undefined),
+      );
+    });
   }
 
   // ── Utils ─────────────────────────────────────────────────────────

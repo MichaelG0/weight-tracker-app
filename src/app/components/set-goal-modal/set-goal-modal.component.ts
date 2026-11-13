@@ -22,7 +22,7 @@ import { DatabaseService, Goal, GoalDB, GoalType, UserSettingsExtended, WeightUn
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
 import { RatePickerModalComponent } from 'src/app/components/rate-picker-modal/rate-picker-modal.component';
-import { take } from 'rxjs';
+import { switchMap, take } from 'rxjs';
 import { todayLocalMidnightString, toLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../pipes/format-date.pipe';
 import { FormatWeightPipe } from '../../pipes/format-weight.pipe';
@@ -239,14 +239,19 @@ export class SetGoalModalComponent implements OnInit {
       type: this.formData.type,
     };
 
-    if (this.isEditing && this.goal) {
-      this.db
-        .updateGoal({ id: this.goal.id, ...result })
-        .pipe(take(1))
-        .subscribe();
-    } else {
-      this.db.addGoal(result).pipe(take(1)).subscribe();
-    }
+    const excludeId = this.isEditing && this.goal ? this.goal.id : undefined;
+    const save$ =
+      excludeId !== undefined
+        ? this.db.updateGoal({ id: excludeId, ...result })
+        : this.db.addGoal(result);
+
+    this.db
+      .trimOverlappingGoals(this.formData.startDate, this.formData.endDate, excludeId)
+      .pipe(
+        switchMap(() => save$),
+        take(1),
+      )
+      .subscribe();
 
     this.modalCtrl.dismiss(null, 'confirm');
   }
@@ -279,9 +284,6 @@ export class SetGoalModalComponent implements OnInit {
     if (type === 'Weight Loss' && weight >= startWeight) return false;
     if (type === 'Weight Gain' && weight <= startWeight) return false;
     if (type === 'Maintenance' && weight !== startWeight) return false;
-
-    // Overlap check
-    if (this.getOverlapError(startDate, endDate)) return false;
 
     return true;
   };
@@ -325,14 +327,14 @@ export class SetGoalModalComponent implements OnInit {
     return '';
   };
 
-  getOverlapError = (startDate: string, endDate: string): string => {
+  getOverlapWarning = (startDate: string, endDate: string): string => {
     if (!startDate || !endDate) return '';
     for (const g of this.db.goals()) {
       if (this.isEditing && this.goal && g.id === this.goal.id) continue;
       const gStart = g.startDate.substring(0, 10);
       const gEnd = g.goalDate.substring(0, 10);
       if (startDate < gEnd && endDate > gStart) {
-        return `Overlaps with existing goal (${gStart} – ${gEnd})`;
+        return 'This will partially overwrite existing goals. Overlapping goals will be cut off.';
       }
     }
     return '';

@@ -120,6 +120,13 @@ ion-list {
   margin: -8px 0 16px 4px;
 }
 
+.warning-msg {
+  color: var(--ion-color-warning-shade);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: -8px 0 16px 4px;
+}
+
 ion-list .error-msg {
   margin: -8px 0 6px 4px;
 }

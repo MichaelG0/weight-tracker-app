@@ -10,7 +10,7 @@ export class MockDataService {
       `UPDATE user_settings
           SET name = ?, birth_date = ?, experience = ?, weight_unit = ?
         WHERE user_id = 1`,
-      ['Michael', '1994-08-19', 'Advanced', 'kg'],
+      ['Michael', '1994-08-19', 'Advanced', 'st'],
     );
 
     const mockGoals: Omit<GoalDB, 'id'>[] = [
