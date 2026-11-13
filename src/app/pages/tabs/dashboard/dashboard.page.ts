@@ -292,7 +292,6 @@ export class DashboardPage {
     if (!entriesAfterGoalStart.length) return false;
     const cutoffMs = todayLocalMidnightMs() - RATE_OUTDATED_AFTER_DAYS * 86400000;
     // Entries are sorted ascending, so the newest one tells us whether any falls inside the window.
-    this.logger.info(entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs)
     return entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs;
   }
 
