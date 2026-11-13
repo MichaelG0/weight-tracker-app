@@ -26,14 +26,14 @@ export function kgToUnit(kg: number, unit: WeightUnit): number {
   return result;
 }
 
-// For db saves - lbs/st are not rounded, so converting back to the display unit returns the same value
+// For db saves - values are not rounded, so converting back to the display unit returns the same value
 export function unitToKg(value: number, unit: WeightUnit): number {
   let result: number;
   // prettier-ignore
   switch (unit) {
     case 'lbs': result = value / 2.20462; break;
     case 'st': result = value / 0.157473; break;
-    default: result = parseFloat(value.toFixed(DEFAULT_DECIMALS));
+    default: result = value;
   }
   return result;
 }
