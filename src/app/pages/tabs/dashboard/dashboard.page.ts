@@ -21,7 +21,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { scaleOutline, trendingDownOutline } from 'ionicons/icons';
+import { scaleOutline, sparklesOutline, trendingDownOutline } from 'ionicons/icons';
 import {
   RATE_MAX_GAP_FRACTION,
   RATE_MIN_SAMPLES_PER_WEEK,
@@ -199,7 +199,7 @@ export class DashboardPage {
   });
 
   constructor() {
-    addIcons({ scaleOutline, trendingDownOutline });
+    addIcons({ scaleOutline, sparklesOutline, trendingDownOutline });
   }
 
   async openLogWeight(): Promise<void> {
