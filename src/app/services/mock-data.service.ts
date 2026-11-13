@@ -110,7 +110,7 @@ export class MockDataService {
       const date = new Date(2025, 8, 1); // September 1, 2025
       date.setDate(date.getDate() - i);
       const weight = 75 + Math.random() + Math.sin(i / 100); // Random weight with some variation
-      const formattedDate = toLocalMidnightString(date); // Keep only the date part (YYYY-MM-DD)
+      const formattedDate = toLocalMidnightString(date);
       const formattedWeight = parseFloat(weight.toFixed(1));
       mockData.push([formattedDate, formattedWeight]);
     }

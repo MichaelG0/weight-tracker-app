@@ -5,7 +5,7 @@ import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from } from 
 import { map, switchMap, take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { cmToFtIn, ftInToCm, unitToKg, kgToUnit } from '../utils/unit-conversion.util';
-import { todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
+import { dateKeyToDayNumber, toDateKey, todayLocalMidnightMs, toLocalMidnightString } from '../utils/date-converter.util';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 import { ageFromBirthDate } from '../utils/age-calculator.util';
@@ -194,21 +194,21 @@ export class DatabaseService {
     map(([entriesDB, unit]) => {
       if (!entriesDB.length || !unit) return [];
       // Alphabetical string comparison is way faster and yields the exact same chronological result
-      entriesDB.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
+      const sortedEntriesDB = [...entriesDB].sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
       const entries: WeightEntry[] = [];
-      let ewma = kgToUnit(entriesDB[0].weight_kg, unit);
-      let prevDateMs = +new Date(entriesDB[0].logged_at);
+      let ewma = 0;
+      let prevDay = dateKeyToDayNumber(sortedEntriesDB[0].logged_at);
 
-      for (let i = 0; i < entriesDB.length; i++) {
-        const entry = entriesDB[i];
+      for (let i = 0; i < sortedEntriesDB.length; i++) {
+        const entry = sortedEntriesDB[i];
         const convertedWeight = kgToUnit(entry.weight_kg, unit);
-        const currentDateMs = +new Date(entry.logged_at);
+        const currentDay = dateKeyToDayNumber(entry.logged_at);
 
         if (i === 0) {
           ewma = convertedWeight;
         } else {
-          const daysDelta = (currentDateMs - prevDateMs) / 86400000; // ms → days
+          const daysDelta = currentDay - prevDay;
           const adjustedAlpha = 1 - Math.pow(1 - TREND_ALPHA, daysDelta);
           ewma = ewma + adjustedAlpha * (convertedWeight - ewma);
         }
@@ -216,13 +216,13 @@ export class DatabaseService {
         entries.push({
           id: entry.id,
           date: entry.logged_at,
-          dateMs: currentDateMs,
+          dateMs: +new Date(entry.logged_at),
           weight: convertedWeight,
           trend: ewma,
           notes: entry.notes,
         });
 
-        prevDateMs = currentDateMs;
+        prevDay = currentDay;
       }
 
       this.logger.debug('entries$', entries.slice(-5));
@@ -252,8 +252,6 @@ export class DatabaseService {
   private readonly goals$: Observable<Goal[]> = combineLatest([this._goals$, this._settings$.pipe(map(s => s?.weight_unit))]).pipe(
     map(([goalsDB, unit]) => {
       if (!goalsDB.length || !unit) return [];
-
-      goalsDB.sort((a, b) => a.start_date.localeCompare(b.start_date));
 
       const goals: Goal[] = goalsDB.map(g => ({
         id: g.id,
