@@ -25,7 +25,6 @@ import {
 import { addIcons } from 'ionicons';
 import { analyticsOutline, informationCircleOutline, flagOutline, addOutline, trashOutline } from 'ionicons/icons';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
-import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 import { take } from 'rxjs/operators';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
@@ -91,7 +90,6 @@ interface ChartColors {
     IonItemSliding,
     IonItemOptions,
     IonItemOption,
-    DeckCardOptionsDirective,
     GlassHeaderBackdropDirective,
     FormatDatePipe,
     FormatWeightPartsPipe,

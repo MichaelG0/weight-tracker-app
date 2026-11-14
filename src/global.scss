@@ -153,6 +153,15 @@ ion-select.md {
   --highlight-color-valid: var(--ion-color-tertiary);
 }
 
+// ── Ion Toggle ────────────────────────────────────────────────────────
+
+ion-toggle {
+  --handle-background: var(--ion-color-primary);
+  --handle-background-checked: var(--ion-color-primary-contrast);
+  --track-background: var(--ion-color-step-200);
+  --track-background-checked: var(--ion-color-primary);
+}
+
 // ── Date Input ────────────────────────────────────────────────────────
 
 input[type='date']::-webkit-inner-spin-button,
@@ -187,7 +196,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
       background: var(--list-item-background);
       overflow: hidden;
       margin: 0;
-      padding: 0;
       border-radius: 18px;
     }
 
@@ -197,7 +205,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
       --padding-start: 16px;
       transition: transform 0.2s ease;
 
-      &:active {
+      &.ion-activated {
         transform: scale(0.99);
       }
 
@@ -211,12 +219,46 @@ input[type='date']::-webkit-calendar-picker-indicator {
           font-weight: 700;
         }
       }
+    }
+  }
+}
 
-      ion-toggle {
-        --handle-background: var(--ion-color-primary);
-        --handle-background-checked: var(--ion-color-primary-contrast);
-        --track-background: var(--ion-color-step-200);
-        --track-background-checked: var(--ion-color-primary);
+// ── Item Sliding ─────────────────────────────────────────────────────────────
+
+ion-list,
+.list-md,
+.list-ios {
+  padding: 3px 0;
+
+  ion-item-sliding {
+    &.item-sliding-active-slide ion-item {
+      --background: var(--ion-color-step-100) !important;
+      --background-activated: var(--ion-text-color, #000);
+      --transition: background-color 0ms linear, opacity 0ms linear !important;
+
+      &::part(native)::after {
+        background: var(--background-activated);
+        opacity: var(--background-activated-opacity);
+      }
+    }
+
+    ion-item {
+      margin: 0 3px;
+      --background: transparent;
+      --padding-start: 13px;
+      --inner-padding-end: 13px;
+      --border-radius: 18px;
+      --background-focused-opacity: 0.08;
+      --background-activated-opacity: 0.08;
+      transition: transform 0.2s ease;
+
+      &.ion-activated,
+      &.ion-focused {
+        --background: var(--ion-color-step-100) !important;
+      }
+
+      &.ion-activated {
+        transform: scale(0.99);
       }
     }
   }

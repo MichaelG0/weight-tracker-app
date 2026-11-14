@@ -20,8 +20,8 @@
           <p class="list-group-label">{{ section.label }}</p>
           <ion-list lines="none">
             @for (entry of section.entries; track entry.id) {
-              <ion-item-sliding appDeckCardOptions>
-                <ion-item class="list-group-item" (click)="onEdit(entry)">
+              <ion-item-sliding>
+                <ion-item button detail="false" class="list-group-item" (click)="onEdit(entry)">
                   <div class="history-card-inner">
                     <div class="row-primary">
                       <span class="weight-value">

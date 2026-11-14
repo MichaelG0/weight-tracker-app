@@ -262,14 +262,14 @@ ion-card.goals-card {
   border-radius: 18px;
 
   ion-card-content {
-    padding: 12px 16px;
+    padding: 0;
   }
 
   .goals-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 4px;
+    margin: 12px 16px 1px;
 
     .goals-label {
       color: var(--ion-text-step-600);
@@ -298,13 +298,9 @@ ion-card.goals-card {
 
   ion-list {
     background: transparent;
-    padding: 0;
   }
 
   .goal-item {
-    --background: transparent;
-    --padding-start: 0;
-    --inner-padding-end: 0;
     --min-height: 48px;
 
     .goal-flag {
