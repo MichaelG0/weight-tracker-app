@@ -23,6 +23,7 @@ import { take } from 'rxjs';
 import { DatabaseService, WeightEntry } from 'src/app/services/database.service';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
+import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 import { FormatDatePipe } from "../../../pipes/format-date.pipe";
 import { FormatWeightPipe } from "../../../pipes/format-weight.pipe";
 import { FormatWeightPartsPipe } from "../../../pipes/format-weight-parts.pipe";
@@ -58,6 +59,7 @@ interface HistoryMonthSection {
     IonInfiniteScroll,
     IonInfiniteScrollContent,
     GlassHeaderBackdropDirective,
+    DeckCardOptionsDirective,
     FormatDatePipe,
     FormatWeightPipe,
     FormatWeightPartsPipe,

@@ -36,6 +36,7 @@ import { todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
 import { FormatWeightPartsPipe } from '../../../pipes/format-weight-parts.pipe';
+import { DeckCardOptionsDirective } from 'src/app/directives/deck-card-options.directive';
 Chart.register(zoomPlugin);
 
 type RangeMode = 'journey' | 'month' | 'to-goal' | 'history';
@@ -93,6 +94,7 @@ interface ChartColors {
     GlassHeaderBackdropDirective,
     FormatDatePipe,
     FormatWeightPartsPipe,
+    DeckCardOptionsDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

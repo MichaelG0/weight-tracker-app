@@ -229,6 +229,7 @@ ion-list,
 .list-md,
 .list-ios {
   padding: 3px 0;
+  gap: 3px;
 
   ion-item-sliding {
     &.item-sliding-active-slide ion-item {
@@ -264,31 +265,77 @@ ion-list,
   }
 }
 
-// ── Item Options ─────────────────────────────────────────────────────────────────
+// ── Item Sliding Options ─────────────────────────────────────────────────────────────────
 
-ion-item-sliding[appDeckCardOptions] ion-item-options {
-  gap: 4px;
-  padding-left: 4px;
+$option-size: 31px;
+$options-gap: 16px;
+$options-padding-start: 12px;
+$options-padding-end: 8px;
+
+ion-item-sliding ion-item-options {
+  gap: $options-gap;
+  padding-left: $options-padding-start;
+  padding-right: $options-padding-end;
+  align-items: center;
+  height: calc(100% - 13px);
 
   ion-item-option {
-    --padding-start: 16px;
-    --padding-end: 16px;
-    border-radius: 18px;
-    font-size: 0.8rem;
+    width: $option-size;
+    min-width: $option-size;
+    height: $option-size;
+    border-radius: 99px;
     text-transform: none;
-    transition: transform 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease,
+      width 0.2s ease;
 
-    ion-icon[slot='top'] {
-      font-size: 1rem;
+    &::part(native) {
+      -webkit-padding-start: 0;
+      padding-inline-start: 0;
+      -webkit-padding-end: 0;
+      padding-inline-end: 0;
     }
 
-    &::part(inner) {
-      gap: 6px;
+    span {
+      position: absolute;
+      bottom: -14px;
+      font-size: 0.7rem;
+      color: var(--ion-text-step-500);
     }
+  }
+}
 
-    &:active {
-      transform: scale(0.99);
-    }
+// Used with appDeckCardOptions, which sets --open-amount (the swipe distance) on the ion-item-sliding.
+// Only once Ionic's expand (swipe) state activates, the expandable option is sized to take all the
+// space left by the other options, so the first option stays at a fixed distance from the item's edge
+// (instead of Ionic's padding-left: 100% which pushes the other options off screen). The other options
+// fade out and the expandable width transitions in, so nothing snaps. Before that, the default Ionic
+// layout applies.
+
+ion-item-sliding[appDeckCardOptions].item-sliding-active-swipe-end ion-item-options.item-options-end {
+  ion-item-option:not(.item-option-expandable) {
+    opacity: 0.5;
+  }
+
+  ion-item-option.item-option-expandable {
+    flex: none;
+    order: 0;
+    padding-left: 0;
+    width: max(
+      #{$option-size},
+      calc(var(--open-amount) - #{$options-padding-start + $option-size + $options-gap + $options-padding-end})
+    );
+    max-width: 100%;
+    // Animates only when the expand state is applied; afterwards the width follows the swipe without lag
+    animation: deck-option-expand 0.2s ease;
+    transition: none;
+  }
+}
+
+@keyframes deck-option-expand {
+  from {
+    width: $option-size;
   }
 }
 
