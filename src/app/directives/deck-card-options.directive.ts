@@ -14,8 +14,9 @@ export class DeckCardOptionsDirective implements OnInit, OnDestroy {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   private readonly onDrag = (event: Event): void => {
-    const amount = (event as CustomEvent<{ amount: number }>).detail.amount;
-    this.host.style.setProperty('--open-amount', `${Math.abs(amount)}px`);
+    const { amount } = (event as CustomEvent<{ amount: number }>).detail;
+    this.host.style.setProperty('--open-amount-px', `${Math.abs(amount)}px`);
+    this.host.style.setProperty('--open-amount', `${Math.abs(amount)}`);
   };
 
   ngOnInit(): void {

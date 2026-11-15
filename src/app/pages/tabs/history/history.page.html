@@ -52,10 +52,6 @@
                 </ion-item>
 
                 <ion-item-options side="end" (ionSwipe)="onDelete(entry)">
-                  <ion-item-option color="danger" (click)="onDelete(entry)">
-                    <ion-icon slot="top" name="trash-outline"></ion-icon>
-                    <span>Delete</span>
-                  </ion-item-option>
                   <ion-item-option color="danger" expandable (click)="onDelete(entry)">
                     <ion-icon slot="top" name="trash-outline"></ion-icon>
                     <span>Delete</span>

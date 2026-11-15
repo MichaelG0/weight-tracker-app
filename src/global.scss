@@ -269,7 +269,7 @@ ion-list,
 
 $option-size: 31px;
 $options-gap: 16px;
-$options-padding-start: 12px;
+$options-padding-start: 8px;
 $options-padding-end: 8px;
 
 ion-item-sliding ion-item-options {
@@ -285,10 +285,7 @@ ion-item-sliding ion-item-options {
     height: $option-size;
     border-radius: 99px;
     text-transform: none;
-    transition:
-      transform 0.2s ease,
-      opacity 0.2s ease,
-      width 0.2s ease;
+    transition: width 0.2s ease;
 
     &::part(native) {
       -webkit-padding-start: 0;
@@ -306,25 +303,22 @@ ion-item-sliding ion-item-options {
   }
 }
 
-// Used with appDeckCardOptions, which sets --open-amount (the swipe distance) on the ion-item-sliding.
+// Used with appDeckCardOptions, which sets --open-amount-px (the swipe distance)
+// and --open-amount (the same distance as a plain number) on the ion-item-sliding.
 // Only once Ionic's expand (swipe) state activates, the expandable option is sized to take all the
 // space left by the other options, so the first option stays at a fixed distance from the item's edge
-// (instead of Ionic's padding-left: 100% which pushes the other options off screen). The other options
-// fade out and the expandable width transitions in, so nothing snaps. Before that, the default Ionic
-// layout applies.
+// (instead of Ionic's padding-left: 100% which pushes the other options off screen). The expandable
+// width transitions in, so nothing snaps. Before that, the default Ionic layout applies.
 
 ion-item-sliding[appDeckCardOptions].item-sliding-active-swipe-end ion-item-options.item-options-end {
-  ion-item-option:not(.item-option-expandable) {
-    opacity: 0.5;
-  }
-
   ion-item-option.item-option-expandable {
     flex: none;
     order: 0;
     padding-left: 0;
+    // prettier-ignore
     width: max(
       #{$option-size},
-      calc(var(--open-amount) - #{$options-padding-start + $option-size + $options-gap + $options-padding-end})
+      calc(var(--open-amount-px) - #{$options-padding-start + $options-padding-end})
     );
     max-width: 100%;
     // Animates only when the expand state is applied; afterwards the width follows the swipe without lag
@@ -336,6 +330,31 @@ ion-item-sliding[appDeckCardOptions].item-sliding-active-swipe-end ion-item-opti
 @keyframes deck-option-expand {
   from {
     width: $option-size;
+  }
+}
+
+// Each option fades and grows in as the item uncovers it: it's invisible until the swipe reaches its
+// near edge and fully visible once the swipe has passed its far edge
+
+// Strips the unit so a length can be used as a plain number in calc()
+@function strip-unit($n) {
+  @return $n / ($n * 0 + 1);
+}
+ion-item-sliding[appDeckCardOptions] ion-item-options ion-item-option {
+  // prettier-ignore
+  --option-reveal: clamp(
+    0,
+    (var(--open-amount, 0) - var(--option-start, 0)) / #{strip-unit($option-size)},
+    1
+  );
+  opacity: var(--option-reveal);
+  transform: scale(calc(0.85 + 0.15 * var(--option-reveal)));
+}
+
+// Distance from the item's end to each option's near edge, counting from the rightmost option
+@for $i from 1 through 4 {
+  ion-item-sliding[appDeckCardOptions] ion-item-options ion-item-option:nth-last-child(#{$i}) {
+    --option-start: #{strip-unit($options-padding-end + ($i - 1) * ($option-size + $options-gap))};
   }
 }
 
