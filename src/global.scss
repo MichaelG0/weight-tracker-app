@@ -181,7 +181,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
     padding: 0 18px;
 
     .list-group-label {
-      color: var(--ion-text-step-600);
+      color: var(--ion-text-color-step-600);
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.05em;
@@ -298,7 +298,7 @@ ion-item-sliding ion-item-options {
       position: absolute;
       bottom: -14px;
       font-size: 0.7rem;
-      color: var(--ion-text-step-500);
+      color: var(--ion-text-color-step-500);
     }
   }
 }
@@ -362,7 +362,7 @@ ion-item-sliding[appDeckCardOptions] ion-item-options ion-item-option {
 
 ion-toast {
   --background: var(--ion-color-step-950);
-  --color: var(--ion-text-step-50);
+  --color: var(--ion-text-color-step-50);
   --button-color: var(--ion-color-primary);
   --border-radius: 16px;
   --margin: 16px;
@@ -423,7 +423,7 @@ ion-modal.date-modal {
   }
 
   h2 {
-    color: var(--ion-text-step-950);
+    color: var(--ion-text-color-step-950);
     font-size: 1.35rem;
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -431,7 +431,7 @@ ion-modal.date-modal {
   }
 
   p {
-    color: var(--ion-text-step-600);
+    color: var(--ion-text-color-step-600);
     font-size: 0.95rem;
     line-height: 1.6;
     margin: 0;
