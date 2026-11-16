@@ -34,6 +34,15 @@ export const STABILITY_MIN_SAMPLES = 4;
 /** Standard deviation in kg at which the stability score reaches zero. */
 export const STABILITY_SD_THRESHOLD_KG = 1.5;
 
+// ─── Energy balance ─────────────────────────────────────────────────────────────
+
+/**
+ * Approximate energy content of 1 kg of body weight change, in kcal.
+ * Used to convert a weekly weight change into an estimated daily energy surplus or deficit.
+ * This is a rough rule of thumb (commonly cited as ~7700 kcal/kg); real tissue composition varies.
+ */
+export const KCAL_PER_KG = 7700;
+
 // ─── Recommendations ────────────────────────────────────────────────────────────
 
 /** Minimum number of entries required to unlock personalized recommendations. */

@@ -67,7 +67,10 @@
                 @if (vm.goalReached) {
                   <p class="set-goal-prompt">Goal reached! <span class="set-goal-link" (click)="openSetGoal()">+ Set a new target</span></p>
                 } @else {
-                  <span>Goal: {{ vm.goalWeight }}</span>
+                  <span>
+                    Goal: {{ vm.goalWeight }}
+                    @if (vm.progressPercent !== null) { · {{ vm.progressPercent }}% }
+                  </span>
                   <span>
                     @if (vm.goalType === 'Maintenance') {
                       {{ vm.maintOffset !== null ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset : 'No data' }}
@@ -84,6 +87,18 @@
         </ion-card>
       </section>
 
+      <section class="list-group">
+        <div class="list-group-label stats-label-row">
+          <span>Recommendation</span>
+          <ion-icon class="ai-icon" name="sparkles-outline" aria-label="AI"></ion-icon>
+        </div>
+        <ion-card class="recommendation-card">
+          <ion-card-content>
+            <p>{{ vm.recommendation }}</p>
+          </ion-card-content>
+        </ion-card>
+      </section>
+
       <section class="quick-actions">
         <ion-button expand="block" shape="round" color="primary" class="action-btn" (click)="openLogWeight()">Log Weight</ion-button>
       </section>
@@ -95,91 +110,51 @@
             <ion-badge class="data-quality-badge">{{ vm.dataQualityLabel }}</ion-badge>
           }
         </div>
-        <ion-grid class="stats-grid">
-          <ion-row>
-            @if (vm.goalType !== 'Maintenance') {
-              <ion-col size="4">
-                <ion-card class="stat-tile" (click)="toggleStat(0)">
-                  @if (!statFlip()[0]) {
-                    <p class="label">BW %/week</p>
-                    <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
-                  } @else {
-                    <p class="label">{{ vm.unitLabel }}/week</p>
-                    <h4>{{ vm.absoluteRatePerWeek ?? '--' }}</h4>
-                  }
-                </ion-card>
-              </ion-col>
-              <ion-col size="4">
-                <ion-card class="stat-tile" (click)="toggleStat(1)">
-                  @if (!statFlip()[1]) {
-                    <p class="label">Remaining</p>
-                    <h4>{{ vm.remaining ?? '--' }}</h4>
-                  } @else {
-                    <p class="label">Progress</p>
-                    <h4>{{ vm.totalProgress ?? '--' }}</h4>
-                  }
-                </ion-card>
-              </ion-col>
-              <ion-col size="4">
-                <ion-card class="stat-tile" (click)="toggleStat(2)">
-                  @if (!statFlip()[2]) {
-                    <p class="label">Expected goal</p>
-                    <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
-                  } @else {
-                    <p class="label">To goal</p>
-                    <h4>{{ vm.daysToGoal ?? '--' }}</h4>
-                  }
-                </ion-card>
-              </ion-col>
-            } @else {
-              <ion-col size="4">
-                <ion-card class="stat-tile">
-                  <p class="label">Weekly drift</p>
-                  <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
-                </ion-card>
-              </ion-col>
-              <ion-col size="4">
-                <ion-card class="stat-tile">
-                  <p class="label">Stability</p>
-                  <h4>{{ vm.stabilityLabel ?? '--' }}</h4>
-                </ion-card>
-              </ion-col>
-              <ion-col size="4">
-                <ion-card class="stat-tile">
-                  <p class="label">Maintained</p>
-                  <h4>{{ vm.daysMaintained !== null ? vm.daysMaintained + ' days' : '--' }}</h4>
-                </ion-card>
-              </ion-col>
-            }
-          </ion-row>
-        </ion-grid>
-      </section>
-
-      <section class="list-group">
-        <p class="list-group-label">Insights</p>
-        <ion-list lines="none">
-          <ion-item class="list-group-item">
-            <div class="insights-icon-wrap" slot="start">
-              <ion-icon name="trending-down-outline"></ion-icon>
-            </div>
-            <ion-label>
-              <p class="insights-label">Weekly consistency</p>
-              <h3>{{ vm.consistency }}</h3>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </section>
-
-      <section class="list-group">
-        <div class="list-group-label stats-label-row">
-          <span>Recommendation</span>
-          <ion-icon class="ai-icon" name="sparkles-outline" aria-label="AI"></ion-icon>
+        <div class="stats-grid">
+          @if (vm.goalType !== 'Maintenance') {
+            <ion-card class="stat-tile">
+              <ion-icon name="trending-down-outline" aria-hidden="true"></ion-icon>
+              <p class="label">BW %/week</p>
+              <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="flame-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Est. energy balance</p>
+              <h4>{{ vm.energyBalance ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Remaining</p>
+              <h4>{{ vm.remaining ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Expected goal</p>
+              <h4>{{ vm.expectedGoalDate ?? '--' }}</h4>
+            </ion-card>
+          } @else {
+            <ion-card class="stat-tile">
+              <ion-icon name="swap-vertical-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Weekly drift</p>
+              <h4>{{ vm.bwPercentPerWeek ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="flame-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Est. energy balance</p>
+              <h4>{{ vm.energyBalance ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="pulse-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Stability</p>
+              <h4>{{ vm.stabilityLabel ?? '--' }}</h4>
+            </ion-card>
+            <ion-card class="stat-tile">
+              <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+              <p class="label">Maintained</p>
+              <h4>{{ vm.daysMaintained !== null ? vm.daysMaintained + ' days' : '--' }}</h4>
+            </ion-card>
+          }
         </div>
-        <ion-card class="recommendation-card">
-          <ion-card-content>
-            <p>{{ vm.recommendation }}</p>
-          </ion-card-content>
-        </ion-card>
       </section>
 
       <section class="list-group">

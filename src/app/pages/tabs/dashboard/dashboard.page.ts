@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal, Signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   IonHeader,
@@ -15,14 +15,22 @@ import {
   IonCardContent,
   IonBadge,
   IonButton,
-  IonGrid,
-  IonRow,
-  IonCol,
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { scaleOutline, sparklesOutline, trendingDownOutline } from 'ionicons/icons';
 import {
+  calendarOutline,
+  flagOutline,
+  flameOutline,
+  pulseOutline,
+  scaleOutline,
+  shieldCheckmarkOutline,
+  sparklesOutline,
+  swapVerticalOutline,
+  trendingDownOutline,
+} from 'ionicons/icons';
+import {
+  KCAL_PER_KG,
   RATE_MAX_GAP_FRACTION,
   RATE_MIN_SAMPLES_PER_WEEK,
   RATE_MIN_SPAN_FRACTION,
@@ -61,20 +69,17 @@ interface DashboardVm {
   scheduleOffset: string | null;
   schedulePercent: number | null;
   bwPercentPerWeek: string | null;
-  absoluteRatePerWeek: string | null;
+  energyBalance: string | null;
   remaining: string | null;
-  totalProgress: string | null;
+  progressPercent: number | null;
   expectedGoalDate: string | null;
-  daysToGoal: string | null;
   daysMaintained: number | null;
   stabilityLabel: string | null;
   goalReached: boolean;
-  consistency: string;
   dataQualityLabel: string | null;
   recommendation: string;
   rateLabel: string;
   recentEntries: Array<{ label: string; weight: string }>;
-  unitLabel: WeightUnit;
 }
 
 @Component({
@@ -97,9 +102,6 @@ interface DashboardVm {
     IonCardContent,
     IonBadge,
     IonButton,
-    IonGrid,
-    IonRow,
-    IonCol,
     GlassHeaderBackdropDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,7 +111,6 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
   private readonly logger = inject(LogService);
 
-  readonly statFlip = signal<[boolean, boolean, boolean]>([false, false, false]);
   readonly hasEntries = computed(() => this.databaseService.entries().length > 0);
 
   readonly vm: Signal<DashboardVm> = computed(() => {
@@ -117,7 +118,8 @@ export class DashboardPage {
     const recentEntries = [...this.databaseService.recentEntries()].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
-    const rawTrend = this.databaseService.latestEntry()?.trend ?? null;
+    const latestEntry = this.databaseService.latestEntry();
+    const rawTrend = latestEntry?.trend ?? null;
     const activeGoal = this.databaseService.activeGoal();
     const goalReached = this.goalReached(rawTrend, weightUnit, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
@@ -161,24 +163,22 @@ export class DashboardPage {
 
     return {
       trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit).parts : null,
-      goalWeight: formatWeight(goalWeight ?? 0, weightUnit).text,
+      goalWeight: goalWeight !== null ? formatWeight(goalWeight, weightUnit).text : null,
       startWeight,
       goalType,
-      maintRange: formatWeight(maintRange ?? 0, weightUnit).text,
-      maintOffset: formatWeight(maintOffset ?? 0, weightUnit).text,
+      maintRange: maintRange !== null ? formatWeight(maintRange, weightUnit).text : null,
+      maintOffset: maintOffset !== null ? formatWeight(maintOffset, weightUnit).text : null,
       maintPercent,
-      scheduleOffset: formatWeight(scheduleOffset ?? 0, weightUnit).text,
+      scheduleOffset: scheduleOffset !== null ? formatWeight(scheduleOffset, weightUnit).text : null,
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRateAbs),
-      absoluteRatePerWeek: this.absoluteRatePerWeek(rawWeeklyRateAbs, weightUnit),
+      energyBalance: this.energyBalance(rawWeeklyRateAbs, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
-      totalProgress: this.totalProgress(startWeight, rawTrend, weightUnit),
+      progressPercent: this.progressPercent(activeGoal, rawTrend),
       expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
-      daysToGoal: this.daysToGoal(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
-      consistency: this.consistencyLabel(recentEntries),
       dataQualityLabel,
       recommendation: this.recommendation(
         rawTrend,
@@ -194,12 +194,21 @@ export class DashboardPage {
       ),
       rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
       recentEntries: this.recentEntriesView(recentEntries),
-      unitLabel: weightUnit,
     };
   });
 
   constructor() {
-    addIcons({ scaleOutline, sparklesOutline, trendingDownOutline });
+    addIcons({
+      calendarOutline,
+      flagOutline,
+      flameOutline,
+      pulseOutline,
+      scaleOutline,
+      shieldCheckmarkOutline,
+      sparklesOutline,
+      swapVerticalOutline,
+      trendingDownOutline,
+    });
   }
 
   async openLogWeight(): Promise<void> {
@@ -221,13 +230,6 @@ export class DashboardPage {
       handleBehavior: 'cycle',
     });
     await modal.present();
-  }
-
-  toggleStat(index: 0 | 1 | 2): void {
-    const current = this.statFlip();
-    const updated = [...current] as [boolean, boolean, boolean];
-    updated[index] = !updated[index];
-    this.statFlip.set(updated);
   }
 
   private recentEntriesView(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
@@ -259,33 +261,34 @@ export class DashboardPage {
     return `${sign}${pct.toFixed(2)}%`;
   }
 
-  private absoluteRatePerWeek(weeklyRate: number | null, weightUnit: WeightUnit): string | null {
+  /** Weekly rate (in user's unit) → approximate kcal/day. */
+  private energyBalance(weeklyRate: number | null, unit: WeightUnit): string | null {
     if (weeklyRate == null) return null;
-    const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${formatWeight(weeklyRate, weightUnit, 1).text}`;
+    const kcalPerUnit = KCAL_PER_KG / kgToUnit(1, unit); // works for kg and lb
+    const kcal = Math.round((weeklyRate * kcalPerUnit) / 7 / 10) * 10;
+    if (kcal === 0) return '≈ 0 kcal/day';
+    return `${kcal > 0 ? '+' : '−'}${Math.abs(kcal)} kcal/day`;
+  }
+
+  /** 0–100 progress from goal start to goal weight, based on trend. */
+  private progressPercent(goal: Goal | null, trend: number | null): number | null {
+    const ratio = this.goalProgressRatio(goal, trend);
+    if (ratio === null) return null;
+    return Math.round(Math.max(0, Math.min(100, ratio * 100)));
+  }
+
+  /** Unclamped fraction of the way from goal start to goal weight (1 = reached, may exceed 1 on overshoot). */
+  private goalProgressRatio(goal: Goal | null, trend: number | null): number | null {
+    if (!goal || trend == null || goal.type === 'Maintenance') return null;
+    const total = goal.goalWeight - goal.startWeight;
+    if (Math.abs(total) < 0.01) return null;
+    return (trend - goal.startWeight) / total;
   }
 
   private remaining(trendWeight: number | null, goalWeight: number | null, unitLabel: WeightUnit): string | null {
     if (trendWeight == null || goalWeight == null) return null;
     const diff = Math.abs(goalWeight - trendWeight);
     return formatWeight(diff < 0.01 ? 0 : diff, unitLabel).text;
-  }
-
-  private totalProgress(startWeight: number | null, trendWeight: number | null, unitLabel: WeightUnit): string | null {
-    if (startWeight == null || trendWeight == null) return null;
-    const diff = trendWeight - startWeight;
-    const sign = diff > 0 ? '+' : '';
-    return `${sign}${formatWeight(diff, unitLabel).text}`;
-  }
-
-  private daysToGoal(trendWeight: number | null, goalWeight: number | null, weeklyRate: number | null, goalReached: boolean): string | null {
-    if (trendWeight == null || goalWeight == null || weeklyRate == null) return null;
-    const remaining = goalWeight - trendWeight;
-    if (goalReached) return '0 days';
-    if (Math.abs(weeklyRate) < 0.01) return 'Stalled';
-    if (Math.sign(remaining) !== Math.sign(weeklyRate)) return 'Off track';
-    const weeks = Math.abs(remaining / weeklyRate);
-    return `${Math.ceil(weeks * 7)} days`;
   }
 
   private hasMinRecentEntriesForMetrics(entriesAfterGoalStart: WeightEntry[]): boolean {
@@ -416,12 +419,6 @@ export class DashboardPage {
     return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimates';
   }
 
-  private consistencyLabel(reversedEntries: WeightEntry[]): string {
-    const cutoffMs = todayLocalMidnightMs() - 7 * 86400000;
-    const weeklyEntries = reversedEntries.filter(e => e.dateMs > cutoffMs);
-    return `${weeklyEntries.length} / 7 check-ins`;
-  }
-
   private rateLabel(weeklyRate: number | null, unitLabel: WeightUnit): string {
     if (weeklyRate == null) {
       return 'Need more data';
@@ -433,11 +430,14 @@ export class DashboardPage {
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {
     if (!activeGoal || rawTrend == null) return false;
     const trendValue = roundWeightNum(rawTrend, weightUnit);
+    const ratio = this.goalProgressRatio(activeGoal, trendValue);
+    if (ratio !== null) return ratio >= 1;
+    // Fallback for zero-span goals, where the ratio is undefined.
     const { goalWeight, type: goalType } = activeGoal;
-    const reachedGoal =
+    return (
       goalWeight != null &&
-      ((goalType === 'Weight Loss' && trendValue <= goalWeight) || (goalType === 'Weight Gain' && trendValue >= goalWeight));
-    return reachedGoal;
+      ((goalType === 'Weight Loss' && trendValue <= goalWeight) || (goalType === 'Weight Gain' && trendValue >= goalWeight))
+    );
   }
 
   private scheduleProjection(
