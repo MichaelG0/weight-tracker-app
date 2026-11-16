@@ -69,15 +69,14 @@
                 } @else {
                   <span>
                     Goal: {{ vm.goalWeight }}
+                    <!-- prettier-ignore -->
                     @if (vm.progressPercent !== null) { · {{ vm.progressPercent }}% }
                   </span>
                   <span>
                     @if (vm.goalType === 'Maintenance') {
                       {{ vm.maintOffset !== null ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset : 'No data' }}
-                    } @else if (vm.scheduleOnTrack) {
-                      On track
-                    } @else if (vm.scheduleOffset !== null) {
-                      {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' vs projected' }}
+                    } @else if (vm.scheduleStatusLabel) {
+                      {{ vm.scheduleStatusLabel }}
                     }
                   </span>
                 }
@@ -168,7 +167,10 @@
           @for (entry of vm.recentEntries; track entry.label) {
             <ion-item class="list-group-item">
               <ion-label>{{ entry.label }}</ion-label>
-              <ion-note slot="end" class="weight-note">{{ entry.weight }}</ion-note>
+              <ion-note slot="end" class="weight-note">
+                <span class="entry-weight">{{ entry.weight }}</span>
+                <span class="entry-delta" [ngClass]="entry.deltaTone">{{ entry.delta }}</span>
+              </ion-note>
             </ion-item>
           }
         </ion-list>

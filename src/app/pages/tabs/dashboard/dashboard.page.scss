@@ -7,9 +7,32 @@ ion-card {
 }
 
 .weight-note {
-  color: var(--ion-color-primary);
-  font-weight: 700;
-  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+
+  .entry-weight {
+    color: var(--ion-text-color);
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .entry-delta {
+    color: var(--ion-text-color-step-600);
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-top: 2px;
+
+    &.up {
+      color: var(--ion-color-tertiary);
+    }
+
+    &.down {
+      color: var(--ion-color-danger);
+    }
+  }
 }
 
 .balance-card {

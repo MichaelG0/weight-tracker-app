@@ -55,7 +55,7 @@ import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-ba
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
 import { LogService } from 'src/app/services/log.service';
-import { formatWeight, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
+import { formatWeight, formatWeightDecimal, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 
 interface DashboardVm {
@@ -66,8 +66,7 @@ interface DashboardVm {
   maintRange: string | null;
   maintOffset: string | null;
   maintPercent: number | null;
-  scheduleOffset: string | null;
-  scheduleOnTrack: boolean;
+  scheduleStatusLabel: string | null;
   schedulePercent: number | null;
   bwPercentPerWeek: string | null;
   energyBalance: string | null;
@@ -80,7 +79,14 @@ interface DashboardVm {
   dataQualityLabel: string | null;
   recommendation: string;
   rateLabel: string;
-  recentEntries: Array<{ label: string; weight: string }>;
+  recentEntries: RecentEntryVm[];
+}
+
+interface RecentEntryVm {
+  label: string;
+  weight: string;
+  delta: string;
+  deltaTone: 'up' | 'down' | 'flat';
 }
 
 @Component({
@@ -143,6 +149,7 @@ export class DashboardPage {
 
     let scheduleProjection: { projectedWeight: number; range: number } | null = null;
     let scheduleOffset: number | null = null;
+    let scheduleDaysAhead: number | null = null;
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
     const stallWeeks = goalType !== 'Maintenance' ? this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings) : 0;
@@ -154,6 +161,7 @@ export class DashboardPage {
       if (scheduleProjection) {
         scheduleRange = scheduleProjection.range;
         scheduleOffset = rawTrend! - scheduleProjection.projectedWeight;
+        scheduleDaysAhead = this.scheduleDaysAhead(activeGoal!, rawTrend!);
         // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
         if (scheduleRange > 0) {
           const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
@@ -170,8 +178,7 @@ export class DashboardPage {
       maintRange: maintRange !== null ? formatWeight(maintRange, weightUnit).text : null,
       maintOffset: maintOffset !== null ? formatWeight(maintOffset, weightUnit).text : null,
       maintPercent,
-      scheduleOffset: scheduleOffset !== null ? formatWeight(scheduleOffset, weightUnit).text : null,
-      scheduleOnTrack: scheduleOffset !== null && Math.abs(scheduleOffset) < 0.1,
+      scheduleStatusLabel: this.scheduleStatusLabel(scheduleDaysAhead),
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRate),
@@ -234,11 +241,21 @@ export class DashboardPage {
     await modal.present();
   }
 
-  private recentEntriesView(entries: WeightEntry[]): Array<{ label: string; weight: string }> {
-    return entries.slice(0, 3).map(entry => ({
-      label: this.entryLabel(entry.dateMs),
-      weight: formatWeight(entry.weight, this.databaseService.weightUnit()).text,
-    }));
+  private recentEntriesView(entries: WeightEntry[]): RecentEntryVm[] {
+    const unit = this.databaseService.weightUnit();
+    const epsilon = kgToUnit(0.05, unit);
+    return entries.slice(0, 3).map(entry => {
+      const diff = entry.weight - entry.trend;
+      const flat = Math.abs(diff) < epsilon;
+      const deltaTone = flat ? 'flat' : diff > 0 ? 'up' : 'down';
+      const delta = flat ? '±0 vs trend' : `${diff > 0 ? '▲' : '▼'} ${formatWeightDecimal(Math.abs(diff), unit)} vs trend`;
+      return {
+        label: this.entryLabel(entry.dateMs),
+        weight: formatWeight(entry.weight, unit).text,
+        delta,
+        deltaTone,
+      };
+    });
   }
 
   private entryLabel(dateMs: number): string {
@@ -285,6 +302,22 @@ export class DashboardPage {
     const total = goal.goalWeight - goal.startWeight;
     if (Math.abs(total) < 0.01) return null;
     return (trend - goal.startWeight) / total;
+  }
+
+  /** Days ahead (+) or behind (−) the linear plan, based on trend weight. */
+  private scheduleDaysAhead(goal: Goal, trend: number): number | null {
+    const ratio = this.goalProgressRatio(goal, trend);
+    if (ratio === null) return null;
+    const totalDays = (goal.goalDateMs - goal.startDateMs) / 86400000;
+    const elapsedDays = (todayLocalMidnightMs() - goal.startDateMs) / 86400000;
+    return Math.round(ratio * totalDays - elapsedDays);
+  }
+
+  private scheduleStatusLabel(days: number | null): string | null {
+    if (days === null) return null;
+    if (days === 0) return 'On track';
+    const n = Math.abs(days);
+    return `${n} ${n === 1 ? 'day' : 'days'} ${days > 0 ? 'ahead' : 'behind'}`;
   }
 
   private remaining(trendWeight: number | null, goalWeight: number | null, unitLabel: WeightUnit): string | null {
