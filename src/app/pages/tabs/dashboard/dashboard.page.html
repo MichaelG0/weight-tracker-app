@@ -74,6 +74,8 @@
                   <span>
                     @if (vm.goalType === 'Maintenance') {
                       {{ vm.maintOffset !== null ? (vm.maintOffset.includes('-') ? '' : '+') + vm.maintOffset : 'No data' }}
+                    } @else if (vm.scheduleOnTrack) {
+                      On track
                     } @else if (vm.scheduleOffset !== null) {
                       {{ (vm.scheduleOffset.includes('-') ? '' : '+') + vm.scheduleOffset + ' vs projected' }}
                     }

@@ -67,6 +67,7 @@ interface DashboardVm {
   maintOffset: string | null;
   maintPercent: number | null;
   scheduleOffset: string | null;
+  scheduleOnTrack: boolean;
   schedulePercent: number | null;
   bwPercentPerWeek: string | null;
   energyBalance: string | null;
@@ -170,6 +171,7 @@ export class DashboardPage {
       maintOffset: maintOffset !== null ? formatWeight(maintOffset, weightUnit).text : null,
       maintPercent,
       scheduleOffset: scheduleOffset !== null ? formatWeight(scheduleOffset, weightUnit).text : null,
+      scheduleOnTrack: scheduleOffset !== null && Math.abs(scheduleOffset) < 0.1,
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRate),
