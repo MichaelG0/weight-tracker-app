@@ -125,7 +125,7 @@ export class DashboardPage {
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const rawWeeklyRateAbs = this.rawWeeklyRateAbs(entriesAfterGoalStart);
+    const rawWeeklyRate = this.rawWeeklyRate(entriesAfterGoalStart);
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
     const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart) : null;
 
@@ -172,17 +172,17 @@ export class DashboardPage {
       scheduleOffset: scheduleOffset !== null ? formatWeight(scheduleOffset, weightUnit).text : null,
       schedulePercent,
       goalReached,
-      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRateAbs),
-      energyBalance: this.energyBalance(rawWeeklyRateAbs, weightUnit),
+      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRate),
+      energyBalance: this.energyBalance(rawWeeklyRate, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
       progressPercent: this.progressPercent(activeGoal, rawTrend),
-      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, rawWeeklyRateAbs, goalReached),
+      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, rawWeeklyRate, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       dataQualityLabel,
       recommendation: this.recommendation(
         rawTrend,
-        rawWeeklyRateAbs,
+        rawWeeklyRate,
         activeGoal,
         entriesAfterGoalStart,
         stabilityScore,
@@ -192,7 +192,7 @@ export class DashboardPage {
         stallWeeks,
         maintenanceOutOfRangeDays,
       ),
-      rateLabel: this.rateLabel(rawWeeklyRateAbs, weightUnit),
+      rateLabel: this.rateLabel(rawWeeklyRate, weightUnit),
       recentEntries: this.recentEntriesView(recentEntries),
     };
   });
@@ -298,7 +298,7 @@ export class DashboardPage {
     return entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs;
   }
 
-  private rawWeeklyRateAbs(entriesAfterGoalStart: WeightEntry[]): number | null {
+  private rawWeeklyRate(entriesAfterGoalStart: WeightEntry[]): number | null {
     if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
     const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const latestMs = latestEntry.dateMs;
@@ -393,7 +393,7 @@ export class DashboardPage {
     const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
     const todayMs = todayLocalMidnightMs();
 
-    // Mirror the exact window rawWeeklyRateAbs uses (anchored to latest entry, not today)
+    // Mirror the exact window rawWeeklyRate uses (anchored to latest entry, not today)
     const lookbackStartMs = latestEntry.dateMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
     const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs);
 
