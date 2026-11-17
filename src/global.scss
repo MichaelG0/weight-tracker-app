@@ -84,7 +84,7 @@ ion-header.header-ios {
 }
 
 ion-header.header-md ion-toolbar {
-  padding: 0 18px;
+  padding: 0 16px;
 
   ion-title {
     font-size: 1.35rem;
@@ -178,7 +178,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   gap: 16px;
 
   .list-group {
-    padding: 0 18px;
+    padding: 0 16px;
 
     .list-group-label {
       color: var(--ion-text-color-step-600);

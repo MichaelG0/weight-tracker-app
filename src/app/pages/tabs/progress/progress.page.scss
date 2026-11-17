@@ -6,7 +6,7 @@ section.stats-row {
   justify-items: center;
   align-items: center;
   gap: 10px;
-  margin: 0 18px;
+  margin: 0 16px;
 
   .stat-card {
     display: flex;
@@ -127,7 +127,7 @@ ion-card.chart-card {
     }
 
     .range-tabs-container {
-      padding: 9px 18px 16px;
+      padding: 9px 16px 16px;
 
       ion-segment {
         background: var(--ion-color-step-150);
@@ -151,7 +151,7 @@ ion-card.chart-card {
 // ── Trend chips ───────────────────────────────────────────────────────────────
 
 section.trend-chips {
-  margin: 16px 18px;
+  margin: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   align-items: center;
@@ -258,7 +258,7 @@ ion-popover {
 // ── Goals card ────────────────────────────────────────────────────────────────
 
 ion-card.goals-card {
-  margin: 0 18px 28px;
+  margin: 0 16px 28px;
   border-radius: 18px;
 
   ion-card-content {
