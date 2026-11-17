@@ -10,6 +10,21 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MockDataService } from './mock-data.service';
 import { ageFromBirthDate } from '../utils/age-calculator.util';
 import { TREND_ALPHA } from '../constants/trend.constants';
+import {
+  FEMALE_THRESHOLDS,
+  MALE_THRESHOLDS,
+  LOW_ACTIVITY_STEP_CAP,
+  HIGH_ACTIVITY_DEFICIT_STEP_MIN,
+  HIGH_ACTIVITY_SURPLUS_STEP_MIN,
+  SENIOR_AGE,
+  SENIOR_MAX_LOSS_RATE_PCT,
+  SENIOR_DEFICIT_STEP_CAP,
+  MINOR_STEP_RATIO,
+  MAINT_MINOR_STEP_MIN,
+  MAINT_MINOR_STEP_MAX,
+  IDEAL_LOSS_FLOOR_RATIO,
+  STEADY_LOSS_FLOOR_RATIO,
+} from '../constants/coaching.constants';
 import { LogService } from './log.service';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
@@ -595,77 +610,41 @@ export class DatabaseService {
   private computeCoaching(settings: UserSettings, activeGoal: Goal | null): UserSettingsExtended['coaching'] {
     const weightUnit = settings.weightUnit;
     const isFemale = settings.gender === 'Female';
+    const level: Experience = settings.experience === 'Beginner' || settings.experience === 'Advanced' ? settings.experience : 'Intermediate';
+    const thresholds = (isFemale ? FEMALE_THRESHOLDS : MALE_THRESHOLDS)[level];
 
-    // ── Dynamic tracking thresholds (gender × experience) ──
-    let maintRangePct: number;
-    let scheduleToleranceWeeks: number;
-    let rangeCapKg: number;
-    let noiseFloorKg: number;
-
-    // ── Recommendation thresholds (gender × experience) ──
-    let maxLossRate: number;
-    let idealGainFloorPct: number;
-    let idealGainCeilingPct: number;
-    let deficitStep: number;
-    let surplusStep: number;
+    const { maintRangePct, scheduleToleranceWeeks, rangeCapKg, noiseFloorKg, idealGainFloorPct, idealGainCeilingPct } = thresholds;
+    let maxLossRate = thresholds.maxLossRatePct;
+    let deficitStep = thresholds.deficitStep;
+    let surplusStep = thresholds.surplusStep;
     let customAdvice = '';
-
-    // prettier-ignore
-    if (isFemale) {
-      switch (settings.experience) {
-        case 'Beginner':
-          maintRangePct = 2.0; scheduleToleranceWeeks = 3.0; rangeCapKg = 3.0; noiseFloorKg = 0.8;
-          maxLossRate = 1.0; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.35; deficitStep = 125; surplusStep = 175;
-          break;
-        case 'Advanced':
-          maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 0.5; idealGainFloorPct = 0.05; idealGainCeilingPct = 0.15; deficitStep = 150; surplusStep = 200;
-          break;
-        default:
-          maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 0.8; idealGainFloorPct = 0.10; idealGainCeilingPct = 0.25; deficitStep = 150; surplusStep = 200;
-      }
-    } else {
-      switch (settings.experience) {
-        case 'Beginner':
-          maintRangePct = 1.5; scheduleToleranceWeeks = 2.5; rangeCapKg = 2.5; noiseFloorKg = 0.6;
-          maxLossRate = 1.0; idealGainFloorPct = 0.25; idealGainCeilingPct = 0.6; deficitStep = 150; surplusStep = 200;
-          break;
-        case 'Advanced':
-          maintRangePct = 0.75; scheduleToleranceWeeks = 1.5; rangeCapKg = 1.5; noiseFloorKg = 0.25;
-          maxLossRate = 0.5; idealGainFloorPct = 0.1; idealGainCeilingPct = 0.25; deficitStep = 200; surplusStep = 200;
-          break;
-        default:
-          maintRangePct = 1.0; scheduleToleranceWeeks = 2.0; rangeCapKg = 2.0; noiseFloorKg = 0.5;
-          maxLossRate = 0.8; idealGainFloorPct = 0.15; idealGainCeilingPct = 0.4; deficitStep = 200; surplusStep = 200;
-      }
-    }
 
     // ── Secondary modifiers: activity, age ──
     if (settings.activityLevel === 'Sedentary' || settings.activityLevel === 'Lightly Active') {
-      deficitStep = Math.min(deficitStep, 150);
-      surplusStep = Math.min(surplusStep, 150);
+      deficitStep = Math.min(deficitStep, LOW_ACTIVITY_STEP_CAP);
+      surplusStep = Math.min(surplusStep, LOW_ACTIVITY_STEP_CAP);
       customAdvice = ' Focus on increasing daily movement (walking, stairs) alongside any dietary change.';
     } else if (settings.activityLevel === 'Very Active' || settings.activityLevel === 'Extra Active') {
-      deficitStep = Math.max(deficitStep, 200);
-      surplusStep = Math.max(surplusStep, 250);
+      deficitStep = Math.max(deficitStep, HIGH_ACTIVITY_DEFICIT_STEP_MIN);
+      surplusStep = Math.max(surplusStep, HIGH_ACTIVITY_SURPLUS_STEP_MIN);
       customAdvice = ' With your activity level, prioritize protein and recovery.';
     }
 
     const age = ageFromBirthDate(settings.birthDate);
-    if (age != null && age >= 50) {
-      maxLossRate = Math.min(maxLossRate, 0.7);
-      deficitStep = Math.min(deficitStep, 150);
+    if (age != null && age >= SENIOR_AGE) {
+      maxLossRate = Math.min(maxLossRate, SENIOR_MAX_LOSS_RATE_PCT);
+      deficitStep = Math.min(deficitStep, SENIOR_DEFICIT_STEP_CAP);
       customAdvice = customAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
     }
 
-    const minorDeficitStep = Math.round(deficitStep * 0.6);
-    const minorSurplusStep = Math.round(surplusStep * 0.6);
-    const maintMinorStep = Math.max(100, Math.min(minorDeficitStep, 150));
+    const minorDeficitStep = Math.round(deficitStep * MINOR_STEP_RATIO);
+    const minorSurplusStep = Math.round(surplusStep * MINOR_STEP_RATIO);
+    const maintMinorStep = Math.max(MAINT_MINOR_STEP_MIN, Math.min(minorDeficitStep, MAINT_MINOR_STEP_MAX));
 
     const rangeCap = kgToUnit(rangeCapKg, weightUnit);
     const noiseFloor = kgToUnit(noiseFloorKg, weightUnit);
-    const maintRange = activeGoal?.goalWeight ? Math.min(Math.max(activeGoal?.goalWeight * (maintRangePct / 100), noiseFloor), rangeCap) : 0;
+    const goalWeight = activeGoal?.goalWeight;
+    const maintRange = goalWeight ? Math.min(Math.max(goalWeight * (maintRangePct / 100), noiseFloor), rangeCap) : 0;
 
     return {
       maintRangePct,
@@ -674,8 +653,8 @@ export class DatabaseService {
       rangeCap,
       noiseFloor,
       maxLossRate,
-      idealLossFloorPct: maxLossRate * 0.5,
-      steadyLossFloorPct: maxLossRate * 0.25,
+      idealLossFloorPct: maxLossRate * IDEAL_LOSS_FLOOR_RATIO,
+      steadyLossFloorPct: maxLossRate * STEADY_LOSS_FLOOR_RATIO,
       idealGainFloorPct,
       idealGainCeilingPct,
       deficitStep,
