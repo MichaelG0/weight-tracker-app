@@ -1,7 +1,13 @@
 <div class="picker" [class.stone]="isStone">
   <div class="wheel">
     <div class="wheel-highlight"></div>
-    <div #wholeCol class="wheel-column whole" (scroll)="onWholeScroll($event)">
+    <div
+      #wholeCol
+      class="wheel-column whole"
+      (scroll)="onWholeScroll($event)"
+      (touchstart)="$event.stopPropagation()"
+      (pointerdown)="$event.stopPropagation()"
+    >
       @for (n of wholeOptions; track n) {
         <div class="wheel-item" [class.active]="n === whole()" (click)="selectWhole(n)">{{ n }}</div>
       }
@@ -13,7 +19,13 @@
 
     <div class="wheel">
       <div class="wheel-highlight"></div>
-      <div #poundsCol class="wheel-column whole" (scroll)="onPoundsScroll($event)">
+      <div
+        #poundsCol
+        class="wheel-column whole"
+        (scroll)="onPoundsScroll($event)"
+        (touchstart)="$event.stopPropagation()"
+        (pointerdown)="$event.stopPropagation()"
+      >
         @for (n of poundsOptions; track n) {
           <div class="wheel-item" [class.active]="n === pounds()" (click)="selectPounds(n)">{{ n }}</div>
         }
@@ -25,7 +37,13 @@
 
   <div class="wheel">
     <div class="wheel-highlight"></div>
-    <div #fractionCol class="wheel-column fraction" (scroll)="onFractionScroll($event)">
+    <div
+      #fractionCol
+      class="wheel-column fraction"
+      (scroll)="onFractionScroll($event)"
+      (touchstart)="$event.stopPropagation()"
+      (pointerdown)="$event.stopPropagation()"
+    >
       @for (label of fractionOptions; track $index; let n = $index) {
         <div class="wheel-item" [class.active]="n === fraction()" (click)="selectFraction(n)">{{ label }}</div>
       }
