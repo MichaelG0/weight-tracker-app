@@ -59,6 +59,10 @@ The project also serves as an exploration of modern Angular architecture, reacti
 - Chart.js
 - chartjs-plugin-zoom
 
+### Monitoring
+
+- Sentry (`@sentry/angular`, `@sentry/capacitor`)
+
 ## Modern Angular
 
 The application makes use of modern Angular APIs and architectural patterns including:
@@ -112,7 +116,7 @@ The dashboard derives additional information from the user's weight history and 
 - Estimated time to goal
 - Goal schedule position
 - Maintenance stability
-- Logging consistency
+- Estimated Energy Balance
 - Data-quality indicators
 
 The application distinguishes between Weight Loss, Weight Gain and Maintenance goals so that calculations and feedback can adapt to the selected objective.
@@ -131,6 +135,16 @@ Users can:
 - Zoom and navigate through historical data
 
 Chart styling also reacts to the selected application theme.
+
+## Error Monitoring
+
+Errors are reported to [Sentry](https://sentry.io) using `@sentry/capacitor` and `@sentry/angular`, initialized in [main.ts](src/main.ts).
+
+- Reporting is enabled only in production builds (`enabled: environment.production`)
+- The DSN is read from `sentryDsn` in [environment.ts](src/environments/environment.ts) and [environment.prod.ts](src/environments/environment.prod.ts)
+- Only `console.error` output is captured, and Angular uncaught errors are routed through Sentry's error handler
+- Default PII collection is disabled (`sendDefaultPii: false`)
+- Performance tracing is disabled (`tracesSampleRate: 0`)
 
 ## Project Structure
 
