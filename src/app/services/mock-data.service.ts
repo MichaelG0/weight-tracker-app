@@ -16,7 +16,7 @@ export class MockDataService {
     const mockGoals: Omit<GoalDB, 'id'>[] = [
       { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', type: 'Weight Gain' },
       { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', type: 'Maintenance' },
-      { start_weight_kg: 80, goal_weight_kg: 76.19, start_date: '2026-08-09', goal_date: '2026-12-27', type: 'Weight Loss' },
+      { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-12-27', type: 'Weight Loss' },
       // { start_weight_kg: 80, goal_weight_kg: 77.4, start_date: '2026-08-09', goal_date: '2026-11-07', type: 'Weight Loss' },
       // { start_weight_kg: 77.33, goal_weight_kg: 77.33, start_date: '2026-11-13', goal_date: '2027-06-27', type: 'Maintenance' },
     ];

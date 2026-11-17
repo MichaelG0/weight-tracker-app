@@ -579,7 +579,7 @@ export class DashboardPage {
     maintenanceOutOfRangeWeeks: number,
   ): string {
     if (!activeGoal) {
-      return 'Set a new goal to receive personalized recommendations.';
+      return 'Set a new goal to unlock statistics and receive personalized recommendations.';
     }
     if (!this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) {
       return 'Resume logging to unlock custom recommendations.';
