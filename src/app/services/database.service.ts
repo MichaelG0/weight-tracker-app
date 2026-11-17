@@ -41,7 +41,6 @@ export interface UserSettingsDB {
   height_unit?: HeightUnit;
   activity_level?: ActivityLevel;
   experience?: Experience;
-  body_type?: BodyType;
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -52,7 +51,6 @@ export type WeightUnit = 'kg' | 'lbs' | 'st';
 export type HeightUnit = 'cm' | 'ft/in';
 export type ActivityLevel = 'Sedentary' | 'Lightly Active' | 'Moderately Active' | 'Very Active' | 'Extra Active';
 export type Experience = 'Beginner' | 'Intermediate' | 'Advanced';
-export type BodyType = 'Ectomorph' | 'Mesomorph' | 'Endomorph';
 
 export interface WeightPart {
   value: string;
@@ -99,7 +97,6 @@ export interface UserSettings {
   heightUnit: HeightUnit;
   activityLevel?: ActivityLevel;
   experience?: Experience;
-  bodyType?: BodyType;
 }
 
 export interface UserSettingsExtended extends UserSettings {
@@ -144,8 +141,7 @@ const MIGRATIONS = `
     weight_unit    TEXT DEFAULT 'kg',
     height_unit    TEXT DEFAULT 'cm',
     activity_level TEXT,
-    experience     TEXT,
-    body_type      TEXT
+    experience     TEXT
   );
 
   CREATE TABLE IF NOT EXISTS goals (
@@ -242,7 +238,6 @@ export class DatabaseService {
         heightUnit: settings.height_unit ?? 'cm',
         activityLevel: settings.activity_level,
         experience: settings.experience,
-        bodyType: settings.body_type,
       };
 
       this.logger.debug('settings$', converted);
@@ -444,8 +439,8 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(
         this.db.run(
-          `INSERT INTO user_settings (user_id, name, birth_date, gender, height_cm, weight_unit, height_unit, activity_level, experience, body_type)
-             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO user_settings (user_id, name, birth_date, gender, height_cm, weight_unit, height_unit, activity_level, experience)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id) DO UPDATE SET
              name           = excluded.name,
              birth_date     = excluded.birth_date,
@@ -454,8 +449,7 @@ export class DatabaseService {
              weight_unit    = excluded.weight_unit,
              height_unit    = excluded.height_unit,
              activity_level = excluded.activity_level,
-             experience     = excluded.experience,
-             body_type      = excluded.body_type`,
+             experience     = excluded.experience`,
           [
             settings.name ?? null,
             settings.birth_date ?? null,
@@ -465,7 +459,6 @@ export class DatabaseService {
             settings.height_unit ?? 'cm',
             settings.activity_level ?? null,
             settings.experience ?? null,
-            settings.body_type ?? null,
           ],
         ),
       ).pipe(
@@ -648,7 +641,7 @@ export class DatabaseService {
       }
     }
 
-    // ── Secondary modifiers: activity, body type, age ──
+    // ── Secondary modifiers: activity, age ──
     if (settings.activityLevel === 'Sedentary' || settings.activityLevel === 'Lightly Active') {
       deficitStep = Math.min(deficitStep, 150);
       surplusStep = Math.min(surplusStep, 150);
@@ -657,15 +650,6 @@ export class DatabaseService {
       deficitStep = Math.max(deficitStep, 200);
       surplusStep = Math.max(surplusStep, 250);
       customAdvice = ' With your activity level, prioritize protein and recovery.';
-    }
-
-    if (settings.bodyType === 'Endomorph') {
-      if (activeGoal?.type === 'Weight Gain')
-        customAdvice = ' If you tend to gain fat easily, track waist measurements alongside scale weight.';
-    } else if (settings.bodyType === 'Ectomorph') {
-      if (activeGoal?.type === 'Weight Gain')
-        customAdvice =
-          ' You may have a highly adaptive metabolism. If the scale refuses to move, rely on calorie-dense foods like nuts, oils, and liquid calories.';
     }
 
     const age = ageFromBirthDate(settings.birthDate);

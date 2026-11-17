@@ -142,20 +142,6 @@
             <ion-chip [class.selected]="experience === level" (click)="setExperience(level)">{{ level }}</ion-chip>
           }
         </div>
-        <ion-item class="list-group-item">
-          <div class="icon-wrap" slot="start">
-            <ion-icon name="body-outline"></ion-icon>
-          </div>
-          <ion-label>Body Type</ion-label>
-          <ion-button fill="clear" slot="end" (click)="showInfo('bodyType')">
-            <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
-          </ion-button>
-        </ion-item>
-        <div class="chip-group-row">
-          @for (type of bodyTypes; track type) {
-            <ion-chip [class.selected]="bodyType === type" (click)="setBodyType(type)">{{ type }}</ion-chip>
-          }
-        </div>
       </ion-list>
     </section>
   </div>

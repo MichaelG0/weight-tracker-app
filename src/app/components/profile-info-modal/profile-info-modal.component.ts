@@ -3,7 +3,7 @@ import { IonHeader, IonToolbar, IonTitle, IonContent, ModalController } from '@i
 import { addIcons } from 'ionicons';
 import { closeOutline } from 'ionicons/icons';
 
-export type ProfileInfoTopic = 'activity' | 'experience' | 'bodyType';
+export type ProfileInfoTopic = 'activity' | 'experience';
 
 @Component({
   selector: 'app-profile-info-modal',

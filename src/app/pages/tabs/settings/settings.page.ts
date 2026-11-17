@@ -25,7 +25,6 @@ import {
   HeightUnit,
   ActivityLevel,
   Experience,
-  BodyType,
 } from '../../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
@@ -37,7 +36,6 @@ import {
   saveOutline,
   checkmarkCircleOutline,
   barbellOutline,
-  bodyOutline,
   walkOutline,
   fitnessOutline,
   informationCircleOutline,
@@ -91,11 +89,9 @@ export class SettingsPage {
   heightUnit: HeightUnit = this.db.settings()?.heightUnit ?? 'cm';
   activityLevel: ActivityLevel | '' = this.db.settings()?.activityLevel ?? '';
   experience: Experience | '' = this.db.settings()?.experience ?? '';
-  bodyType: BodyType | '' = this.db.settings()?.bodyType ?? '';
 
   readonly activityLevels: ActivityLevel[] = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
   readonly experienceLevels: Experience[] = ['Beginner', 'Intermediate', 'Advanced'];
-  readonly bodyTypes: BodyType[] = ['Ectomorph', 'Mesomorph', 'Endomorph'];
   readonly maxBirthDate = todayLocalMidnightString();
 
   constructor() {
@@ -108,7 +104,6 @@ export class SettingsPage {
       saveOutline,
       checkmarkCircleOutline,
       barbellOutline,
-      bodyOutline,
       walkOutline,
       fitnessOutline,
       informationCircleOutline,
@@ -133,7 +128,6 @@ export class SettingsPage {
       height_unit: this.heightUnit,
       activity_level: this.activityLevel || undefined,
       experience: this.experience || undefined,
-      body_type: this.bodyType || undefined,
     };
 
     if (this.heightCm) {
@@ -187,11 +181,6 @@ export class SettingsPage {
 
   setExperience(value: Experience): void {
     this.experience = this.experience === value ? '' : value;
-    this.saveSettings();
-  }
-
-  setBodyType(value: BodyType): void {
-    this.bodyType = this.bodyType === value ? '' : value;
     this.saveSettings();
   }
 

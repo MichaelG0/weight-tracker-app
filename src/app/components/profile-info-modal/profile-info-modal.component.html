@@ -2,10 +2,8 @@
   <ion-toolbar>
     @if (topic === 'activity') {
       <ion-title>Activity Level</ion-title>
-    } @else if (topic === 'experience') {
-      <ion-title>Training Experience</ion-title>
     } @else {
-      <ion-title>Body Type</ion-title>
+      <ion-title>Training Experience</ion-title>
     }
   </ion-toolbar>
 </ion-header>
@@ -86,47 +84,6 @@
           bigger dietary swings without losing muscle if protein is high.
         </p>
         <div class="info-note">Tighter gain ceiling (~0.35% BW/week), larger deficit steps (~250 kcal) when progress stalls.</div>
-      </div>
-    </div>
-  }
-
-  @if (topic === 'bodyType') {
-    <div class="info-section">
-      <p class="info-intro">
-        Your natural build affects how your body responds to surplus and deficit. Pick the one that best describes you
-        <em>before</em> training changed your shape. We use this to adjust surplus sizes, loss rate limits, and flag when body
-        composition monitoring is especially important.
-      </p>
-
-      <div class="info-card">
-        <h3>Ectomorph</h3>
-        <p class="info-subtitle">Narrow shoulders, long limbs, naturally lean</p>
-        <p>
-          You've always been thin and find it hard to gain weight. You may eat a lot without putting on mass. Think: distance-runner
-          build.
-        </p>
-        <div class="info-note">Larger surplus recommended (~300 kcal). Calorie-dense foods (nuts, oils, shakes) help hit targets.</div>
-      </div>
-
-      <div class="info-card">
-        <h3>Mesomorph</h3>
-        <p class="info-subtitle">Broad shoulders, athletic frame, gains muscle easily</p>
-        <p>You respond well to training and can shift body composition without extreme measures. Think: naturally athletic build.</p>
-        <div class="info-note">Standard adjustments apply. You have flexibility in how aggressively you cut or bulk.</div>
-      </div>
-
-      <div class="info-card">
-        <h3>Endomorph</h3>
-        <p class="info-subtitle">Wider hips, stockier frame, gains weight easily</p>
-        <p>
-          You put on size quickly — both muscle and fat. Surplus phases need careful monitoring (watch waist, not just scale). Think:
-          naturally solid/stocky build.
-        </p>
-        <div class="info-note">Tighter surplus, lower max loss rate (~0.8% BW/week), and body composition awareness in all advice.</div>
-      </div>
-
-      <div class="info-card disclaimer">
-        <p>Most people are a blend of types. Pick the closest match — your habits and training matter far more than any label.</p>
       </div>
     </div>
   }
