@@ -30,7 +30,6 @@ import {
   trendingDownOutline,
 } from 'ionicons/icons';
 import {
-  KCAL_PER_KG,
   RATE_MAX_GAP_FRACTION,
   RATE_MIN_SAMPLES_PER_WEEK,
   RATE_MIN_SPAN_FRACTION,
@@ -57,6 +56,7 @@ import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goa
 import { LogService } from 'src/app/services/log.service';
 import { formatWeight, formatWeightDecimal, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
+import { ENERGY_PER_KG_KCAL, kcalToSteps, weeklyPctToDailyKcal } from 'src/app/constants/coaching.constants';
 
 interface DashboardVm {
   trendDisplay: WeightPart[] | null;
@@ -283,7 +283,7 @@ export class DashboardPage {
   /** Weekly rate (in user's unit) → approximate kcal/day. */
   private energyBalance(weeklyRate: number | null, unit: WeightUnit): string | null {
     if (weeklyRate == null) return null;
-    const kcalPerUnit = KCAL_PER_KG / kgToUnit(1, unit); // works for kg and lb
+    const kcalPerUnit = ENERGY_PER_KG_KCAL / kgToUnit(1, unit); // works for kg and lb
     const kcal = Math.round((weeklyRate * kcalPerUnit) / 7 / 10) * 10;
     if (kcal === 0) return '≈ 0 kcal/day';
     return `${kcal > 0 ? '+' : '−'}${Math.abs(kcal)} kcal/day`;
@@ -596,13 +596,25 @@ export class DashboardPage {
 
     const goalWeight = activeGoal.goalWeight;
     const goalType = activeGoal.type;
-
+    const weightUnit = userSettings.weightUnit;
+    
     // prettier-ignore
     const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRange } = userSettings.coaching;
 
     const bwPct = Math.abs((rawWeeklyRate / trendWeight) * 100);
     const isGaining = rawWeeklyRate > 0.01;
     const isLosing = rawWeeklyRate < -0.01;
+
+    // ── Calorie ↔ steps helpers ──
+    // Steps are offered as half of the calorie step ("split it"), because asking for the full
+    // amount in steps (often 5,000+) is unrealistic. Everything scales with body weight.
+    const half = (kcal: number): number => Math.round(kcal / 2);
+    const walkSplit = (kcal: number): string =>
+      `or split it: ~${half(kcal)} kcal less plus ~${kcalToSteps(kcal / 2, trendWeight, weightUnit).toLocaleString('en-US')} more daily steps`;
+
+    // "Catch-up" surplus for the gain phase: a bit more than the normal step, never above the gain ceiling.
+    const gainCeilingKcal = weeklyPctToDailyKcal(idealGainCeilingPct, trendWeight, weightUnit);
+    const catchUpSurplus = Math.max(surplusStep, Math.round(Math.min(surplusStep * 1.5, gainCeilingKcal) / 5) * 5);
 
     let scheduleStatus: 'ahead' | 'behind' | 'on-track' | null = null;
     let offTrack = false;
@@ -661,10 +673,11 @@ export class DashboardPage {
             return `You are practically at your goal! Since you're moving very fast, you can start adding back a few calories now to ease smoothly into maintenance.`;
           }
           if (scheduleStatus === 'ahead') {
-            return `Loss rate exceeds ${maxLossRate}% BW/week and you're ${scheduleLabel} schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
+            return `Loss rate exceeds ${maxLossRate}% of body weight per week and you're ${scheduleLabel} schedule. Ease off slightly — you can afford to slow down and preserve lean mass.`;
           }
           return (
-            `Loss rate exceeds ${maxLossRate}% BW/week. Slow down slightly to preserve lean mass and training performance.` + customAdvice
+            `Loss rate exceeds ${maxLossRate}% of body weight per week. Slow down slightly to preserve lean mass and training performance.` +
+            customAdvice
           );
         }
 
@@ -696,7 +709,7 @@ export class DashboardPage {
               customAdvice
             );
           }
-          return `Losing steadily. If progress stalls, a small nudge — trim ~${minorDeficitStep} kcal or add ~1,500 daily steps — can help.`;
+          return `Losing steadily. If progress stalls, a small nudge can help — trim ~${minorDeficitStep} kcal, ${walkSplit(minorDeficitStep)}.`;
         }
 
         // 5. Very Slow
@@ -712,12 +725,13 @@ export class DashboardPage {
           }
           if (scheduleStatus === 'behind') {
             return (
-              `Progress is slow and you're ${scheduleLabel} schedule. Try reducing intake by ~${deficitStep} kcal or adding 2,000–3,000 daily steps to get back on track.` +
+              `Progress is slow and you're ${scheduleLabel} schedule. Try reducing intake by ~${deficitStep} kcal, ${walkSplit(deficitStep)}, to get back on track.` +
               customAdvice
             );
           }
           return (
-            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal or adding ~1,500 daily steps.` + customAdvice
+            `Progress is slower than optimal. Try reducing intake by ~${minorDeficitStep} kcal, ${walkSplit(minorDeficitStep)}.` +
+            customAdvice
           );
         }
 
@@ -733,12 +747,12 @@ export class DashboardPage {
         }
         if (scheduleStatus === 'behind') {
           return (
-            `Weight is flat and you're ${scheduleLabel} schedule. Create a deficit now — cut ~${deficitStep} kcal or add ~2,000 daily steps to get things moving.` +
+            `Weight is flat and you're ${scheduleLabel} schedule. Create a deficit now — cut ~${deficitStep} kcal, ${walkSplit(deficitStep)} — to get things moving.` +
             customAdvice
           );
         }
         return (
-          `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal or add ~1,500 daily steps to get things moving.` +
+          `Weight is flat. Create a modest deficit — cut ~${minorDeficitStep} kcal, ${walkSplit(minorDeficitStep)} — to get things moving.` +
           customAdvice
         );
       }
@@ -750,7 +764,7 @@ export class DashboardPage {
         if (isLosing) {
           if (scheduleStatus === 'behind') {
             return (
-              `Weight is dropping and you're ${scheduleLabel} schedule. Increase calories significantly — add ~${surplusStep + 100} kcal (e.g., 2 snacks or a dense shake) daily.` +
+              `Weight is dropping and you're ${scheduleLabel} schedule. Increase calories — add ~${catchUpSurplus} kcal (e.g., a snack or a dense shake) daily.` +
               customAdvice
             );
           }
@@ -760,13 +774,13 @@ export class DashboardPage {
         // 2. Above Ceiling (Gaining Too Fast)
         if (bwPct > idealGainCeilingPct) {
           if (nearGainGoal) {
-            return `You are practically at your goal! Since your gain rate is above your target ceiling (${idealGainCeilingPct}% BW/week), start trimming your surplus now to ease into maintenance.`;
+            return `You are practically at your goal! Since your gain rate is above your target ceiling (${idealGainCeilingPct}% of body weight per week), start trimming your surplus now to ease into maintenance.`;
           }
           if (scheduleStatus === 'ahead') {
-            return `Gaining faster than your target ceiling (${idealGainCeilingPct}% BW/week) and ${scheduleLabel} schedule. Pull back surplus by ~${surplusStep} kcal — no need to add excess fat.`;
+            return `Gaining faster than your target ceiling (${idealGainCeilingPct}% of body weight per week) and ${scheduleLabel} schedule. Pull back surplus by ~${surplusStep} kcal — no need to add excess fat.`;
           }
           return (
-            `Gain rate of ${bwPct.toFixed(2)}% BW/week exceeds your optimal ceiling (${idealGainCeilingPct}%). Excess weight is likely fat accumulation — pull back surplus by ~${minorSurplusStep} kcal.` +
+            `Gain rate of ${bwPct.toFixed(2)}% of body weight per week exceeds your optimal ceiling (${idealGainCeilingPct}%). Excess weight is likely fat accumulation — pull back surplus by ~${minorSurplusStep} kcal.` +
             customAdvice
           );
         }
@@ -816,14 +830,11 @@ export class DashboardPage {
         }
         if (scheduleStatus === 'behind') {
           return (
-            `Weight is flat and you're ${scheduleLabel} schedule. Increase intake by ~${surplusStep}–${surplusStep + 100} kcal — calorie-dense foods help.` +
+            `Weight is flat and you're ${scheduleLabel} schedule. Increase intake by ~${catchUpSurplus} kcal — calorie-dense foods help.` +
             customAdvice
           );
         }
-        return (
-          `Weight is flat. Increase intake — an extra ~${minorSurplusStep}–${minorSurplusStep + 50} kcal should move the scale.` +
-          customAdvice
-        );
+        return `Weight is flat. Increase intake — an extra ~${minorSurplusStep} kcal should move the scale.` + customAdvice;
       }
 
       // prettier-ignore
@@ -874,7 +885,7 @@ export class DashboardPage {
           }
           if (movingAway) {
             return isAbove
-              ? `Weight has breached your upper limit and is still climbing. Cut ~${maintMajorCut} kcal and add daily steps to aggressively reverse the trend.`
+              ? `Weight has breached your upper limit and is still climbing. Cut ~${maintMajorCut} kcal (${walkSplit(maintMajorCut)}) to reverse the trend.`
               : `Weight has breached your lower limit and is still falling. Add ~${maintMajorAdd} kcal immediately to halt the loss and reverse the trend.`;
           }
           if (isAbove) {
@@ -893,7 +904,7 @@ export class DashboardPage {
         if (bwPct > 0.5) {
           if (movingAway) {
             return isGaining
-              ? `Drifting rapidly toward your upper limit. Cut ~${maintMajorCut} kcal or add ~2,500 daily steps to correct course before you breach the zone.`
+              ? `Drifting rapidly toward your upper limit. Cut ~${maintMajorCut} kcal (${walkSplit(maintMajorCut)}) to correct course before you breach the zone.`
               : `Drifting rapidly toward your lower limit. Add ~${maintMajorAdd} kcal — an extra meal or calorie-dense snack — to stabilize.`;
           }
           if (movingToward) {
@@ -934,7 +945,7 @@ export class DashboardPage {
               return 'Near target but weight is swinging. Keep meal timing and hydration consistent to smooth things out.';
             }
             return isGaining
-              ? `Near target with a slight upward drift. A ~${maintMinorStep} kcal trim or ~1,500 extra steps this week should level it off.`
+              ? `Near target with a slight upward drift. A ~${maintMinorStep} kcal trim (${walkSplit(maintMinorStep)}) this week should level it off.`
               : `Near target with a slight downward drift. Add ~${maintMinorStep} kcal — a small snack — to level off.`;
           }
         }

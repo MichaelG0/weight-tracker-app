@@ -24,6 +24,8 @@ import {
   MAINT_MINOR_STEP_MAX,
   IDEAL_LOSS_FLOOR_RATIO,
   STEADY_LOSS_FLOOR_RATIO,
+  MIN_STEP_KCAL,
+  weeklyPctToDailyKcal,
 } from '../constants/coaching.constants';
 import { LogService } from './log.service';
 
@@ -317,8 +319,9 @@ export class DatabaseService {
   readonly extendedSettings: Signal<UserSettingsExtended | null> = computed(() => {
     const settings = this.settings();
     const activeGoal = this.activeGoal();
+    const trendWeight = this.latestEntry()?.trend;
     if (!settings) return null;
-    return { ...settings, coaching: this.computeCoaching(settings, activeGoal ?? null) };
+    return { ...settings, coaching: this.computeCoaching(settings, activeGoal, trendWeight) };
   });
 
   // ── Init (called from provideAppInitializer in main.ts) ───────────────────
@@ -607,10 +610,20 @@ export class DatabaseService {
 
   // ── Utils ─────────────────────────────────────────────────────────
 
-  private computeCoaching(settings: UserSettings, activeGoal: Goal | null): UserSettingsExtended['coaching'] {
+  /**
+   * @param trendWeight Current trend weight in user weight unit. When provided, calorie
+   *   steps are limited so a single step can't push weekly change past the gain
+   *   ceiling or the max loss rate for this person. When null, base steps are used.
+   */
+  private computeCoaching(
+    settings: UserSettings,
+    activeGoal: Goal | null = null,
+    trendWeight: number | null = null,
+  ): UserSettingsExtended['coaching'] {
     const weightUnit = settings.weightUnit;
     const isFemale = settings.gender === 'Female';
-    const level: Experience = settings.experience === 'Beginner' || settings.experience === 'Advanced' ? settings.experience : 'Intermediate';
+    const level: Experience =
+      settings.experience === 'Beginner' || settings.experience === 'Advanced' ? settings.experience : 'Intermediate';
     const thresholds = (isFemale ? FEMALE_THRESHOLDS : MALE_THRESHOLDS)[level];
 
     const { maintRangePct, scheduleToleranceWeeks, rangeCapKg, noiseFloorKg, idealGainFloorPct, idealGainCeilingPct } = thresholds;
@@ -635,6 +648,15 @@ export class DatabaseService {
       maxLossRate = Math.min(maxLossRate, SENIOR_MAX_LOSS_RATE_PCT);
       deficitStep = Math.min(deficitStep, SENIOR_DEFICIT_STEP_CAP);
       customAdvice = customAdvice || ' Prioritize protein intake and resistance training to preserve muscle mass.';
+    }
+
+    // ── Rate limits: a single step must not exceed the weekly limits for this body weight ──
+    // Applied last so the activity minimums can't push steps past what the limits allow.
+    if (trendWeight != null && trendWeight > 0) {
+      const surplusLimit = weeklyPctToDailyKcal(idealGainCeilingPct, trendWeight, weightUnit);
+      const deficitLimit = weeklyPctToDailyKcal(maxLossRate, trendWeight, weightUnit);
+      surplusStep = Math.max(MIN_STEP_KCAL, Math.min(surplusStep, surplusLimit));
+      deficitStep = Math.max(MIN_STEP_KCAL, Math.min(deficitStep, deficitLimit));
     }
 
     const minorDeficitStep = Math.round(deficitStep * MINOR_STEP_RATIO);

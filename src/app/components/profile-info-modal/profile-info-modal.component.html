@@ -36,6 +36,10 @@
             Age {{ seniorAge }}+: weekly loss is capped at {{ seniorMaxLoss }}% of body weight and deficit steps at
             {{ seniorDeficitCap }} kcal.
           </li>
+          <li>
+            Body weight: steps are also kept small enough that a single step never pushes your weekly change past your gain ceiling or
+            maximum loss rate.
+          </li>
         </ul>
       </div>
     </div>
@@ -65,8 +69,8 @@
       }
 
       <p class="info-footnote">
-        These are base values. Your activity level and age can adjust the calorie steps and loss rate, so the numbers you see in your plan
-        may differ slightly.
+        These are base values. Your activity level, age and body weight can adjust the calorie steps and loss rate, so the numbers you see in
+        your plan may differ slightly.
       </p>
     </div>
   }
