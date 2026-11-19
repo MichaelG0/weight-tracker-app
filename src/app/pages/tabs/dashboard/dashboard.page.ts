@@ -36,7 +36,6 @@ import {
   RATE_NOISE_FLOOR_KG,
   RATE_STALE_AFTER_DAYS,
   RATE_OUTDATED_AFTER_DAYS,
-  RECOMMENDATION_MIN_ENTRIES_REQUIRED,
   STABILITY_MIN_SAMPLES,
   STABILITY_SD_THRESHOLD_KG,
   STABILITY_WINDOW_DAYS,
@@ -580,9 +579,6 @@ export class DashboardPage {
     }
     if (!rate) {
       return 'Keep logging to unlock custom recommendations.';
-    }
-    if (entriesAfterGoalStart.length < RECOMMENDATION_MIN_ENTRIES_REQUIRED) {
-      return `Log weight at least ${RECOMMENDATION_MIN_ENTRIES_REQUIRED} times since this goal started to unlock custom recommendations.`;
     }
     if (trendWeight == null || userSettings == null) {
       return 'Start logging to unlock custom recommendations.';

@@ -46,8 +46,3 @@ export const STABILITY_MIN_SAMPLES = 4;
 
 /** Standard deviation in kg at which the stability score reaches zero. */
 export const STABILITY_SD_THRESHOLD_KG = 1.5;
-
-// ─── Recommendations ────────────────────────────────────────────────────────────
-
-/** Minimum number of entries required to unlock personalized recommendations. */
-export const RECOMMENDATION_MIN_ENTRIES_REQUIRED = 4;
