@@ -149,6 +149,13 @@ body.ion-palette-dark {
   --ion-color-tertiary-shade: #07809d;
   --ion-color-tertiary-tint: #219cba;
 
+  --ion-color-success: var(--ion-color-tertiary);
+  --ion-color-success-rgb: var(--ion-color-tertiary-rgb);
+  --ion-color-success-contrast: var(--ion-color-success-contrast);
+  --ion-color-success-contrast-rgb: var(--ion-color-success-contrast-rgb);
+  --ion-color-success-shade: var(--ion-color-tertiary-shade);
+  --ion-color-success-tint: var(--ion-color-tertiary-tint);
+
   /* Surface and text tokens - Deep Violet Charcoal */
   --ion-background-color: var(--ion-color-step-100);
   --ion-background-color-rgb: var(--ion-color-step-100-rgb);
