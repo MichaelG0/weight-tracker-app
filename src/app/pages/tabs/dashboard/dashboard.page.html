@@ -107,8 +107,8 @@
       <section class="list-group">
         <div class="list-group-label stats-label-row">
           <span>Statistics</span>
-          @if (vm.dataQualityLabel) {
-            <ion-badge class="data-quality-badge">{{ vm.dataQualityLabel }}</ion-badge>
+          @if (vm.dataQuality; as quality) {
+            <ion-badge class="data-quality-badge" [class.data-quality-high]="quality.level === 'high'">{{ quality.label }}</ion-badge>
           }
         </div>
         <div class="stats-grid">

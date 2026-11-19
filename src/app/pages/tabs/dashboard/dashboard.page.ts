@@ -59,6 +59,11 @@ import { formatWeight, formatWeightDecimal, kgToUnit, roundWeightNum } from 'src
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { ENERGY_PER_KG_KCAL, kcalToSteps, weeklyPctToDailyKcal } from 'src/app/constants/coaching.constants';
 
+interface DataQualityVm {
+  label: string;
+  level: 'rough' | 'high';
+}
+
 interface DashboardVm {
   trendDisplay: WeightPart[] | null;
   goalWeight: string | null;
@@ -77,7 +82,7 @@ interface DashboardVm {
   daysMaintained: number | null;
   stabilityLabel: string | null;
   goalReached: boolean;
-  dataQualityLabel: string | null;
+  dataQuality: DataQualityVm | null;
   recommendation: string;
   rateLabel: string;
   recentEntries: RecentEntryVm[];
@@ -143,10 +148,11 @@ export class DashboardPage {
       undefined,
       undefined,
       goalType === 'Weight Loss' || goalType === 'Weight Gain' ? RATE_GOAL_FLAT_PCT : null,
+      resolvePct,
     );
     const displayRate = rateEst?.rate ?? null;
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
-    const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart, rateEst, rate, lookbackDays) : null;
+    const dataQuality = activeGoal ? this.dataQuality(entriesAfterGoalStart, rateEst, rate, lookbackDays) : null;
 
     // prettier-ignore
     const maintRange = userSettings?.coaching.maintRange ?? null;
@@ -200,7 +206,7 @@ export class DashboardPage {
       expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, displayRate, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
-      dataQualityLabel,
+      dataQuality,
       recommendation: this.recommendation(
         rawTrend,
         rate,
@@ -428,23 +434,26 @@ export class DashboardPage {
   }
 
   // Covers all data, but driven by rate quality, the most important part of data quality.
-  private dataQualityLabel(
+  private dataQuality(
     entriesAfterGoalStart: WeightEntry[],
     est: RateEstimate | null,
     rate: RateAssessment | null,
     lookback: number,
-  ): string | null {
+  ): DataQualityVm | null {
     if (!est || !rate) return null;
     const staleDays = (todayLocalMidnightMs() - entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs) / 86400000;
     const hasLargeGap = est.maxGapDays > lookback * RATE_MAX_GAP_FRACTION;
-    return rate.precise && staleDays <= RATE_STALE_AFTER_DAYS && !hasLargeGap ? null : 'Rough estimates';
+    if (rate.confidence === 'low' || staleDays > RATE_STALE_AFTER_DAYS || hasLargeGap) {
+      return { label: 'Rough estimates', level: 'rough' };
+    }
+    return rate.confidence === 'high' ? { label: 'High precision', level: 'high' } : null;
   }
 
   private rateLabel(est: RateEstimate | null, rate: RateAssessment | null, unit: WeightUnit): string {
     if (!est || !rate) return 'Need more data';
     const sign = est.rate > 0 ? '+' : '';
     const base = `${sign}${formatWeight(est.rate, unit, 1).text}/week`;
-    return rate.precise ? base : `${base} (±${formatWeight(est.se, unit, 1).text})`;
+    return rate.confidence !== 'low' ? base : `${base} (±${formatWeight(est.se, unit, 1).text})`;
   }
 
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {

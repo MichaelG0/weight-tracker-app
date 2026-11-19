@@ -22,6 +22,8 @@ export const RATE_GOAL_FLAT_PCT = 0.01;
 export const RATE_MIN_MEANINGFUL_PCT = 0.1;
 /** Max SE (% BW/week) at which the rate magnitude is trusted. */
 export const RATE_MAX_SE_PCT = 0.35;
+/** Minimum SE (% BW/week) allowed for "high" confidence, so very small floor rates can still reach it. */
+export const RATE_HIGH_SE_MIN_PCT = 0.1;
 /** Maintenance drift above this (% BW/week) counts as "fast". */
 export const MAINT_FAST_DRIFT_PCT = 0.5;
 

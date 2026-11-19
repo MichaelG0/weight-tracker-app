@@ -16,9 +16,9 @@ export class MockDataService {
     const mockGoals: Omit<GoalDB, 'id'>[] = [
       { start_weight_kg: 76, goal_weight_kg: 80, start_date: '2025-09-05', goal_date: '2026-07-01', type: 'Weight Gain' },
       { start_weight_kg: 80, goal_weight_kg: 80, start_date: '2026-07-01', goal_date: '2026-08-09', type: 'Maintenance' },
-      { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-12-27', type: 'Weight Loss' },
-      // { start_weight_kg: 80, goal_weight_kg: 77.4, start_date: '2026-08-09', goal_date: '2026-11-07', type: 'Weight Loss' },
-      // { start_weight_kg: 77.33, goal_weight_kg: 77.33, start_date: '2026-11-13', goal_date: '2027-06-27', type: 'Maintenance' },
+      // { start_weight_kg: 80, goal_weight_kg: 76, start_date: '2026-08-09', goal_date: '2026-12-27', type: 'Weight Loss' },
+      { start_weight_kg: 80, goal_weight_kg: 77.4, start_date: '2026-08-09', goal_date: '2026-11-07', type: 'Weight Loss' },
+      { start_weight_kg: 77.33, goal_weight_kg: 77.33, start_date: '2026-11-13', goal_date: '2027-06-27', type: 'Maintenance' },
     ];
 
     for (const goal of mockGoals) {
@@ -104,7 +104,7 @@ export class MockDataService {
       ['2026-11-02', 77.0], ['2026-11-03', 76.9], ['2026-11-04', 76.8], ['2026-11-05', 76.7], ['2026-11-06', 76.8],
       ['2026-11-07', 76.9], ['2026-11-08', 77.1], ['2026-11-09', 77.8], ['2026-11-10', 77.8], ['2026-11-11', 78.0],
       ['2026-11-12', 77.5], ['2026-11-13', 77.6], ['2026-11-14', 77.6], ['2026-11-15', 77.1], ['2026-11-16', 77.5],
-      ['2026-11-17', 77.8], ['2026-11-18', 77.7],
+      ['2026-11-17', 77.8], ['2026-11-18', 77.7], ['2026-11-19', 77.6],
     ];
 
     // Increase iterations to generate additional randomized mock data.

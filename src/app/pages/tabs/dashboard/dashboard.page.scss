@@ -242,6 +242,11 @@ ion-card {
   background: rgba(var(--ion-color-warning-rgb), 0.12);
   color: var(--ion-color-warning);
   text-transform: none;
+
+  &.data-quality-high {
+    background: rgba(var(--ion-color-success-rgb), 0.12);
+    color: var(--ion-color-success);
+  }
 }
 
 .stats-grid {

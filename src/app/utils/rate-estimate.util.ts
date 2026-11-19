@@ -1,6 +1,7 @@
 import type { GoalType } from '../services/database.service';
 import {
   RATE_FLAT_SE_MULTIPLIER,
+  RATE_HIGH_SE_MIN_PCT,
   RATE_LOOKBACK_DAYS_LOSS,
   RATE_LOOKBACK_DAYS_MAX,
   RATE_LOOKBACK_DAYS_STEADY,
@@ -38,11 +39,17 @@ export interface RateAssessment {
   pctPerWeek: number;
   /** Standard error as a percentage of trend weight per week. */
   sePct: number;
-  /** True when the standard error is small enough to act on the magnitude of the rate. */
-  precise: boolean;
-  /** True when the slope is not distinguishable from zero (SE test) and the estimate is too noisy to call it flat. */
+  /**
+   * low    : standard error above maxSePct, the magnitude of the rate can't be trusted
+   * medium : standard error within maxSePct
+   * high   : standard error small enough to resolve the goal's floor rate, but never stricter than RATE_HIGH_SE_MIN_PCT (which is the threshold when there is no floor rate)
+   */
+  confidence: RateConfidence;
+  /** True when the slope is not distinguishable from zero (SE test) and the confidence is low. */
   inconclusive: boolean;
 }
+
+export type RateConfidence = 'low' | 'medium' | 'high';
 
 /**
  * Lookback window: short for loss (fast signal), longer for gain/maintenance (small rates).
@@ -58,7 +65,7 @@ export function rateLookbackDays(
   const base = goalType === 'Weight Gain' || goalType === 'Maintenance' ? RATE_LOOKBACK_DAYS_STEADY : RATE_LOOKBACK_DAYS_LOSS;
   if (!resolvePct || resolvePct <= 0 || !trendWeight || trendWeight <= 0 || noiseFloor <= 0) return base;
   const targetSe = (resolvePct / RATE_FLAT_SE_MULTIPLIER / 100) * trendWeight;
-  const days = Math.ceil((7 * Math.sqrt(12) * noiseFloor / targetSe) ** (2 / 3));
+  const days = Math.ceil(((7 * Math.sqrt(12) * noiseFloor) / targetSe) ** (2 / 3));
   return Math.min(RATE_LOOKBACK_DAYS_MAX, Math.max(base, days));
 }
 
@@ -106,17 +113,24 @@ export function assessRate(
   maxSePct = RATE_MAX_SE_PCT,
   minMeaningfulPct = RATE_MIN_MEANINGFUL_PCT,
   fixedThresholdPct: number | null = null,
+  resolvePct: number | null = null,
 ): RateAssessment | null {
   if (!est || trendWeight == null || trendWeight <= 0) return null;
 
   const pctPerWeek = (est.rate / trendWeight) * 100;
   const sePct = (est.se / trendWeight) * 100;
-  const precise = sePct <= maxSePct;
+  // High confidence needs the SE to resolve the goal's floor rate (resolvePct, % BW/week), but never demands less than
+  // RATE_HIGH_SE_MIN_PCT. Without a floor rate (maintenance) RATE_HIGH_SE_MIN_PCT is the threshold.
+  const highSePct = Math.min(
+    maxSePct,
+    resolvePct != null && resolvePct > 0 ? Math.max(resolvePct / flatMultiplier, RATE_HIGH_SE_MIN_PCT) : RATE_HIGH_SE_MIN_PCT,
+  );
+  const confidence: RateConfidence = sePct <= highSePct ? 'high' : sePct <= maxSePct ? 'medium' : 'low';
   // With a fixed threshold the SE test only feeds `inconclusive`; it no longer decides the state.
   const distinguishable = Math.abs(est.rate) >= flatMultiplier * est.se && Math.abs(pctPerWeek) >= minMeaningfulPct;
-  const inconclusive = !distinguishable && !precise;
+  const inconclusive = !distinguishable && confidence === 'low';
   const moving = fixedThresholdPct != null ? Math.abs(pctPerWeek) >= fixedThresholdPct : distinguishable;
 
   const state: RateState = moving ? (est.rate > 0 ? 'rising' : 'falling') : 'flat';
-  return { state, pctPerWeek, sePct, precise, inconclusive };
+  return { state, pctPerWeek, sePct, confidence, inconclusive };
 }
