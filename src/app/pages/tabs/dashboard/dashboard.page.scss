@@ -170,6 +170,15 @@ ion-card {
     justify-content: space-between;
     position: relative;
     z-index: 1;
+
+    .progress-ring {
+      background: conic-gradient(var(--ion-color-primary) var(--pct, 0%), var(--ion-color-step-200) 0);
+      border-radius: 50%;
+      display: inline-block;
+      height: 10px;
+      width: 10px;
+      margin-left: 4px;
+    }
   }
 
   .set-goal-prompt {

@@ -70,7 +70,10 @@
                   <span>
                     Goal: {{ vm.goalWeight }}
                     <!-- prettier-ignore -->
-                    @if (vm.progressPercent !== null) { · {{ vm.progressPercent }}% }
+                    @if (vm.progressPercent !== null) {
+                      · {{ vm.progressPercent }}%
+                      <span class="progress-ring" aria-hidden="true" [style.--pct]="vm.progressPercent + '%'"></span>
+                    }
                   </span>
                   <span>
                     @if (vm.goalType === 'Maintenance') {
