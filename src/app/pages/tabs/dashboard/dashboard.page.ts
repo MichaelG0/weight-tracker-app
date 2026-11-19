@@ -30,17 +30,18 @@ import {
   trendingDownOutline,
 } from 'ionicons/icons';
 import {
+  MAINT_FAST_DRIFT_PCT,
+  RATE_GOAL_FLAT_PCT,
   RATE_MAX_GAP_FRACTION,
-  RATE_MIN_SAMPLES_PER_WEEK,
-  RATE_MIN_SPAN_FRACTION,
+  RATE_NOISE_FLOOR_KG,
   RATE_STALE_AFTER_DAYS,
   RATE_OUTDATED_AFTER_DAYS,
   RECOMMENDATION_MIN_ENTRIES_REQUIRED,
   STABILITY_MIN_SAMPLES,
   STABILITY_SD_THRESHOLD_KG,
   STABILITY_WINDOW_DAYS,
-  WEEKLY_RATE_LOOKBACK_DAYS,
 } from '../../../constants/trend.constants';
+import { assessRate, estimateWeeklyRate, type RateAssessment, type RateEstimate, rateLookbackDays } from 'src/app/utils/rate-estimate.util';
 import {
   DatabaseService,
   Goal,
@@ -132,9 +133,20 @@ export class DashboardPage {
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const rawWeeklyRate = this.rawWeeklyRate(entriesAfterGoalStart);
+    const resolvePct = this.rateResolvePct(goalType, userSettings);
+    const lookbackDays = rateLookbackDays(goalType, resolvePct, rawTrend, kgToUnit(RATE_NOISE_FLOOR_KG, weightUnit));
+    const rateEst = this.rateEstimate(entriesAfterGoalStart, lookbackDays, weightUnit);
+    const rate = assessRate(
+      rateEst,
+      rawTrend,
+      undefined,
+      undefined,
+      undefined,
+      goalType === 'Weight Loss' || goalType === 'Weight Gain' ? RATE_GOAL_FLAT_PCT : null,
+    );
+    const displayRate = rateEst?.rate ?? null;
     const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
-    const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart) : null;
+    const dataQualityLabel = activeGoal ? this.dataQualityLabel(entriesAfterGoalStart, rateEst, rate, lookbackDays) : null;
 
     // prettier-ignore
     const maintRange = userSettings?.coaching.maintRange ?? null;
@@ -181,17 +193,17 @@ export class DashboardPage {
       scheduleStatusLabel: this.scheduleStatusLabel(scheduleDaysAhead),
       schedulePercent,
       goalReached,
-      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, rawWeeklyRate),
-      energyBalance: this.energyBalance(rawWeeklyRate, weightUnit),
+      bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, displayRate),
+      energyBalance: this.energyBalance(displayRate, weightUnit),
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
       progressPercent: this.progressPercent(activeGoal, rawTrend),
-      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, rawWeeklyRate, goalReached),
+      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, displayRate, goalReached),
       daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       dataQualityLabel,
       recommendation: this.recommendation(
         rawTrend,
-        rawWeeklyRate,
+        rate,
         activeGoal,
         entriesAfterGoalStart,
         stabilityScore,
@@ -201,7 +213,7 @@ export class DashboardPage {
         stallWeeks,
         maintenanceOutOfRangeDays,
       ),
-      rateLabel: this.rateLabel(rawWeeklyRate, weightUnit),
+      rateLabel: this.rateLabel(rateEst, rate, weightUnit),
       recentEntries: this.recentEntriesView(recentEntries),
     };
   });
@@ -333,25 +345,20 @@ export class DashboardPage {
     return entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs;
   }
 
-  private rawWeeklyRate(entriesAfterGoalStart: WeightEntry[]): number | null {
-    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
-    const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
-    const latestMs = latestEntry.dateMs;
-    const lookbackStartMs = latestMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
-    const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs && e.dateMs <= latestMs);
-    if (samples.length < 2) return null;
+  /** Smallest rate (% BW/week) the goal's coaching bands need to tell apart from zero. */
+  private rateResolvePct(goalType: GoalType | null, userSettings: UserSettingsExtended | null): number | null {
+    if (!userSettings) return null;
+    if (goalType === 'Weight Gain') return userSettings.coaching.idealGainFloorPct;
+    if (goalType === 'Weight Loss') return userSettings.coaching.steadyLossFloorPct;
+    return null;
+  }
 
-    const points = samples.map(entry => ({
-      x: (entry.dateMs - latestMs) / 86400000,
-      y: entry.weight,
-    }));
-    const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
-    const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
-    const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
-    if (denominator === 0) return null;
-
-    const slopePerDay = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0) / denominator;
-    return slopePerDay * 7;
+  private rateEstimate(entries: WeightEntry[], lookbackDays: number, unit: WeightUnit): RateEstimate | null {
+    if (entries.length < 2 || !this.hasMinRecentEntriesForMetrics(entries)) return null;
+    const latestMs = entries[entries.length - 1].dateMs;
+    const cutoff = latestMs - lookbackDays * 86400000;
+    const samples = entries.filter(e => e.dateMs >= cutoff);
+    return estimateWeeklyRate(samples, kgToUnit(RATE_NOISE_FLOOR_KG, unit));
   }
 
   private daysMaintained(entriesAfterGoalStart: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
@@ -420,46 +427,24 @@ export class DashboardPage {
     return 'Fluctuating';
   }
 
-  // This evaluates the quality of all data, however it is primarily tied to the quality of
-  // the data for rate calculations, which is the most important aspect of overall data quality.
-  private dataQualityLabel(entriesAfterGoalStart: WeightEntry[]): string | null {
-    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) return null;
-    
-    const latestEntry = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
-    const todayMs = todayLocalMidnightMs();
-
-    // Mirror the exact window rawWeeklyRate uses (anchored to latest entry, not today)
-    const lookbackStartMs = latestEntry.dateMs - WEEKLY_RATE_LOOKBACK_DAYS * 86400000;
-    const samples = entriesAfterGoalStart.filter(e => e.dateMs >= lookbackStartMs);
-
-    if (samples.length < 2) return null;
-
-    // Slope stops reflecting current behavior after several days without data
-    const isStale = (todayMs - latestEntry.dateMs) / 86400000 > RATE_STALE_AFTER_DAYS;
-
-    // Entries must span at least RATE_MIN_SPAN_FRACTION of the lookback window for a stable slope
-    const spanDays = (samples[samples.length - 1].dateMs - samples[0].dateMs) / 86400000;
-    const hasMinSpan = spanDays >= WEEKLY_RATE_LOOKBACK_DAYS * RATE_MIN_SPAN_FRACTION - 1;
-
-    // A gap >RATE_MAX_GAP_FRACTION of the lookback window means the regression bridges a data desert
-    const hasLargeGap = samples.some((entry, i) => {
-      if (i === 0) return false;
-      return (entry.dateMs - samples[i - 1].dateMs) / 86400000 > WEEKLY_RATE_LOOKBACK_DAYS * RATE_MAX_GAP_FRACTION;
-    });
-
-    // 2 points is the mathematical minimum; a per-week density gives a meaningful fit
-    const minSamples = Math.ceil((WEEKLY_RATE_LOOKBACK_DAYS / 7) * RATE_MIN_SAMPLES_PER_WEEK);
-    const hasEnoughPoints = samples.length >= minSamples;
-
-    return hasEnoughPoints && hasMinSpan && !hasLargeGap && !isStale ? null : 'Rough estimates';
+  // Covers all data, but driven by rate quality, the most important part of data quality.
+  private dataQualityLabel(
+    entriesAfterGoalStart: WeightEntry[],
+    est: RateEstimate | null,
+    rate: RateAssessment | null,
+    lookback: number,
+  ): string | null {
+    if (!est || !rate) return null;
+    const staleDays = (todayLocalMidnightMs() - entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs) / 86400000;
+    const hasLargeGap = est.maxGapDays > lookback * RATE_MAX_GAP_FRACTION;
+    return rate.precise && staleDays <= RATE_STALE_AFTER_DAYS && !hasLargeGap ? null : 'Rough estimates';
   }
 
-  private rateLabel(weeklyRate: number | null, unitLabel: WeightUnit): string {
-    if (weeklyRate == null) {
-      return 'Need more data';
-    }
-    const sign = weeklyRate > 0 ? '+' : '';
-    return `${sign}${formatWeight(weeklyRate, unitLabel, 1).text}/week`;
+  private rateLabel(est: RateEstimate | null, rate: RateAssessment | null, unit: WeightUnit): string {
+    if (!est || !rate) return 'Need more data';
+    const sign = est.rate > 0 ? '+' : '';
+    const base = `${sign}${formatWeight(est.rate, unit, 1).text}/week`;
+    return rate.precise ? base : `${base} (±${formatWeight(est.se, unit, 1).text})`;
   }
 
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {
@@ -515,7 +500,7 @@ export class DashboardPage {
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
 
     const noiseFloorPct =
-      activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.idealLossFloorPct;
+      activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.steadyLossFloorPct;
     const msPerWeek = 7 * 86400000;
     let weeks = 0;
 
@@ -568,7 +553,7 @@ export class DashboardPage {
 
   private recommendation(
     trendWeight: number | null,
-    rawWeeklyRate: number | null,
+    rate: RateAssessment | null,
     activeGoal: Goal | null,
     entriesAfterGoalStart: WeightEntry[],
     stabilityScore: number | null,
@@ -584,7 +569,7 @@ export class DashboardPage {
     if (!this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart)) {
       return 'Resume logging to unlock custom recommendations.';
     }
-    if (rawWeeklyRate == null) {
+    if (!rate) {
       return 'Keep logging to unlock custom recommendations.';
     }
     if (entriesAfterGoalStart.length < RECOMMENDATION_MIN_ENTRIES_REQUIRED) {
@@ -601,9 +586,20 @@ export class DashboardPage {
     // prettier-ignore
     const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRange } = userSettings.coaching;
 
-    const bwPct = Math.abs((rawWeeklyRate / trendWeight) * 100);
-    const isGaining = rawWeeklyRate > 0.01;
-    const isLosing = rawWeeklyRate < -0.01;
+    if (goalReached) {
+      return 'You have reached your goal weight! Consider setting a maintenance or new target.';
+    }
+
+    // Loss/gain advice is built on the rate, so don't give any when the rate can't be told apart from noise.
+    // Maintenance still works: range breaches use the trend offset, not the slope.
+    if (goalType !== 'Maintenance' && rate.inconclusive) {
+      return 'Your weekly rate is still too uncertain to act on. Log most days for another week or so and the trend will sharpen.';
+    }
+
+    const isGaining = rate.state === 'rising';
+    const isLosing = rate.state === 'falling';
+    // Only a rising/falling slope gets a magnitude; flat/inconclusive map to 0 so band checks can't fire.
+    const bwPct = isGaining || isLosing ? Math.abs(rate.pctPerWeek) : 0;
 
     // ── Calorie ↔ steps helpers ──
     // Steps are offered as half of the calorie step ("split it"), because asking for the full
@@ -644,10 +640,6 @@ export class DashboardPage {
       } else {
         scheduleStatus = 'on-track';
       }
-    }
-
-    if (goalReached) {
-      return 'You have reached your goal weight! Consider setting a maintenance or new target.';
     }
 
     switch (goalType) {
@@ -857,6 +849,7 @@ export class DashboardPage {
 
         const movingAway = (isAbove && isGaining) || (isBelow && isLosing);
         const movingToward = (isAbove && isLosing) || (isBelow && isGaining);
+        const drifting = isGaining || isLosing;
 
         const noData = stabilityScore == null;
         const stable = !noData && stabilityScore >= 75;
@@ -900,8 +893,8 @@ export class DashboardPage {
           }
         }
 
-        // --- 2. IN-RANGE, HIGH DRIFT (>0.5% BW/week) ---
-        if (bwPct > 0.5) {
+        // --- 2. IN-RANGE, HIGH DRIFT (>MAINT_FAST_DRIFT_PCT% BW/week) ---
+        if (drifting && bwPct > MAINT_FAST_DRIFT_PCT) {
           if (movingAway) {
             return isGaining
               ? `Drifting rapidly toward your upper limit. Cut ~${maintMajorCut} kcal (${walkSplit(maintMajorCut)}) to correct course before you breach the zone.`
@@ -922,8 +915,8 @@ export class DashboardPage {
           }
         }
 
-        // --- 3. IN-RANGE, MODERATE DRIFT (0.2–0.5% BW/week) ---
-        if (bwPct > 0.2) {
+        // --- 3. IN-RANGE, MODERATE DRIFT (significant slope, below the fast threshold) ---
+        if (drifting) {
           if (movingAway) {
             if (fluctuating) {
               return isGaining
@@ -950,7 +943,7 @@ export class DashboardPage {
           }
         }
 
-        // --- Low drift (<=0.2% BW/week) ---
+        // --- Low drift / flat ---
         if (fluctuating) {
           return 'Weight is fluctuating near target. Review sodium, sleep, and stress — these often drive short-term swings.';
         }
