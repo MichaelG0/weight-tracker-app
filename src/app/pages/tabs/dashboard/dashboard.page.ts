@@ -545,7 +545,7 @@ export class DashboardPage {
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
 
     const noiseFloorPct =
-      activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.steadyLossFloorPct;
+      activeGoal.type === 'Weight Gain' ? userSettings.coaching.idealGainFloorPct : userSettings.coaching.idealLossFloorPct;
     const msPerWeek = 7 * 86400000;
     let weeks = 0;
 
@@ -714,13 +714,13 @@ export class DashboardPage {
           if (nearLossGoal) {
             return `You're incredibly close to your goal! Just a tiny final push — trim ~${minorDeficitStep} kcal or add a short walk — will get you across the finish line.`;
           }
-          if (stallWeeks >= 3) {
-            return 'Progress has been slow for a while. If diet fatigue is setting in, consider switching to a Maintenance goal for a planned break — then restart with fresh momentum.';
-          }
-          if (stallWeeks >= 2) {
-            return 'Progress has been sluggish for two weeks now. Common culprits: larger weekend portions, liquid calories you forgot about, or less movement than usual. Try swapping one snack or cutting a sugary drink.';
-          }
           if (scheduleStatus === 'behind') {
+            if (stallWeeks >= 3) {
+              return 'Progress has been slow for a while. If diet fatigue is setting in, consider switching to a Maintenance goal for a planned break — then restart with fresh momentum.';
+            }
+            if (stallWeeks >= 2) {
+              return 'Progress has been sluggish for two weeks now. Common culprits: larger weekend portions, liquid calories you forgot about, or less movement than usual. Try swapping one snack or cutting a sugary drink.';
+            }
             return (
               `Losing steadily but ${scheduleLabel} schedule. Consider increasing your deficit by ~${deficitStep} kcal to catch up.` +
               customAdvice
@@ -818,13 +818,13 @@ export class DashboardPage {
           if (nearGainGoal) {
             return `Nearly at your goal but progress has slowed. A small nudge — add ~${minorSurplusStep} kcal or a calorie-dense snack — should close the gap.`;
           }
-          if (stallWeeks >= 3) {
-            return 'Gains have been minimal for several weeks. If appetite is the bottleneck, try calorie-dense liquids (shakes, smoothies) or eating more frequently rather than bigger meals.';
-          }
-          if (stallWeeks >= 2) {
-            return 'Gaining very slowly for two weeks running. Make sure you are not skipping meals on busy days — try adding a snack or a calorie-dense shake to fill the gap without forcing bigger meals.';
-          }
           if (scheduleStatus === 'behind') {
+            if (stallWeeks >= 3) {
+              return 'Gains have been minimal for several weeks. If appetite is the bottleneck, try calorie-dense liquids (shakes, smoothies) or eating more frequently rather than bigger meals.';
+            }
+            if (stallWeeks >= 2) {
+              return 'Gaining very slowly for two weeks running. Make sure you are not skipping meals on busy days — try adding a snack or a calorie-dense shake to fill the gap without forcing bigger meals.';
+            }
             return (
               `Gaining slowly and ${scheduleLabel} schedule. Add ~${surplusStep} kcal from protein or carbs to get back on track.` +
               customAdvice
