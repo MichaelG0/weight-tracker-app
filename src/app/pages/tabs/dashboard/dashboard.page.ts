@@ -170,7 +170,7 @@ export class DashboardPage {
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
     const stallWeeks = goalType !== 'Maintenance' ? this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings) : 0;
-    const maintenanceOutOfRangeDays =
+    const maintenanceOutOfRangeWeeks =
       goalType === 'Maintenance' ? this.outOfRangeStreakWeeks(entriesAfterGoalStart, activeGoal, maintRange) : 0;
 
     if (goalType == 'Weight Loss' || (goalType == 'Weight Gain' && rawTrend !== null)) {
@@ -216,7 +216,7 @@ export class DashboardPage {
         scheduleProjection,
         goalReached,
         stallWeeks,
-        maintenanceOutOfRangeDays,
+        maintenanceOutOfRangeWeeks,
       ),
       rateLabel: this.rateLabel(rateEst, rate, weightUnit),
       recentEntries: this.recentEntriesView(recentEntries),
@@ -598,7 +598,7 @@ export class DashboardPage {
     // Loss/gain advice is built on the rate, so don't give any when the rate can't be told apart from noise.
     // Maintenance still works: range breaches use the trend offset, not the slope.
     if (goalType !== 'Maintenance' && rate.inconclusive) {
-      return 'Your weekly rate is still too uncertain to act on. Log most days for another week or so and the trend will sharpen.';
+      return 'Your weekly rate is still too uncertain to act on. Log most days for a week or two and the trend will sharpen.';
     }
 
     const isGaining = rate.state === 'rising';
