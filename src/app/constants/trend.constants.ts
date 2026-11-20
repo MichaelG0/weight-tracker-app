@@ -13,7 +13,7 @@ export const RATE_LOOKBACK_DAYS_STEADY = 28;
 export const RATE_LOOKBACK_DAYS_MAX = 84;
 
 /** Floor for residual SD (kg) so a few lucky points can't claim tiny uncertainty. */
-export const RATE_NOISE_FLOOR_KG = 0.3;
+export const RATE_NOISE_FLOOR_KG = 0.5;
 /** A slope must exceed this many standard errors to count as rising/falling. */
 export const RATE_FLAT_SE_MULTIPLIER = 1.5;
 /** Loss/gain goals: a slope beyond this (% of body weight per week) counts as rising/falling, regardless of SE. */
