@@ -94,6 +94,11 @@ interface RecentEntryVm {
   deltaTone: 'up' | 'down' | 'flat';
 }
 
+interface MaintenanceStreaks {
+  daysMaintained: number | null;
+  outOfRangeWeeks: number;
+}
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: 'dashboard.page.html',
@@ -170,8 +175,11 @@ export class DashboardPage {
     let scheduleRange: number | null = null;
     let schedulePercent: number | null = null;
     const stallWeeks = goalType !== 'Maintenance' ? this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings) : 0;
-    const maintenanceOutOfRangeWeeks =
-      goalType === 'Maintenance' ? this.outOfRangeStreakWeeks(entriesAfterGoalStart, activeGoal, maintRange) : 0;
+    const maintStreaks: MaintenanceStreaks =
+      goalType === 'Maintenance'
+        ? this.maintenanceStreaks(entriesAfterGoalStart, activeGoal, maintRange)
+        : { daysMaintained: null, outOfRangeWeeks: 0 };
+    const maintenanceOutOfRangeWeeks = maintStreaks.outOfRangeWeeks;
 
     if (goalType == 'Weight Loss' || (goalType == 'Weight Gain' && rawTrend !== null)) {
       scheduleProjection = this.scheduleProjection(rawTrend, activeGoal, userSettings);
@@ -203,7 +211,7 @@ export class DashboardPage {
       remaining: this.remaining(rawTrend, goalWeight, weightUnit),
       progressPercent: this.progressPercent(activeGoal, rawTrend),
       expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, displayRate, goalReached),
-      daysMaintained: goalType === 'Maintenance' ? this.daysMaintained(entriesAfterGoalStart, activeGoal, maintRange) : null,
+      daysMaintained: maintStreaks.daysMaintained,
       stabilityLabel: this.stabilityLabel(stabilityScore),
       dataQuality,
       recommendation: this.recommendation(
@@ -366,20 +374,33 @@ export class DashboardPage {
     return estimateWeeklyRate(samples, kgToUnit(RATE_NOISE_FLOOR_KG, unit));
   }
 
-  private daysMaintained(entriesAfterGoalStart: WeightEntry[], goal: Goal | null, maintRange: number | null): number | null {
-    if (!entriesAfterGoalStart.length || goal == null || maintRange == null) return null;
+  private maintenanceStreaks(entriesAfterGoalStart: WeightEntry[], goal: Goal | null, maintRange: number | null): MaintenanceStreaks {
+    const streaks: MaintenanceStreaks = { daysMaintained: null, outOfRangeWeeks: 0 };
+    if (!entriesAfterGoalStart.length || goal == null || maintRange == null) return streaks;
 
-    // If the most recent point is out of range, streak is 0
-    if (Math.abs(entriesAfterGoalStart[entriesAfterGoalStart.length - 1].trend - goal.goalWeight) > maintRange) return 0;
-
-    // Walk backward to find the first out-of-range point
-    let streakStart = entriesAfterGoalStart.length - 1;
-    for (let i = entriesAfterGoalStart.length - 1; i >= 0; i--) {
-      if (Math.abs(entriesAfterGoalStart[i].trend - goal.goalWeight) > maintRange) break;
+    // Walk backward over the run of points on the same side of the range as the latest point
+    const last = entriesAfterGoalStart.length - 1;
+    const latestInRange = Math.abs(entriesAfterGoalStart[last].trend - goal.goalWeight) <= maintRange;
+    let streakStart = last;
+    for (let i = last; i >= 0; i--) {
+      if (Math.abs(entriesAfterGoalStart[i].trend - goal.goalWeight) <= maintRange !== latestInRange) break;
       streakStart = i;
     }
+    const streakDays = Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStart].dateMs) / 86400000));
 
-    return Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStart].dateMs) / 86400000));
+    streaks.daysMaintained = latestInRange ? streakDays : 0;
+
+    if (
+      !latestInRange &&
+      entriesAfterGoalStart.length >= 2 &&
+      this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) &&
+      goal.type === 'Maintenance' &&
+      maintRange > 0
+    ) {
+      this.logger.debug('Maintenance out-of-range days calculated:', streakDays);
+      streaks.outOfRangeWeeks = Math.floor(streakDays / 7);
+    }
+    return streaks;
   }
 
   private expectedGoalDate(
@@ -502,7 +523,14 @@ export class DashboardPage {
    * the absolute trend change over that 7-day window is <= noiseFloorPct.
    */
   private stallWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, userSettings: UserSettingsExtended | null): number {
-    if (!activeGoal || entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) || !userSettings || activeGoal.type === 'Maintenance') return 0;
+    if (
+      !activeGoal ||
+      entriesAfterGoalStart.length < 2 ||
+      !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) ||
+      !userSettings ||
+      activeGoal.type === 'Maintenance'
+    )
+      return 0;
 
     const today = todayLocalMidnightMs();
     const fourWeeksMaxEntries = entriesAfterGoalStart.filter(e => e.dateMs > today - 4 * 7 * 86400000);
@@ -535,23 +563,6 @@ export class DashboardPage {
 
     this.logger.debug('Stall weeks calculated:', weeks);
     return weeks;
-  }
-
-  private outOfRangeStreakWeeks(entriesAfterGoalStart: WeightEntry[], activeGoal: Goal | null, maintRange: number | null): number {
-    if (entriesAfterGoalStart.length < 2 || !this.hasMinRecentEntriesForMetrics(entriesAfterGoalStart) || !activeGoal || !maintRange || maintRange <= 0 || activeGoal.type !== 'Maintenance') return 0;
-
-    const latest = entriesAfterGoalStart[entriesAfterGoalStart.length - 1];
-    if (Math.abs(latest.trend - activeGoal.goalWeight) <= maintRange) return 0;
-
-    let streakStartIndex = entriesAfterGoalStart.length - 1;
-    for (let i = entriesAfterGoalStart.length - 1; i >= 0; i--) {
-      if (Math.abs(entriesAfterGoalStart[i].trend - activeGoal.goalWeight) <= maintRange) break;
-      streakStartIndex = i;
-    }
-
-    const outOfRangeDays = Math.max(0, Math.round((todayLocalMidnightMs() - entriesAfterGoalStart[streakStartIndex].dateMs) / 86400000));
-    this.logger.debug('Maintenance out-of-range days calculated:', outOfRangeDays);
-    return Math.floor(outOfRangeDays / 7);
   }
 
   private closestEntry(entries: WeightEntry[], targetMs: number): WeightEntry | null {
@@ -587,7 +598,7 @@ export class DashboardPage {
     const goalWeight = activeGoal.goalWeight;
     const goalType = activeGoal.type;
     const weightUnit = userSettings.weightUnit;
-    
+
     // prettier-ignore
     const { maxLossRate, idealLossFloorPct, steadyLossFloorPct, idealGainFloorPct, idealGainCeilingPct, deficitStep, surplusStep, minorDeficitStep, minorSurplusStep, maintMinorStep, maintMajorCut, maintMajorAdd, customAdvice, maintRange } = userSettings.coaching;
 
