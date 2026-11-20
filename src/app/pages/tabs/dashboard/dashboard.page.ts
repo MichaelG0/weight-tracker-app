@@ -128,17 +128,16 @@ export class DashboardPage {
   private readonly modalCtrl = inject(ModalController);
   private readonly logger = inject(LogService);
 
-  readonly hasEntries = computed(() => this.databaseService.entries().length > 0);
-
   readonly vm: Signal<DashboardVm> = computed(() => {
+    const latestEntry = this.databaseService.latestEntry();
+    const rawTrend = latestEntry?.trend ?? null;
+    if (!rawTrend) return {} as DashboardVm;
+
     const userSettings = this.databaseService.extendedSettings();
     const recentEntries = [...this.databaseService.recentEntries()].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
-    const latestEntry = this.databaseService.latestEntry();
-    const rawTrend = latestEntry?.trend ?? null;
     const activeGoal = this.databaseService.activeGoal();
-    const goalReached = this.goalReached(rawTrend, weightUnit, activeGoal);
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
@@ -155,38 +154,48 @@ export class DashboardPage {
       resolvePct,
     );
     const displayRate = rateEst?.rate ?? null;
-    const stabilityScore = goalType === 'Maintenance' ? this.stabilityScore(entriesAfterGoalStart, weightUnit) : null;
     const dataQuality = activeGoal ? this.dataQuality(entriesAfterGoalStart, rateEst, rate, lookbackDays) : null;
 
-    // prettier-ignore
     const maintRange = userSettings?.coaching.maintRange ?? null;
+    let goalReached = false;
+    let stabilityScore: number | null = null;
+    let stabilityLabel: string | null = null;
     let maintOffset: number | null = null;
     let maintPercent: number | null = null;
-
-    if (goalType === 'Maintenance' && rawTrend !== null && goalWeight !== null && maintRange !== null) {
-      maintOffset = rawTrend - goalWeight;
-      // Map [maintRange, -maintRange] to [0%, 100%]
-      maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
-    }
-
+    let maintStreaks: MaintenanceStreaks = { daysMaintained: null, outOfRangeWeeks: 0 };
+    let stallWeeks = 0;
+    let remaining: string | null = null;
+    let progressPercent: number | null = null;
+    let expectedGoalDate: string | null = null;
+    let scheduleStatusLabel: string | null = null;
     let scheduleProjection: { projectedWeight: number; range: number } | null = null;
+    let schedulePercent: number | null = null;
     let scheduleOffset: number | null = null;
     let scheduleDaysAhead: number | null = null;
     let scheduleRange: number | null = null;
-    let schedulePercent: number | null = null;
-    const stallWeeks = goalType !== 'Maintenance' ? this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings) : 0;
-    const maintStreaks: MaintenanceStreaks =
-      goalType === 'Maintenance'
-        ? this.maintenanceStreaks(entriesAfterGoalStart, activeGoal, maintRange)
-        : { daysMaintained: null, outOfRangeWeeks: 0 };
-    const maintenanceOutOfRangeWeeks = maintStreaks.outOfRangeWeeks;
 
-    if (goalType == 'Weight Loss' || (goalType == 'Weight Gain' && rawTrend !== null)) {
+    if (goalType === 'Maintenance') {
+      if (goalWeight !== null && maintRange !== null) {
+        maintOffset = rawTrend - goalWeight;
+        // Map [maintRange, -maintRange] to [0%, 100%]
+        maintPercent = Math.max(0, Math.min(100, ((maintOffset + maintRange) / (2 * maintRange)) * 100));
+      }
+      stabilityScore = this.stabilityScore(entriesAfterGoalStart, weightUnit);
+      stabilityLabel = this.stabilityLabel(stabilityScore);
+      maintStreaks = this.maintenanceStreaks(entriesAfterGoalStart, activeGoal, maintRange);
+    } else {
+      goalReached = this.goalReached(rawTrend, weightUnit, activeGoal);
+      stallWeeks = this.stallWeeks(entriesAfterGoalStart, activeGoal, userSettings);
+      remaining = this.remaining(rawTrend, goalWeight, weightUnit);
+      progressPercent = this.progressPercent(activeGoal, rawTrend);
+      expectedGoalDate = this.expectedGoalDate(rawTrend, goalWeight, displayRate, goalReached);
       scheduleProjection = this.scheduleProjection(rawTrend, activeGoal, userSettings);
-      if (scheduleProjection) {
+
+      if (scheduleProjection && activeGoal) {
         scheduleRange = scheduleProjection.range;
-        scheduleOffset = rawTrend! - scheduleProjection.projectedWeight;
-        scheduleDaysAhead = this.scheduleDaysAhead(activeGoal!, rawTrend!);
+        scheduleOffset = rawTrend - scheduleProjection.projectedWeight;
+        scheduleDaysAhead = this.scheduleDaysAhead(activeGoal, rawTrend);
+        scheduleStatusLabel = this.scheduleStatusLabel(scheduleDaysAhead);
         // Percent: Behind=left(0%), On-track=center(50%), Ahead=right(100%)
         if (scheduleRange > 0) {
           const normalizedOffset = goalType === 'Weight Loss' ? -scheduleOffset : scheduleOffset;
@@ -196,23 +205,23 @@ export class DashboardPage {
     }
 
     return {
-      trendDisplay: rawTrend !== null ? formatWeight(rawTrend, weightUnit).parts : null,
+      trendDisplay: formatWeight(rawTrend, weightUnit).parts,
       goalWeight: goalWeight !== null ? formatWeight(goalWeight, weightUnit).text : null,
       startWeight,
       goalType,
       maintRange: maintRange !== null ? formatWeight(maintRange, weightUnit).text : null,
       maintOffset: maintOffset !== null ? formatWeight(maintOffset, weightUnit).text : null,
       maintPercent,
-      scheduleStatusLabel: this.scheduleStatusLabel(scheduleDaysAhead),
+      scheduleStatusLabel,
       schedulePercent,
       goalReached,
       bwPercentPerWeek: this.bwPercentPerWeek(rawTrend, displayRate),
       energyBalance: this.energyBalance(displayRate, weightUnit),
-      remaining: this.remaining(rawTrend, goalWeight, weightUnit),
-      progressPercent: this.progressPercent(activeGoal, rawTrend),
-      expectedGoalDate: this.expectedGoalDate(rawTrend, goalWeight, displayRate, goalReached),
+      remaining,
+      progressPercent,
+      expectedGoalDate,
       daysMaintained: maintStreaks.daysMaintained,
-      stabilityLabel: this.stabilityLabel(stabilityScore),
+      stabilityLabel,
       dataQuality,
       recommendation: this.recommendation(
         rawTrend,
@@ -224,7 +233,7 @@ export class DashboardPage {
         scheduleProjection,
         goalReached,
         stallWeeks,
-        maintenanceOutOfRangeWeeks,
+        maintStreaks.outOfRangeWeeks,
       ),
       rateLabel: this.rateLabel(rateEst, rate, weightUnit),
       recentEntries: this.recentEntriesView(recentEntries),
@@ -477,7 +486,7 @@ export class DashboardPage {
   }
 
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {
-    if (!activeGoal || rawTrend == null) return false;
+    if (!activeGoal || !rawTrend) return false;
     const trendValue = roundWeightNum(rawTrend, weightUnit);
     const ratio = this.goalProgressRatio(activeGoal, trendValue);
     if (ratio !== null) return ratio >= 1;
