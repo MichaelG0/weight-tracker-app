@@ -481,8 +481,7 @@ export class DashboardPage {
   private rateLabel(est: RateEstimate | null, rate: RateAssessment | null, unit: WeightUnit): string {
     if (!est || !rate) return 'Need more data';
     const sign = est.rate > 0 ? '+' : '';
-    const base = `${sign}${formatWeight(est.rate, unit, 1).text}/week`;
-    return rate.confidence !== 'low' ? base : `${base} (±${formatWeight(est.se, unit, 1).text})`;
+    return `${sign}${formatWeight(est.rate, unit, 1).text}/week`;
   }
 
   private goalReached(rawTrend: number | null, weightUnit: WeightUnit, activeGoal: Goal | null): boolean {
