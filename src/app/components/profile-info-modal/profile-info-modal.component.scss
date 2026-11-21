@@ -1,5 +1,5 @@
 ion-header ion-toolbar {
-  --background: var(--ion-color-step-50);
+  --background: var(--ion-color-step-100);
   --border-width: 0;
 
   ion-title {
@@ -10,7 +10,7 @@ ion-header ion-toolbar {
 }
 
 ion-content {
-  background: var(--ion-color-step-50);
+  background: var(--ion-color-step-100);
 }
 
 .info-section {
@@ -35,7 +35,7 @@ ion-content {
 }
 
 .info-card {
-  background: var(--ion-color-step-100);
+  background: var(--list-item-background);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 14px;

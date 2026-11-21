@@ -21,17 +21,12 @@
     <section class="list-group personal-details-list-group">
       <p class="list-group-label">Personal Details</p>
       <ion-list lines="none">
-        <ion-item class="list-group-item">
+        <ion-item class="list-group-item" button (click)="editName()">
           <div class="icon-wrap" slot="start">
             <ion-icon name="person-outline"></ion-icon>
           </div>
-          <ion-input
-            label="Name"
-            labelPlacement="stacked"
-            placeholder="Enter your name"
-            [(ngModel)]="name"
-            (ionBlur)="saveSettings()"
-          ></ion-input>
+          <ion-label>Name</ion-label>
+          <span class="detail-value" slot="end">{{ name || 'Not set' }}</span>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
@@ -43,18 +38,18 @@
             <ion-chip [class.selected]="gender === 'Female'" (click)="setGender('Female')">Female</ion-chip>
           </div>
         </ion-item>
-        <ion-item class="list-group-item">
+        <ion-item id="birth-date-trigger" class="list-group-item" button>
           <div class="icon-wrap" slot="start">
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
-          <ion-input
-            id="birth-date-trigger"
-            label="Birth date"
-            labelPlacement="stacked"
-            placeholder="Select date"
-            [readonly]="true"
-            [value]="birthDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
-          ></ion-input>
+          <ion-label>Birth date</ion-label>
+          <span class="detail-value" slot="end">
+            @if (birthDate) {
+              {{ birthDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' } }}
+            } @else {
+              Not set
+            }
+          </span>
           <ion-modal #birthDateModal class="date-modal" trigger="birth-date-trigger">
             <ng-template>
               <ion-datetime
@@ -68,18 +63,18 @@
             </ng-template>
           </ion-modal>
         </ion-item>
-        <ion-item class="list-group-item">
+        <ion-item class="list-group-item" button (click)="openHeightPicker()">
           <div class="icon-wrap" slot="start">
             <ion-icon name="resize-outline"></ion-icon>
           </div>
-          <ion-input
-            label="Height"
-            labelPlacement="stacked"
-            placeholder="Select height"
-            readonly
-            [value]="heightCm | formatHeight: heightUnit"
-            (click)="openHeightPicker()"
-          ></ion-input>
+          <ion-label>Height</ion-label>
+          <span class="detail-value" slot="end">
+            @if (heightCm) {
+              {{ heightCm | formatHeight: heightUnit }}
+            } @else {
+              Not set
+            }
+          </span>
         </ion-item>
       </ion-list>
     </section>

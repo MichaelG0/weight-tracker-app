@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import {
   IonHeader,
   IonToolbar,
@@ -10,11 +9,11 @@ import {
   IonLabel,
   IonToggle,
   IonIcon,
-  IonInput,
   IonModal,
   IonDatetime,
   IonChip,
   IonButton,
+  AlertController,
   ModalController,
 } from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
@@ -54,7 +53,6 @@ import { FormatDatePipe } from '../../../pipes/format-date.pipe';
   templateUrl: 'settings.page.html',
   styleUrls: ['settings.page.scss'],
   imports: [
-    FormsModule,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -64,7 +62,6 @@ import { FormatDatePipe } from '../../../pipes/format-date.pipe';
     IonLabel,
     IonToggle,
     IonIcon,
-    IonInput,
     IonModal,
     IonDatetime,
     IonChip,
@@ -79,6 +76,7 @@ export class SettingsPage {
   private themeService = inject(CssThemeService);
   private db = inject(DatabaseService);
   private modalCtrl = inject(ModalController);
+  private alertCtrl = inject(AlertController);
   private cdr = inject(ChangeDetectorRef);
 
   name = this.db.settings()?.name ?? '';
@@ -141,6 +139,25 @@ export class SettingsPage {
     const value = event.detail.value;
     this.birthDate = typeof value === 'string' ? value.substring(0, 10) : '';
     this.saveSettings();
+  }
+
+  async editName(): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: 'Name',
+      inputs: [{ name: 'name', type: 'text', placeholder: 'Enter your name', value: this.name }],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Done',
+          handler: (data: { name?: string }) => {
+            this.name = (data.name ?? '').trim();
+            this.saveSettings();
+            this.cdr.markForCheck();
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   async openHeightPicker(): Promise<void> {

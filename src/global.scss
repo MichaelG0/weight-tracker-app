@@ -162,12 +162,40 @@ ion-toggle {
   --track-background-checked: var(--ion-color-primary);
 }
 
-// ── Date Input ────────────────────────────────────────────────────────
+// ── Ion Calendar ────────────────────────────────────────────────────────
 
-input[type='date']::-webkit-inner-spin-button,
-input[type='date']::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
+ion-datetime {
+  --wheel-highlight-background: rgba(var(--ion-color-primary-rgb), 0.12);
+  --background: var(--ion-color-step-100);
+
+  &::part(month-year-button),
+  &::part(navigation-button) {
+    color: var(--ion-text-color-step-600);
+  }
+
+  &::part(calendar-days-of-week) {
+    color: var(--ion-text-color-step-400);
+  }
+}
+
+// ── Ion List ────────────────────────────────────────────────────────
+
+ion-list,
+.list-md,
+.list-ios {
+  padding: 3px 0;
+  gap: 3px;
+
+  ion-item {
+    margin: 0 3px;
+    --background: transparent;
+    --padding-start: 13px;
+    --inner-padding-end: 13px;
+    --border-radius: 18px;
+    --background-focused-opacity: 0.08;
+    --background-activated-opacity: 0.08;
+    transition: transform 0.2s ease;
+  }
 }
 
 // ── List Group ────────────────────────────────────────────────────────
@@ -201,8 +229,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
 
     .list-group-item {
       --background: transparent;
-      --inner-padding-end: 16px;
-      --padding-start: 16px;
       transition: transform 0.2s ease;
 
       ion-label {
@@ -224,9 +250,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
 ion-list,
 .list-md,
 .list-ios {
-  padding: 3px 0;
-  gap: 3px;
-
   ion-item-sliding {
     &.item-sliding-active-slide ion-item {
       --background: var(--ion-color-step-100) !important;
@@ -240,15 +263,6 @@ ion-list,
     }
 
     ion-item {
-      margin: 0 3px;
-      --background: transparent;
-      --padding-start: 13px;
-      --inner-padding-end: 13px;
-      --border-radius: 18px;
-      --background-focused-opacity: 0.08;
-      --background-activated-opacity: 0.08;
-      transition: transform 0.2s ease;
-
       &.ion-activated,
       &.ion-focused {
         --background: var(--ion-color-step-100) !important;
@@ -384,6 +398,27 @@ ion-modal.date-modal {
   --min-width: 250px;
   --height: fit-content;
   --border-radius: 16px;
+}
+
+// ── Alerts ───────────────────────────────────────────────────────────────
+
+ion-alert.sc-ion-alert-md-h,
+ion-alert.sc-ion-alert-ios-h {
+  --background: var(--ion-color-step-100);
+
+  .alert-wrapper {
+    border-radius: 18px;
+
+    .alert-title {
+      font-weight: 800;
+    }
+
+    .alert-input {
+      border-radius: 12px;
+      background: var(--list-item-background);
+      padding: 10px 12px;
+    }
+  }
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────

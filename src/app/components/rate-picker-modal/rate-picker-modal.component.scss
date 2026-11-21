@@ -2,7 +2,7 @@ $item-height: 44px;
 $visible-items: 5;
 
 ion-header ion-toolbar {
-  --background: var(--ion-color-step-50);
+  --background: var(--ion-color-step-100);
   --border-width: 0;
 
   ion-title {
@@ -13,7 +13,7 @@ ion-header ion-toolbar {
 }
 
 .picker-body {
-  background: var(--ion-color-step-50);
+  background: var(--ion-color-step-100);
   padding: 16px 16px;
 }
 
