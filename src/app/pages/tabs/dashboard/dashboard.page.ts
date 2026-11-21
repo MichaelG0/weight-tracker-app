@@ -1,16 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, Signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import {
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
   IonIcon,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonNote,
   IonCard,
   IonCardContent,
   IonBadge,
@@ -54,7 +49,7 @@ import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-ba
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
 import { LogService } from 'src/app/services/log.service';
-import { formatWeight, formatWeightDecimal, kgToUnit, roundWeightNum } from 'src/app/utils/unit-conversion.util';
+import { formatWeight, kgToUnit, roundWeightNum, unitToKg } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
 import { ENERGY_PER_KG_KCAL, kcalToSteps, weeklyPctToDailyKcal } from 'src/app/constants/coaching.constants';
 
@@ -84,15 +79,24 @@ interface DashboardVm {
   dataQuality: DataQualityVm | null;
   recommendation: string;
   rateLabel: string;
-  recentEntries: RecentEntryVm[];
+  bmi: BmiVm | null;
 }
 
-interface RecentEntryVm {
-  label: string;
-  weight: string;
-  delta: string;
-  deltaTone: 'up' | 'down' | 'flat';
+interface BmiVm {
+  value: string;
+  category: string;
+  tone: 'under' | 'healthy' | 'over' | 'obese';
+  markerPercent: number;
 }
+
+// [BMI, gauge %] stops; the healthy band takes a larger share of the gauge
+const BMI_GAUGE_STOPS: [number, number][] = [
+  [15, 0],
+  [18.5, 20],
+  [25, 60],
+  [30, 80],
+  [40, 100],
+];
 
 interface MaintenanceStreaks {
   daysMaintained: number | null;
@@ -105,16 +109,11 @@ interface MaintenanceStreaks {
   styleUrls: ['dashboard.page.scss'],
   imports: [
     CommonModule,
-    RouterLink,
     IonHeader,
     IonToolbar,
     IonTitle,
     IonContent,
     IonIcon,
-    IonList,
-    IonItem,
-    IonLabel,
-    IonNote,
     IonCard,
     IonCardContent,
     IonBadge,
@@ -134,7 +133,6 @@ export class DashboardPage {
     if (!rawTrend) return {} as DashboardVm;
 
     const userSettings = this.databaseService.extendedSettings();
-    const recentEntries = [...this.databaseService.recentEntries()].reverse();
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
     const activeGoal = this.databaseService.activeGoal();
@@ -236,7 +234,7 @@ export class DashboardPage {
         maintStreaks.outOfRangeWeeks,
       ),
       rateLabel: this.rateLabel(rateEst, rate, weightUnit),
-      recentEntries: this.recentEntriesView(recentEntries),
+      bmi: this.bmiView(rawTrend, weightUnit, userSettings?.heightCm ?? null),
     };
   });
 
@@ -275,36 +273,31 @@ export class DashboardPage {
     await modal.present();
   }
 
-  private recentEntriesView(entries: WeightEntry[]): RecentEntryVm[] {
-    const unit = this.databaseService.weightUnit();
-    const epsilon = kgToUnit(0.05, unit);
-    return entries.slice(0, 3).map(entry => {
-      const diff = entry.weight - entry.trend;
-      const flat = Math.abs(diff) < epsilon;
-      const deltaTone = flat ? 'flat' : diff > 0 ? 'up' : 'down';
-      const delta = flat ? '±0 vs trend' : `${diff > 0 ? '▲' : '▼'} ${formatWeightDecimal(Math.abs(diff), unit)} vs trend`;
-      return {
-        label: this.entryLabel(entry.dateMs),
-        weight: formatWeight(entry.weight, unit).text,
-        delta,
-        deltaTone,
-      };
-    });
+  private bmiView(trend: number, weightUnit: WeightUnit, heightCm: number | null): BmiVm | null {
+    if (!heightCm || heightCm <= 0) return null;
+    const heightM = heightCm / 100;
+    const trendKg = unitToKg(trend, weightUnit);
+    const bmi = trendKg / (heightM * heightM);
+    const category = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Healthy' : bmi < 30 ? 'Overweight' : 'Obese';
+    const tone = bmi < 18.5 ? 'under' : bmi < 25 ? 'healthy' : bmi < 30 ? 'over' : 'obese';
+    return {
+      value: bmi.toFixed(1),
+      category,
+      tone,
+      markerPercent: this.bmiGaugePercent(bmi),
+    };
   }
 
-  private entryLabel(dateMs: number): string {
-    const today = todayLocalMidnightMs();
-
-    if (dateMs >= today) {
-      return 'Today';
-    } else if (dateMs >= today - 86400000) {
-      return 'Yesterday';
+  private bmiGaugePercent(bmi: number): number {
+    if (bmi <= BMI_GAUGE_STOPS[0][0]) return 0;
+    for (let i = 1; i < BMI_GAUGE_STOPS.length; i++) {
+      const [x1, y1] = BMI_GAUGE_STOPS[i];
+      if (bmi <= x1) {
+        const [x0, y0] = BMI_GAUGE_STOPS[i - 1];
+        return y0 + ((bmi - x0) / (x1 - x0)) * (y1 - y0);
+      }
     }
-
-    return new Date(dateMs).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
+    return 100;
   }
 
   private bwPercentPerWeek(trendWeight: number | null, weeklyRate: number | null): string | null {

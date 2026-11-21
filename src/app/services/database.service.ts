@@ -284,7 +284,6 @@ export class DatabaseService {
   // ── Derived  signals ──────────────────────────────────────
 
   readonly entries: Signal<WeightEntry[]> = toSignal(this.entries$, { initialValue: [] });
-  readonly recentEntries: Signal<WeightEntry[]> = computed(() => this.entries().slice(-7));
   readonly latestEntry: Signal<WeightEntry | null> = computed(() => {
     const pts = this.entries();
     return pts.length ? pts[pts.length - 1] : null;

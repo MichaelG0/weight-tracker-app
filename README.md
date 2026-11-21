@@ -118,6 +118,7 @@ The dashboard derives additional information from the user's weight history and 
 - Maintenance stability
 - Estimated Energy Balance
 - Data-quality indicators
+- Body Mass Index (BMI) from the trend weight and the height in Settings
 
 The application distinguishes between Weight Loss, Weight Gain and Maintenance goals so that calculations and feedback can adapt to the selected objective.
 

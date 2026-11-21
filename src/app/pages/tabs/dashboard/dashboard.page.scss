@@ -315,23 +315,150 @@ ion-card {
   }
 }
 
-.timeline-head {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
+// ── BMI ────────────────────────────────────────────────────────
 
-  .group-label {
-    margin-bottom: 0;
+.bmi-card {
+  margin: 0;
+  box-shadow: none;
+
+  ion-card-content {
+    padding: 16px;
   }
 
-  a {
-    color: var(--ion-color-primary);
-    font-size: 0.75rem;
+  .bmi-head {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+
+    h2 {
+      color: var(--ion-text-color);
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+  }
+
+  .bmi-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 8px;
+    text-transform: none;
+    background: rgba(var(--ion-color-medium-rgb), 0.15);
+    color: var(--ion-color-medium);
+
+    &.under {
+      background: rgba(var(--ion-color-secondary-rgb), 0.15);
+      color: var(--ion-color-secondary);
+    }
+
+    &.healthy {
+      background: rgba(var(--ion-color-success-rgb), 0.15);
+      color: var(--ion-color-success);
+    }
+
+    &.over {
+      background: rgba(var(--ion-color-warning-rgb), 0.15);
+      color: var(--ion-color-warning);
+    }
+
+    &.obese {
+      background: rgba(var(--ion-color-danger-rgb), 0.15);
+      color: var(--ion-color-danger);
+    }
+  }
+
+  .bmi-gauge {
+    border-radius: 4px;
+    display: flex;
+    height: 6px;
+    position: relative;
+    overflow: visible;
+    gap: 5px;
+
+    .bmi-seg {
+      height: 100%;
+      border-radius: 99px;
+      flex: 0 0 auto;
+
+      &.under {
+        background: var(--ion-color-secondary);
+        flex-grow: 20;
+      }
+
+      &.healthy {
+        background: var(--ion-color-success);
+        flex-grow: 40;
+      }
+
+      &.over {
+        background: var(--ion-color-warning);
+        flex-grow: 20;
+      }
+
+      &.obese {
+        background: var(--ion-color-danger);
+        flex-grow: 20;
+      }
+    }
+
+    .bmi-marker {
+      background: var(--ion-background-color, #fff);
+      border: 3px solid var(--ion-color-step-100);
+      border-radius: 99px;
+      height: 18px;
+      width: 18px;
+      position: absolute;
+      top: -6px;
+      transform: translateX(-50%);
+      transition: left 0.3s ease;
+
+      &.under {
+        background: var(--ion-color-secondary);
+      }
+
+      &.healthy {
+        background: var(--ion-color-success);
+      }
+
+      &.over {
+        background: var(--ion-color-warning);
+      }
+
+      &.obese {
+        background: var(--ion-color-danger);
+      }
+    }
+  }
+
+  .bmi-scale {
+    color: var(--ion-text-color-step-500);
+    font-size: 0.6rem;
     font-weight: 700;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding-right: 4px;
+    height: 14px;
+    margin-top: 6px;
+    position: relative;
+
+    span {
+      position: absolute;
+      transform: translateX(-50%);
+    }
+
+    span:first-child {
+      transform: none;
+    }
+
+    span:last-child {
+      transform: translateX(-100%);
+    }
+  }
+
+  .bmi-caption {
+    color: var(--ion-text-color-step-600);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 12px 0 0;
   }
 }

@@ -162,21 +162,40 @@
       </section>
 
       <section class="list-group">
-        <div class="timeline-head">
-          <p class="list-group-label">Recent entries</p>
-          <a [routerLink]="['/tabs/history']" routerDirection="forward">See all</a>
+        <div class="list-group-label stats-label-row">
+          <span>BMI</span>
         </div>
-        <ion-list lines="none">
-          @for (entry of vm.recentEntries; track entry.label) {
-            <ion-item class="list-group-item">
-              <ion-label>{{ entry.label }}</ion-label>
-              <ion-note slot="end" class="weight-note">
-                <span class="entry-weight">{{ entry.weight }}</span>
-                <span class="entry-delta" [ngClass]="entry.deltaTone">{{ entry.delta }}</span>
-              </ion-note>
-            </ion-item>
-          }
-        </ion-list>
+        @if (vm.bmi; as bmi) {
+          <ion-card class="bmi-card">
+            <ion-card-content>
+              <div class="bmi-head">
+                <h2>{{ bmi.value }}</h2>
+                <ion-badge class="bmi-badge" [ngClass]="bmi.tone">{{ bmi.category }}</ion-badge>
+              </div>
+              <div class="bmi-gauge" aria-hidden="true">
+                <div class="bmi-seg under"></div>
+                <div class="bmi-seg healthy"></div>
+                <div class="bmi-seg over"></div>
+                <div class="bmi-seg obese"></div>
+                <div class="bmi-marker" [ngClass]="bmi.tone" [style.left.%]="bmi.markerPercent"></div>
+              </div>
+              <div class="bmi-scale" aria-hidden="true">
+                <span style="left: 0%">15</span>
+                <span style="left: 20%">18.5</span>
+                <span style="left: 60%">25</span>
+                <span style="left: 80%">30</span>
+                <span style="left: 100%">40</span>
+              </div>
+              <p class="bmi-caption">Based on your smoothed weight and height</p>
+            </ion-card-content>
+          </ion-card>
+        } @else {
+          <ion-card class="bmi-card">
+            <ion-card-content>
+              <span class="bmi-caption">Add your height in Settings to see your BMI.</span>
+            </ion-card-content>
+          </ion-card>
+        }
       </section>
     </div>
   }

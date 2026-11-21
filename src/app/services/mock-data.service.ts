@@ -8,9 +8,9 @@ export class MockDataService {
   async seed(db: SQLiteDBConnection): Promise<void> {
     await db.run(
       `UPDATE user_settings
-          SET name = ?, birth_date = ?, experience = ?, weight_unit = ?
+          SET name = ?, birth_date = ?, experience = ?, weight_unit = ?, height_cm = ?
         WHERE user_id = 1`,
-      ['Michael', '1994-08-19', 'Advanced', 'kg'],
+      ['Michael', '1994-08-19', 'Advanced', 'kg', 178],
     );
 
     const mockGoals: Omit<GoalDB, 'id'>[] = [
@@ -104,7 +104,7 @@ export class MockDataService {
       ['2026-11-02', 77.0], ['2026-11-03', 76.9], ['2026-11-04', 76.8], ['2026-11-05', 76.7], ['2026-11-06', 76.8],
       ['2026-11-07', 76.9], ['2026-11-08', 77.1], ['2026-11-09', 77.8], ['2026-11-10', 77.8], ['2026-11-11', 78.0],
       ['2026-11-12', 77.5], ['2026-11-13', 77.6], ['2026-11-14', 77.6], ['2026-11-15', 77.1], ['2026-11-16', 77.5],
-      ['2026-11-17', 77.8], ['2026-11-18', 77.7], ['2026-11-19', 77.6], ['2026-11-20', 77.2],
+      ['2026-11-17', 77.8], ['2026-11-18', 77.7], ['2026-11-19', 77.6], ['2026-11-20', 77.2], ['2026-11-21', 77.4]
     ];
 
     // Increase iterations to generate additional randomized mock data.
