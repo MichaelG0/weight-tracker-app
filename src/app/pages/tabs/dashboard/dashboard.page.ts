@@ -17,6 +17,7 @@ import {
   calendarOutline,
   flagOutline,
   flameOutline,
+  informationCircleOutline,
   pulseOutline,
   scaleOutline,
   shieldCheckmarkOutline,
@@ -48,6 +49,7 @@ import {
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { LogWeightModalComponent } from 'src/app/components/log-weight-modal/log-weight-modal.component';
 import { SetGoalModalComponent } from 'src/app/components/set-goal-modal/set-goal-modal.component';
+import { ProfileInfoModalComponent } from 'src/app/components/profile-info-modal/profile-info-modal.component';
 import { LogService } from 'src/app/services/log.service';
 import { formatWeight, kgToUnit, roundWeightNum, unitToKg } from 'src/app/utils/unit-conversion.util';
 import { todayLocalMidnightMs, todayLocalMidnightDate } from 'src/app/utils/date-converter.util';
@@ -243,6 +245,7 @@ export class DashboardPage {
       calendarOutline,
       flagOutline,
       flameOutline,
+      informationCircleOutline,
       pulseOutline,
       scaleOutline,
       shieldCheckmarkOutline,
@@ -266,6 +269,17 @@ export class DashboardPage {
   async openSetGoal(): Promise<void> {
     const modal = await this.modalCtrl.create({
       component: SetGoalModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+    await modal.present();
+  }
+
+  async openBmiInfo(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: ProfileInfoModalComponent,
+      componentProps: { topic: 'bmi' },
       breakpoints: [0, 0.85, 1],
       initialBreakpoint: 0.85,
       handleBehavior: 'cycle',

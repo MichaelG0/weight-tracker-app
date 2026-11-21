@@ -13,7 +13,7 @@ import {
 } from '../../constants/coaching.constants';
 import type { Experience } from '../../services/database.service';
 
-export type ProfileInfoTopic = 'activity' | 'experience';
+export type ProfileInfoTopic = 'activity' | 'experience' | 'bmi';
 
 interface ActivityInfo {
   name: string;

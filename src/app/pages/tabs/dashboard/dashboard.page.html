@@ -162,8 +162,11 @@
       </section>
 
       <section class="list-group">
-        <div class="list-group-label stats-label-row">
+        <div class="list-group-label stats-label-row bmi-label-row">
           <span>BMI</span>
+          <ion-button fill="clear" class="bmi-info-btn" aria-label="About BMI" (click)="openBmiInfo()">
+            <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+          </ion-button>
         </div>
         @if (vm.bmi; as bmi) {
           <ion-card class="bmi-card">

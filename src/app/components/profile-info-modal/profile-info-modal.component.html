@@ -2,8 +2,10 @@
   <ion-toolbar>
     @if (topic === 'activity') {
       <ion-title>Activity Level</ion-title>
-    } @else {
+    } @else if (topic === 'experience') {
       <ion-title>Training Experience</ion-title>
+    } @else {
+      <ion-title>Body Mass Index</ion-title>
     }
   </ion-toolbar>
 </ion-header>
@@ -71,6 +73,45 @@
       <p class="info-footnote">
         These are base values. Your activity level, age and body weight can adjust the calorie steps and loss rate, so the numbers you see in
         your plan may differ slightly.
+      </p>
+    </div>
+  }
+
+  @if (topic === 'bmi') {
+    <div class="info-section">
+      <p class="info-intro">
+        BMI is a quick screen based only on your <strong>height and weight</strong>. It cannot tell muscle from fat, so it can misread people
+        who carry a lot of muscle.
+      </p>
+
+      <div class="info-card">
+        <h3>Why it can mislead</h3>
+        <p>
+          Muscle is denser than fat. A muscular or well-trained person can weigh more than the BMI categories expect while carrying a low
+          body-fat percentage. Such a person may be labelled "Overweight" or even "Obese" despite being lean.
+        </p>
+      </div>
+
+      <div class="info-card">
+        <h3>Where it is most useful</h3>
+        <p>
+          For people with little muscle mass, weight mostly reflects body fat, so BMI is a reasonable rough guide. It is also useful for
+          spotting trends over time, since the same measure is applied each day.
+        </p>
+      </div>
+
+      <div class="info-card info-card-highlight">
+        <h3>Better measures for trained people</h3>
+        <ul class="info-stats">
+          <li>Waist-to-height ratio: keep your waist under half your height.</li>
+          <li>Body-fat percentage: from a DEXA scan, skinfold calipers, or bioimpedance (estimates vary by device).</li>
+          <li>Waist circumference and regular progress photos or measurements.</li>
+          <li>Strength and performance over time, which show whether you are gaining muscle or fat.</li>
+        </ul>
+      </div>
+
+      <p class="info-footnote">
+        Treat this card as one rough signal, not a diagnosis. For health concerns, talk to a doctor or other qualified professional.
       </p>
     </div>
   }

@@ -235,6 +235,14 @@ ion-card {
   display: flex;
   align-items: center;
   gap: 8px;
+
+  &.bmi-label-row {
+    justify-content: space-between;
+
+    .bmi-info-btn {
+      margin: -10px 0;
+    }
+  }
 }
 
 .ai-icon {
