@@ -4,7 +4,7 @@ import { AfterViewInit, Directive, ElementRef, inject, OnDestroy, Renderer2 } fr
   selector: 'ion-header[appGlassBackdrop]',
 })
 export class GlassHeaderBackdropDirective implements AfterViewInit, OnDestroy {
-  private readonly layerHeightOffsets = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+  private readonly layerHeightOffsets = [42, 36, 30, 24, 18, 12, 6, 0];
 
   private backdropEl?: HTMLElement;
   private layerEls: HTMLElement[] = [];
@@ -78,7 +78,7 @@ export class GlassHeaderBackdropDirective implements AfterViewInit, OnDestroy {
   private updateHeightVar(): void {
     const host = this.hostRef.nativeElement;
     const toolbar = host.querySelector('ion-toolbar') as HTMLElement | null;
-    const baseHeight = Math.max(44, Math.round(toolbar?.offsetHeight ?? host.offsetHeight ?? 56)) + 4;
+    const baseHeight = Math.max(44, Math.round(toolbar?.offsetHeight ?? host.offsetHeight ?? 56));
 
     this.layerEls.forEach((layer, index) => {
       const offset = this.layerHeightOffsets[index] ?? 0;

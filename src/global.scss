@@ -132,7 +132,6 @@ ion-header.app-glass-header-host {
       right: 0;
       top: 0;
       pointer-events: none;
-      background: rgba(var(--ion-background-color-shallow-rgb), 0.1);
 
       backdrop-filter: blur(1px) saturate(100%);
       -webkit-backdrop-filter: blur(1px) saturate(100%);
@@ -145,7 +144,8 @@ ion-header.app-glass-header-host {
 // ── Tab Content ────────────────────────────────────────────────────────
 
 ion-content.tab-content {
-  --padding-top: var(--content-padding-top);
+  --padding-top: 0px;
+  // --padding-top: var(--content-padding-top);
   --padding-bottom: calc(var(--navbar-height) + 40px);
 }
 
