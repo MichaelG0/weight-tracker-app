@@ -44,19 +44,11 @@ ion-content {
   }
 }
 
-ion-list {
-  padding: 0;
-}
-
 .list-group-wrp .list-group {
   padding: 0;
 }
 
 ion-list.goal-form-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: visible;
   margin-bottom: 20px;
 
   .refresh-btn {
@@ -83,8 +75,6 @@ ion-list.goal-form-list {
   }
 
   .toggle-item {
-    --background: transparent;
-
     ion-toggle {
       font-weight: 600;
       font-size: 0.9rem;
