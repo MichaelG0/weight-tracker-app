@@ -236,7 +236,9 @@ ion-card {
     justify-content: space-between;
 
     .bmi-info-btn {
+      --border-radius: 100%;
       margin: -10px 0;
+      font-size: 0.8rem;
     }
   }
 }
