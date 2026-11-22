@@ -138,7 +138,7 @@
       formData.weight
         | pureFn: isFormValid : formData.startWeight : formData.startDate : formData.endDate : formData.type : weeklyRate : useCustomEndDate;
 
-    <ion-button expand="block" shape="round" type="submit" class="submit-btn" [disabled]="!goalForm.valid || !formValid">
+    <ion-button expand="block" shape="round" type="submit" class="action-btn" [disabled]="!goalForm.valid || !formValid">
       {{ isEditing ? 'Update Goal' : 'Add Goal' }}
     </ion-button>
   </form>
