@@ -69,7 +69,7 @@ ion-content::part(background) {
 
 ion-button {
   --box-shadow: none;
-  
+
   &.action-btn {
     font-size: 1rem;
     font-weight: 800;
@@ -493,6 +493,12 @@ ion-alert.sc-ion-alert-ios-h {
     font-size: 0.95rem;
     line-height: 1.6;
     margin: 0;
+    margin-bottom: 28px;
     max-width: 280px;
+  }
+
+  .action-btn {
+    max-width: 320px;
+    width: 100%;
   }
 }

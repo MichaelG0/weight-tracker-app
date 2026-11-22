@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   InfiniteScrollCustomEvent,
+  IonButton,
   IonContent,
   IonHeader,
   IonTitle,
@@ -50,6 +51,7 @@ interface HistoryMonthSection {
     IonToolbar,
     IonTitle,
     IonContent,
+    IonButton,
     IonList,
     IonItem,
     IonItemSliding,
@@ -114,6 +116,17 @@ export class HistoryPage {
   onInfiniteScroll(event: InfiniteScrollCustomEvent): void {
     this.listVisibleCount.update(count => count + LIST_PAGE_SIZE);
     event.target.complete();
+  }
+
+  async openLogWeight(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: LogWeightModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+
+    await modal.present();
   }
 
   async onEdit(entry: HistoryEntry): Promise<void> {
