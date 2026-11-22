@@ -73,8 +73,13 @@ section.stats-row {
         min-height: 34px;
         border-radius: 14px;
         --border-radius: 14px;
-        background: var(--ion-color-step-200);
+        background: rgba(var(--ion-color-primary-rgb), 0.12);
         color: var(--ion-color-primary);
+        transition: all 0.2s ease;
+
+        &:active {
+          transform: scale(1.1);
+        }
 
         ion-icon {
           font-size: 1rem;
@@ -130,7 +135,7 @@ ion-card.chart-card {
       padding: 9px 16px 16px;
 
       ion-segment {
-        background: var(--ion-color-step-150);
+        background: var(--ion-color-step-200);
         border-radius: 18px;
       }
 

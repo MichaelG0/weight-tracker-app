@@ -342,7 +342,7 @@ export class DatabaseService {
     await this.ensureDefaultSettings();
 
     if (!environment.production) {
-      await this.mockData.seed(this.db);
+      // await this.mockData.seed(this.db);
     }
 
     // Signal readiness and pre-load reactive state.
