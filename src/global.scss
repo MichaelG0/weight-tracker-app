@@ -196,6 +196,23 @@ ion-list,
     --background-focused-opacity: 0.08;
     --background-activated-opacity: 0.08;
     transition: transform 0.2s ease;
+
+    &[button] {
+      .detail-value {
+        color: var(--ion-color-medium);
+        font-size: 0.95rem;
+        text-align: right;
+
+        &__not-set {
+          color: var(--ion-text-color-step-400);
+        }
+      }
+
+      &.ion-item__disabled {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    }
   }
 }
 

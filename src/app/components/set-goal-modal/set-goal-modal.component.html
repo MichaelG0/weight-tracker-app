@@ -6,131 +6,137 @@
 
 <ion-content class="ion-padding">
   <form #goalForm="ngForm" (ngSubmit)="submit()">
-    <ion-list lines="none" class="goal-form-list">
-      <div class="goal-type-chips">
-        <ion-chip [class.selected]="formData.type === 'Weight Loss'" (click)="selectGoalType('Weight Loss')">Weight Loss</ion-chip>
-        <ion-chip [class.selected]="formData.type === 'Weight Gain'" (click)="selectGoalType('Weight Gain')">Weight Gain</ion-chip>
-        <ion-chip [class.selected]="formData.type === 'Maintenance'" (click)="selectGoalType('Maintenance')">Maintenance</ion-chip>
-      </div>
+    <div class="goal-type-chips">
+      <ion-chip [class.selected]="formData.type === 'Weight Loss'" (click)="selectGoalType('Weight Loss')">Weight Loss</ion-chip>
+      <ion-chip [class.selected]="formData.type === 'Weight Gain'" (click)="selectGoalType('Weight Gain')">Weight Gain</ion-chip>
+      <ion-chip [class.selected]="formData.type === 'Maintenance'" (click)="selectGoalType('Maintenance')">Maintenance</ion-chip>
+    </div>
 
-      <ion-item>
-        <ion-input
-          placeholder="0.0"
-          label="Start Weight"
-          labelPlacement="stacked"
-          name="startWeight"
-          [ngModel]="formData.startWeight | formatWeight: weightUnit()"
-          readonly
-          required
-          (click)="openWeightPicker('startWeight')"
-        />
-        <ion-button fill="clear" slot="end" class="refresh-btn" (click)="refreshStartWeight()" aria-label="Recalculate average weight">
-          <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-      </ion-item>
-
-      <ion-item>
-        <ion-input
-          id="start-date-trigger"
-          label="Start Date"
-          labelPlacement="stacked"
-          placeholder="Select date"
-          [readonly]="true"
-          [value]="formData.startDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
-        ></ion-input>
-        <ion-button fill="clear" slot="end" class="refresh-btn" (click)="refreshStartDate()" aria-label="Recalculate start date">
-          <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-        <ion-modal #startDateModal class="date-modal" trigger="start-date-trigger">
-          <ng-template>
-            <ion-datetime
-              presentation="date"
-              [value]="formData.startDate"
-              [showDefaultButtons]="true"
-              (ionChange)="onStartDateChange($event)"
-            ></ion-datetime>
-          </ng-template>
-        </ion-modal>
-      </ion-item>
-
-      <ion-item [class.input-disabled]="formData.type === 'Maintenance'">
-        <ion-input
-          placeholder="0.0"
-          label="Target Weight"
-          labelPlacement="stacked"
-          name="weight"
-          [ngModel]="formData.weight | formatWeight: weightUnit()"
-          readonly
-          required
-          (click)="openWeightPicker('weight')"
-        ></ion-input>
-      </ion-item>
-
-      @if (formData.weight | pureFn: getWeightDirectionError : formData.startWeight : formData.type; as wdError) {
-        <p class="error-msg">{{ wdError }}</p>
-      }
-
-      @if (formData.type !== 'Maintenance') {
-        @if (!useCustomEndDate) {
-          <ion-item>
-            <ion-input
-              placeholder="0.00"
-              label="Rate (%/week)"
-              labelPlacement="stacked"
-              name="weeklyRate"
-              [ngModel]="weeklyRate.toFixed(2)"
-              [readonly]="true"
-              required
-              (click)="openRatePicker()"
-            ></ion-input>
+    <div class="list-group-wrp">
+      <section class="list-group">
+        <ion-list lines="none" class="goal-form-list">
+          <ion-item class="list-group-item" button detail="false" (click)="openWeightPicker('startWeight')">
+            <ion-label>Start Weight</ion-label>
+            <span class="detail-value" slot="end">{{ formData.startWeight | formatWeight: weightUnit() }}</span>
+            <ion-button
+              fill="clear"
+              slot="end"
+              class="refresh-btn"
+              (click)="$event.stopPropagation(); refreshStartWeight()"
+              aria-label="Recalculate average weight"
+            >
+              <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+            </ion-button>
           </ion-item>
 
-          @if (formData.type | pureFn: getRecommendedRateText : extendedSettings(); as recommendation) {
-            <div class="rate-badge">
-              <ion-icon name="sparkles-outline"></ion-icon>
-              <span>{{ recommendation }}</span>
-            </div>
+          <ion-item id="start-date-trigger" class="list-group-item" button detail="false">
+            <ion-label>Start Date</ion-label>
+            <span class="detail-value" slot="end">{{
+              formData.startDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }
+            }}</span>
+            <ion-button
+              fill="clear"
+              slot="end"
+              class="refresh-btn"
+              (click)="$event.stopPropagation(); refreshStartDate()"
+              aria-label="Recalculate start date"
+            >
+              <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-modal #startDateModal class="date-modal" trigger="start-date-trigger">
+              <ng-template>
+                <ion-datetime
+                  presentation="date"
+                  [value]="formData.startDate"
+                  [showDefaultButtons]="true"
+                  (ionChange)="onStartDateChange($event)"
+                ></ion-datetime>
+              </ng-template>
+            </ion-modal>
+          </ion-item>
+
+          <ion-item
+            class="list-group-item"
+            button
+            [class.ion-item__disabled]="formData.type === 'Maintenance'"
+            (click)="openWeightPicker('weight')"
+          >
+            <ion-label>Target Weight</ion-label>
+            <span class="detail-value" slot="end">
+              @if (formData.weight) {
+                {{ formData.weight | formatWeight: weightUnit() }}
+              } @else {
+                <span class="detail-value__not-set">Not set</span>
+              }
+            </span>
+          </ion-item>
+
+          @if (formData.weight | pureFn: getWeightDirectionError : formData.startWeight : formData.type; as wdError) {
+            <span class="error-msg">{{ wdError }}</span>
           }
-        }
 
-        <ion-item class="toggle-item">
-          <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ionChange)="onCustomEndDateToggle()">
-            Custom end date
-          </ion-toggle>
-        </ion-item>
-      }
+          @if (formData.type !== 'Maintenance') {
+            @if (!useCustomEndDate) {
+              <ion-item class="list-group-item" button (click)="openRatePicker()">
+                <ion-label>Rate (%/week)</ion-label>
+                <span class="detail-value" slot="end">{{ weeklyRate.toFixed(2) }}</span>
+              </ion-item>
 
-      <ion-item [class.input-disabled]="!useCustomEndDate && formData.type !== 'Maintenance'">
-        <ion-input
-          id="end-date-trigger"
-          label="End Date"
-          labelPlacement="stacked"
-          placeholder="End date"
-          [readonly]="true"
-          [value]="formData.endDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' }"
-        ></ion-input>
-        <ion-modal #endDateModal class="date-modal" trigger="end-date-trigger">
-          <ng-template>
-            <ion-datetime
-              presentation="date"
-              [value]="formData.endDate"
-              [showDefaultButtons]="true"
-              (ionChange)="onEndDateChange($event)"
-            ></ion-datetime>
-          </ng-template>
-        </ion-modal>
-      </ion-item>
+              @if (formData.type | pureFn: getRecommendedRateText : extendedSettings(); as recommendation) {
+                <div class="rate-badge">
+                  <ion-icon name="sparkles-outline"></ion-icon>
+                  <span>{{ recommendation }}</span>
+                </div>
+              }
+            }
 
-      @if (formData.startDate | pureFn: getDateError : formData.endDate; as dtError) {
-        <p class="error-msg">{{ dtError }}</p>
-      }
-    </ion-list>
+            <ion-item class="toggle-item list-group-item">
+              <ion-toggle name="useCustomEndDate" [(ngModel)]="useCustomEndDate" (ionChange)="onCustomEndDateToggle()">
+                Custom end date
+              </ion-toggle>
+            </ion-item>
+          }
+
+          <ion-item
+            id="end-date-trigger"
+            class="list-group-item"
+            button
+            [class.ion-item__disabled]="!useCustomEndDate && formData.type !== 'Maintenance'"
+          >
+            <ion-label>End Date</ion-label>
+            <span class="detail-value" slot="end">
+              @if (formData.endDate) {
+                {{ formData.endDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' } }}
+              } @else {
+                <span class="detail-value__not-set">Not set</span>
+              }
+            </span>
+            <ion-modal #endDateModal class="date-modal" trigger="end-date-trigger">
+              <ng-template>
+                <ion-datetime
+                  presentation="date"
+                  [value]="formData.endDate"
+                  [showDefaultButtons]="true"
+                  (ionChange)="onEndDateChange($event)"
+                ></ion-datetime>
+              </ng-template>
+            </ion-modal>
+          </ion-item>
+
+          @if (formData.startDate | pureFn: getDateError : formData.endDate; as dtError) {
+            <span class="error-msg">{{ dtError }}</span>
+          }
+        </ion-list>
+      </section>
+    </div>
 
     @if (formData.startDate | pureFn: getOverlapWarning : formData.endDate; as olWarning) {
       <p class="warning-msg">{{ olWarning }}</p>
     }
 
-    @let formValid = formData.weight | pureFn: isFormValid : formData.startWeight : formData.startDate : formData.endDate : formData.type : weeklyRate : useCustomEndDate;
+    @let formValid =
+      formData.weight
+        | pureFn: isFormValid : formData.startWeight : formData.startDate : formData.endDate : formData.type : weeklyRate : useCustomEndDate;
 
     <ion-button expand="block" shape="round" type="submit" class="submit-btn" [disabled]="!goalForm.valid || !formValid">
       {{ isEditing ? 'Update Goal' : 'Add Goal' }}

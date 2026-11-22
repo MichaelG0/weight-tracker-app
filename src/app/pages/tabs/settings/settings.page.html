@@ -26,7 +26,13 @@
             <ion-icon name="person-outline"></ion-icon>
           </div>
           <ion-label>Name</ion-label>
-          <span class="detail-value" slot="end">{{ name || 'Not set' }}</span>
+          <span class="detail-value" slot="end">
+            @if (name) {
+              {{ name }}
+            } @else {
+              <span class="detail-value__not-set">Not set</span>
+            }
+          </span>
         </ion-item>
         <ion-item class="list-group-item">
           <div class="icon-wrap" slot="start">
@@ -47,7 +53,7 @@
             @if (birthDate) {
               {{ birthDate | formatDate: { month: 'short', day: 'numeric', year: 'numeric' } }}
             } @else {
-              Not set
+              <span class="detail-value__not-set">Not set</span>
             }
           </span>
           <ion-modal #birthDateModal class="date-modal" trigger="birth-date-trigger">
@@ -72,7 +78,7 @@
             @if (heightCm) {
               {{ heightCm | formatHeight: heightUnit }}
             } @else {
-              Not set
+              <span class="detail-value__not-set">Not set</span>
             }
           </span>
         </ion-item>
