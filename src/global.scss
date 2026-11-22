@@ -167,7 +167,7 @@ ion-toggle {
 
 ion-datetime {
   --wheel-highlight-background: rgba(var(--ion-color-primary-rgb), 0.12);
-  --background: var(--ion-color-step-100);
+  --background: var(--alert-background);
 
   &::part(month-year-button),
   &::part(navigation-button) {
@@ -422,7 +422,7 @@ ion-modal.date-modal {
 
 ion-alert.sc-ion-alert-md-h,
 ion-alert.sc-ion-alert-ios-h {
-  --background: var(--ion-color-step-100);
+  --background: var(--alert-background);
 
   .alert-wrapper {
     border-radius: 18px;

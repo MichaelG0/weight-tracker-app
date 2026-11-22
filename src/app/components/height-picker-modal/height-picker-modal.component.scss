@@ -1,6 +1,6 @@
 ion-header ion-toolbar,
 ion-footer ion-toolbar {
-  --background: var(--ion-color-step-100);
+  --background: var(--alert-background);
   --border-width: 0;
 
   ion-title {
@@ -11,6 +11,6 @@ ion-footer ion-toolbar {
 }
 
 .picker-body {
-  background: var(--ion-color-step-100);
+  background: var(--alert-background);
   padding: 16px 16px;
 }

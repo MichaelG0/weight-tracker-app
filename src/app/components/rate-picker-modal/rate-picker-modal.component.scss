@@ -2,7 +2,7 @@
 @use '../weight-picker/weight-picker.component' as wheel;
 
 ion-header ion-toolbar {
-  --background: var(--ion-color-step-100);
+  --background: var(--alert-background);
   --border-width: 0;
 
   ion-title {
@@ -13,7 +13,7 @@ ion-header ion-toolbar {
 }
 
 .picker-body {
-  background: var(--ion-color-step-100);
+  background: var(--alert-background);
   padding: 16px 16px;
 }
 
