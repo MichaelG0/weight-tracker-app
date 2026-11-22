@@ -19,10 +19,6 @@ ion-content {
   background: var(--ion-color-step-100);
 }
 
-ion-list {
-  padding: 0;
-}
-
 ion-input,
 ion-select,
 ion-textarea {
@@ -33,40 +29,20 @@ ion-textarea ::ng-deep .native-textarea {
   font-weight: 400;
 }
 
-.log-weight-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+.list-group-wrp {
+  margin-bottom: 20px;
 
-.log-form-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: transparent;
+  .list-group {
+    padding: 0;
 
-  ion-item {
-    --background: var(--list-item-background);
-    border-radius: 14px;
-    --padding-start: 16px;
-    --inner-padding-end: 16px;
+    &__weight-group {
+      padding: 12px 0;
+
+      .list-group-label {
+        margin-bottom: 8px;
+      }
+    }
   }
-}
-
-.field-label {
-  color: var(--ion-text-color-step-600);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  margin-top: 0;
-  margin-bottom: 8px;
-  padding-left: 4px;
-  text-transform: uppercase;
-}
-
-.weight-wrap {
-  border-radius: 14px;
-  padding: 16px 0;
 }
 
 .submit-btn {
