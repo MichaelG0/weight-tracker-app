@@ -6,7 +6,7 @@ ion-content.tab-content {
   &.personal-details-list-group,
   &.units-list-group {
     .list-group-item {
-      --min-height: 56px;
+      --min-height: 52px;
     }
   }
 
@@ -32,7 +32,7 @@ ion-content.tab-content {
 
 .chip-group {
   display: flex;
-  gap: 6px;
+  gap: 14px;
 
   ion-chip {
     justify-content: center;
@@ -40,6 +40,7 @@ ion-content.tab-content {
     font-size: 0.85rem;
     --background: var(--ion-color-step-200);
     --color: var(--ion-text-color);
+    margin: 0;
     border: 2px solid transparent;
     transition: all 0.2s ease;
 
