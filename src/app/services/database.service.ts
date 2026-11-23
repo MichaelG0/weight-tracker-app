@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, Signal } from '@angular/core';
-import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
+import { capSQLiteSet, CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { BehaviorSubject, Observable, ReplaySubject, combineLatest, from, of } from 'rxjs';
 import { map, switchMap, take } from 'rxjs/operators';
@@ -82,6 +82,11 @@ export interface WeightDisplay {
 export interface HeightFtIn {
   feet: number | null;
   inches: number | null;
+}
+
+export interface WeightImportResult {
+  added: number;
+  skipped: number; // rows whose calendar day already had an entry
 }
 
 export interface WeightEntry {
@@ -435,6 +440,35 @@ export class DatabaseService {
     return this.whenReady(() =>
       from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntryDB) ?? null)),
     );
+  }
+
+  // Rows must already be in kg. Only one entry is kept per calendar day: existing entries win,
+  // and within the import the first row for a day wins.
+  importEntries(rows: Omit<WeightEntryDB, 'id'>[]): Observable<WeightImportResult> {
+    this.logger.info('Importing entries:', rows.length);
+    return this.whenReady(() => from(this.insertEntriesOnNewDays(rows)));
+  }
+
+  private async insertEntriesOnNewDays(rows: Omit<WeightEntryDB, 'id'>[]): Promise<WeightImportResult> {
+    const existing = await this.db.query(`SELECT logged_at FROM weight_entries`);
+    const takenDays = new Set((existing.values ?? []).map(r => toDateKey(r.logged_at as string)));
+
+    const statements: capSQLiteSet[] = [];
+    for (const row of rows) {
+      const day = toDateKey(row.logged_at);
+      if (takenDays.has(day)) continue;
+      takenDays.add(day);
+      statements.push({
+        statement: `INSERT INTO weight_entries (weight_kg, logged_at, notes) VALUES (?, ?, ?)`,
+        values: [row.weight_kg, toLocalMidnightString(row.logged_at), row.notes ?? null],
+      });
+    }
+
+    if (statements.length) {
+      await this.db.executeSet(statements, true);
+    }
+    await this.syncEntries();
+    return { added: statements.length, skipped: rows.length - statements.length };
   }
 
   // ── Weight entries - DERIVED ────────────────────────────────────────────────────────

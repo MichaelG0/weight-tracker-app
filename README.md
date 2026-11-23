@@ -18,6 +18,7 @@ The project also serves as an exploration of modern Angular architecture, reacti
 ## Features
 
 - Log, edit and delete weight entries
+- Import and export weight logs as CSV (one entry per day), shareable on mobile
 - Weight history with notes
 - Weight Loss, Weight Gain and Maintenance goals
 - Smoothed weight trend using an exponentially weighted moving average

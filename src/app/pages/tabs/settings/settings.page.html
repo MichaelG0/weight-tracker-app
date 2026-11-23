@@ -145,5 +145,24 @@
         </div>
       </ion-list>
     </section>
+
+    <section class="list-group data-list-group">
+      <p class="list-group-label">Data</p>
+      <ion-list lines="none">
+        <ion-item class="list-group-item" button (click)="exportWeightLogs()">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="download-outline"></ion-icon>
+          </div>
+          <ion-label>Export weight logs (CSV)</ion-label>
+        </ion-item>
+        <ion-item class="list-group-item" button (click)="importInput.click()">
+          <div class="icon-wrap" slot="start">
+            <ion-icon name="cloud-upload-outline"></ion-icon>
+          </div>
+          <ion-label>Import weight logs (CSV)</ion-label>
+        </ion-item>
+        <input #importInput type="file" accept=".csv,text/csv" hidden (change)="onImportFileSelected($event)" />
+      </ion-list>
+    </section>
   </div>
 </ion-content>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -15,16 +15,10 @@ import {
   IonButton,
   AlertController,
   ModalController,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { CssThemeService } from '../../../services/css-theme.service';
-import {
-  DatabaseService,
-  UserSettingsDB,
-  WeightUnit,
-  HeightUnit,
-  ActivityLevel,
-  Experience,
-} from '../../../services/database.service';
+import { DatabaseService, UserSettingsDB, WeightUnit, HeightUnit, ActivityLevel, Experience } from '../../../services/database.service';
 import { addIcons } from 'ionicons';
 import {
   personOutline,
@@ -39,12 +33,18 @@ import {
   fitnessOutline,
   informationCircleOutline,
   swapVerticalOutline,
+  downloadOutline,
+  cloudUploadOutline,
 } from 'ionicons/icons';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { GlassHeaderBackdropDirective } from 'src/app/directives/glass-header-backdrop.directive';
 import { take } from 'rxjs/operators';
 import { FormatHeightPipe } from '../../../pipes/format-height.pipe';
 import { HeightPickerModalComponent } from 'src/app/components/height-picker-modal/height-picker-modal.component';
-import { todayLocalMidnightString } from 'src/app/utils/date-converter.util';
+import { toDateKey, todayLocalMidnightString } from 'src/app/utils/date-converter.util';
+import { parseWeightLogsCsv, weightLogsToCsv } from 'src/app/utils/weight-log-csv.util';
 import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 
@@ -78,6 +78,9 @@ export class SettingsPage {
   private modalCtrl = inject(ModalController);
   private alertCtrl = inject(AlertController);
   private cdr = inject(ChangeDetectorRef);
+  private toastCtrl = inject(ToastController);
+
+  @ViewChild('importInput') importInput!: ElementRef<HTMLInputElement>;
 
   name = this.db.settings()?.name ?? '';
   birthDate = this.db.settings()?.birthDate ?? '';
@@ -106,6 +109,8 @@ export class SettingsPage {
       fitnessOutline,
       informationCircleOutline,
       swapVerticalOutline,
+      downloadOutline,
+      cloudUploadOutline,
     });
   }
 
@@ -210,5 +215,70 @@ export class SettingsPage {
       handleBehavior: 'cycle',
     });
     await modal.present();
+  }
+
+  async exportWeightLogs(): Promise<void> {
+    const entries = this.db.entries();
+    if (!entries.length) {
+      this.showToast('No weight logs to export');
+      return;
+    }
+
+    const csv = weightLogsToCsv(entries, this.db.weightUnit());
+    const fileName = `weight-logs-${toDateKey(new Date())}.csv`;
+
+    if (!Capacitor.isNativePlatform()) {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url));
+      return;
+    }
+
+    try {
+      const { uri } = await Filesystem.writeFile({
+        path: fileName,
+        data: csv,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      await Share.share({ title: fileName, files: [uri], dialogTitle: 'Export weight logs' });
+    } catch {
+      this.showToast('Could not export weight logs');
+    }
+  }
+
+  async onImportFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    try {
+      const { rows, invalidRows } = parseWeightLogsCsv(await file.text(), this.db.weightUnit());
+      if (!rows.length) {
+        this.showToast('No valid weight logs found in file');
+        return;
+      }
+
+      this.db
+        .importEntries(rows)
+        .pipe(take(1))
+        .subscribe(({ added, skipped }) => {
+          const parts = [`Imported ${added} ${added === 1 ? 'log' : 'logs'}`];
+          if (skipped) parts.push(`skipped ${skipped} duplicate ${skipped === 1 ? 'date' : 'dates'}`);
+          if (invalidRows) parts.push(`ignored ${invalidRows} invalid ${invalidRows === 1 ? 'row' : 'rows'}`);
+          this.showToast(parts.join(', '));
+        });
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Could not read CSV file');
+    }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    const toast = await this.toastCtrl.create({ message, duration: 3000, position: 'bottom' });
+    await toast.present();
   }
 }
