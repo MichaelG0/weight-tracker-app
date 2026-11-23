@@ -77,10 +77,6 @@ section.stats-row {
         color: var(--ion-color-primary);
         transition: all 0.2s ease;
 
-        &:active {
-          transform: scale(1.1);
-        }
-
         ion-icon {
           font-size: 1rem;
         }

@@ -70,15 +70,25 @@ ion-content::part(background) {
 ion-button {
   --box-shadow: none;
 
+  &.button-has-icon-only {
+    --ripple-color: transparent;
+    transition: transform 0.2s ease;
+    
+    &.ion-activated {
+      opacity: 0.4;
+      transform: scale(1.15);
+    }
+  }
+
   &.action-btn {
     font-size: 1rem;
     font-weight: 800;
     height: 48px;
     letter-spacing: -0.01em;
     margin: 0;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease;
 
-    &:active {
+    &.ion-activated {
       transform: scale(1.03);
     }
   }

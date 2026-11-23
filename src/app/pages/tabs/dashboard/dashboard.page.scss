@@ -204,8 +204,11 @@
 
     .bmi-info-btn {
       --border-radius: 100%;
-      margin: -10px 0;
-      font-size: 0.8rem;
+      margin: -12px 0;
+
+      ion-icon {
+        font-size: 20px;
+      }
     }
   }
 }
