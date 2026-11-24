@@ -66,7 +66,11 @@ describe('weight-log-csv util', () => {
   });
 
   it('decodes UTF-16 and Windows-1252 files', () => {
-    const utf16 = new Uint8Array([0xff, 0xfe, ...[...'date,weight'].flatMap(c => [c.charCodeAt(0), 0])]);
+    const utf16Bytes: number[] = [0xff, 0xfe];
+    for (const c of 'date,weight'.split('')) {
+      utf16Bytes.push(c.charCodeAt(0), 0);
+    }
+    const utf16 = new Uint8Array(utf16Bytes);
     expect(decodeCsvBytes(utf16.buffer)).toBe('date,weight');
     expect(decodeCsvBytes(new Uint8Array([0x63, 0x61, 0x66, 0xe9]).buffer)).toBe('café');
   });
