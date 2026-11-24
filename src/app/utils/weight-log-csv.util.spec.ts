@@ -69,6 +69,19 @@ describe('weight-log-csv util', () => {
     ]);
   });
 
+  it('accepts year-first dates with dashes, slashes or dots', () => {
+    const csv = 'date,weight\n2025-09-05,80\n2025/09/06,80\n2025.09.07,80\n';
+
+    const { rows, invalidRows } = parseWeightLogsCsv(csv, 'kg');
+
+    expect(invalidRows).toBe(0);
+    expect(rows.map(r => r.logged_at)).toEqual([
+      '2025-09-05T00:00:00',
+      '2025-09-06T00:00:00',
+      '2025-09-07T00:00:00',
+    ]);
+  });
+
   it('rejects files without date and weight columns', () => {
     expect(() => parseWeightLogsCsv('foo,bar\n2025-09-05,80', 'kg')).toThrowError(/"date" and "weight"/);
   });

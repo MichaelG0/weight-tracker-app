@@ -172,7 +172,7 @@ function inferDateOrder(values: string[]): DateOrder | null {
 /** Returns a validated "YYYY-MM-DD" from ISO, "YYYY-MM-DD hh:mm", or D/M/Y-style input; null if invalid. */
 function toIsoDateKey(value: string, order: DateOrder): string | null {
   let y: number, m: number, d: number;
-  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/.exec(value);
+  const iso = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T ].*)?$/.exec(value);
   const local = SLASH_DATE.exec(value);
   if (iso) {
     [y, m, d] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];

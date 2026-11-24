@@ -9,19 +9,16 @@
 
 <ion-content class="ion-padding">
   <div>
-    <p class="info-intro">Import weight logs from a CSV file. Each row becomes one weight log.</p>
+    <p class="info-intro">Import weight logs from a CSV file. Exports from most weight tracker apps will work, no changes needed.</p>
 
     <div class="info-card">
-      <h3>Supported format</h3>
-      <p class="info-subtitle">Header row required</p>
-      <p>The first row must contain column names. Columns can be in any order.</p>
+      <h3>Using your own file?</h3>
+      <p>Include a header row with at least a date and a weight column, in any order.</p>
       <ul class="info-stats">
-        <li><strong>date</strong> (required): <code>YYYY-MM-DD</code>, optionally followed by a time.</li>
-        <li><strong>weight</strong> (required): a positive number.</li>
-        <li>
-          <strong>unit</strong> (optional): <code>kg</code>, <code>lbs</code> or <code>st</code>. Blank or missing uses your current unit.
-        </li>
-        <li><strong>notes</strong> (optional): free text. Use quotes if it contains commas.</li>
+        <li><strong>date</strong>: most common formats work, e.g. <code>2024-05-01</code>, <code>2024/05/01</code>, or <code>01/05/2024</code>. A time is ignored.</li>
+        <li><strong>weight</strong>: a number, e.g. <code>82.4</code> or <code>82,4</code>.</li>
+        <li><strong>unit</strong> (optional): <code>kg</code>, <code>lbs</code> or <code>st</code>. Blank uses your current unit.</li>
+        <li><strong>notes</strong> (optional): free text.</li>
       </ul>
     </div>
 
@@ -38,8 +35,8 @@ date,weight,unit,notes
     <div class="info-card">
       <h3>Good to know</h3>
       <div class="info-note">
-        Only one log is kept per day. If a date already has a log, the existing one is kept and the imported duplicate is skipped. Invalid
-        rows are ignored and counted in the summary.
+        One log is kept per day: existing logs are never overwritten, and duplicates and invalid rows are skipped. A summary is shown after
+        importing.
       </div>
     </div>
 
