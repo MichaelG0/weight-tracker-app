@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ModalController } from '@ionic/angular/standalone';
 
 import { HistoryPage } from './history.page';
 
@@ -7,6 +8,10 @@ describe('HistoryPage', () => {
   let fixture: ComponentFixture<HistoryPage>;
 
   beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [HistoryPage],
+      providers: [{ provide: ModalController, useValue: {} }],
+    }).compileComponents();
     fixture = TestBed.createComponent(HistoryPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
