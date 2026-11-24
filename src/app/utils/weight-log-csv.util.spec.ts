@@ -44,6 +44,31 @@ describe('weight-log-csv util', () => {
     expect(parseWeightLogsCsv(csv, 'kg').rows.map(r => r.notes)).toEqual(notes);
   });
 
+  it('recognizes a Withings export, including decimal commas in localized files', () => {
+    const csv = 'Date,Gewicht (kg),Fettmasse (kg),Muskelmasse (kg)\n2026-09-28 07:26:52,"80,4",15,60\n2026-09-29 07:20:00,,,\n';
+
+    const { rows, source, invalidRows } = parseWeightLogsCsv(csv, 'lbs');
+
+    expect(source).toBe('Withings');
+    expect(rows).toEqual([{ weight_kg: 80.4, logged_at: '2026-09-28T00:00:00', notes: undefined }]);
+    expect(invalidRows).toBe(1);
+    expect(parseWeightLogsCsv('date,weight\n2025-09-05,80\n', 'kg').source).toBeUndefined();
+  });
+
+  it('recognizes a WeightFit export and keeps the calendar day of offset timestamps', () => {
+    const csv =
+      'Date,Weight (kg),Tags,Note\n2026-11-23T09:11:50+01:00,77.6,,\n2026-11-22T00:10:25+01:00,77.8,,after run\n';
+
+    const { rows, source, invalidRows } = parseWeightLogsCsv(csv, 'lbs');
+
+    expect(source).toBe('WeightFit');
+    expect(invalidRows).toBe(0);
+    expect(rows).toEqual([
+      { weight_kg: 77.6, logged_at: '2026-11-23T00:00:00', notes: undefined },
+      { weight_kg: 77.8, logged_at: '2026-11-22T00:00:00', notes: 'after run' },
+    ]);
+  });
+
   it('rejects files without date and weight columns', () => {
     expect(() => parseWeightLogsCsv('foo,bar\n2025-09-05,80', 'kg')).toThrowError(/"date" and "weight"/);
   });

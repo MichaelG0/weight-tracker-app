@@ -7,9 +7,34 @@ const HEADER = ['date', 'weight', 'unit', 'notes'];
 const MIN_PLAUSIBLE_KG = 20;
 const MAX_PLAUSIBLE_KG = 700;
 
-const DATE_ALIASES = ['date', 'datetime', 'date time', 'timestamp', 'time', 'day', 'logged_at', 'logged at', 'measured at'];
-const WEIGHT_ALIASES = ['weight', 'body weight', 'bodyweight', 'weight_kg', 'weight kg', 'value', 'mass', ''];
+const DATE_ALIASES = ['date', 'datetime', 'date time', 'timestamp', 'time', 'day', 'logged_at', 'logged at', 'measured at', 'datum'];
+const WEIGHT_ALIASES = ['weight', 'body weight', 'bodyweight', 'weight_kg', 'weight kg', 'value', 'mass', 'gewicht', 'poids', 'peso', ''];
 const NOTES_ALIASES = ['notes', 'note', 'comment', 'comments', 'memo', 'description'];
+
+/**
+ * Per-app recognition. Column mapping stays generic (aliases above); a preset only names the source
+ * so the UI can tell the user what was detected. Add an entry per verified export format.
+ */
+interface SourcePreset {
+  label: string;
+  detect: (headers: string[]) => boolean;
+}
+
+const SOURCE_PRESETS: SourcePreset[] = [
+  {
+    // WeightFit: "Date,Weight (kg),Tags,Note" with offset timestamps like 2026-11-23T09:11:50+01:00.
+    label: 'WeightFit',
+    detect: h => h.join(',') === 'date,weight (kg),tags,note',
+  },
+  {
+    // Withings weight.csv: "Date,Weight (kg),Fat mass (kg),Muscle mass (kg),Bone mass (kg),Hydration (kg)" (localized names vary).
+    label: 'Withings',
+    detect: h =>
+      h.includes('date') &&
+      h.some(c => /^(weight|gewicht|poids|peso) \(kg\)$/.test(c)) &&
+      h.some(c => /^(fat|muscle|bone) mass|^(fettmasse|muskelmasse|knochenmasse) /.test(c)),
+  },
+];
 const UNIT_ALIASES: Record<string, WeightUnit> = {
   kg: 'kg', kgs: 'kg', kilogram: 'kg', kilograms: 'kg',
   lb: 'lbs', lbs: 'lbs', pound: 'lbs', pounds: 'lbs',
@@ -21,6 +46,8 @@ export interface WeightLogCsvParseResult {
   invalidRows: number;
   /** True when day/month order could not be inferred from the file and `dateOrder` was assumed. */
   assumedDateOrder: boolean;
+  /** Name of the recognized source app, if any. */
+  source?: string;
 }
 
 export type DateOrder = 'dmy' | 'mdy';
@@ -103,7 +130,9 @@ export function parseWeightLogsCsv(
     });
   }
 
-  return { rows, invalidRows, assumedDateOrder: inferredOrder === null && hasSlashDates(body, dateCol) };
+  const headerNames = header.map(h => h.trim().toLowerCase());
+  const source = SOURCE_PRESETS.find(p => p.detect(headerNames))?.label;
+  return { rows, invalidRows, source, assumedDateOrder: inferredOrder === null && hasSlashDates(body, dateCol) };
 }
 
 function parseHeader(raw: string): { name: string; unit?: WeightUnit } {

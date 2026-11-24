@@ -44,7 +44,7 @@ export class CsvImportPage {
     if (!file) return;
 
     try {
-      const { rows, invalidRows, assumedDateOrder } = parseWeightLogsCsv(
+      const { rows, invalidRows, assumedDateOrder, source } = parseWeightLogsCsv(
         decodeCsvBytes(await file.arrayBuffer()),
         this.db.weightUnit(),
       );
@@ -57,7 +57,7 @@ export class CsvImportPage {
         .importEntries(rows)
         .pipe(take(1))
         .subscribe(({ added, skipped }) => {
-          const parts = [`Imported ${added} ${added === 1 ? 'log' : 'logs'}`];
+          const parts = [`Imported ${added} ${added === 1 ? 'log' : 'logs'}${source ? ` from ${source}` : ''}`];
           if (skipped) parts.push(`skipped ${skipped} duplicate ${skipped === 1 ? 'date' : 'dates'}`);
           if (invalidRows) parts.push(`ignored ${invalidRows} invalid ${invalidRows === 1 ? 'row' : 'rows'}`);
           if (assumedDateOrder) parts.push('dates read as day/month/year');
