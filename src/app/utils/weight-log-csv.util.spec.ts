@@ -31,6 +31,19 @@ describe('weight-log-csv util', () => {
     expect(invalidRows).toBe(4);
   });
 
+  it('guards notes against spreadsheet formulas and round-trips them', () => {
+    const notes = ['=SUM(A1)', '+1', '-5 kg trip', '@cmd', "'=already quoted", 'plain', "it's fine"];
+    const entries = notes.map(
+      (n, i) => ({ id: i, date: `2025-09-0${i + 1}T00:00:00`, dateMs: 0, weight: 80, trend: 80, notes: n }) as WeightEntry,
+    );
+
+    const csv = weightLogsToCsv(entries, 'kg');
+
+    expect(csv).toContain(",'=SUM(A1)\r\n");
+    expect(csv).toContain(",plain\r\n");
+    expect(parseWeightLogsCsv(csv, 'kg').rows.map(r => r.notes)).toEqual(notes);
+  });
+
   it('rejects files without date and weight columns', () => {
     expect(() => parseWeightLogsCsv('foo,bar\n2025-09-05,80', 'kg')).toThrowError(/"date" and "weight"/);
   });

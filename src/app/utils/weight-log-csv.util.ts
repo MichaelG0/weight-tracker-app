@@ -43,7 +43,7 @@ export function weightLogsToCsv(entries: WeightEntry[], unit: WeightUnit): strin
   const lines = [HEADER.join(',')];
   for (const entry of entries) {
     const weight = Number(entry.weight.toFixed(decimals));
-    lines.push([toLocalMidnightString(entry.date), weight, unit, escapeCsvField(entry.notes ?? '')].join(','));
+    lines.push([toLocalMidnightString(entry.date), weight, unit, escapeCsvField(sanitizeNotes(entry.notes ?? ''))].join(','));
   }
   return lines.join('\r\n') + '\r\n';
 }
@@ -95,7 +95,7 @@ export function parseWeightLogsCsv(
       continue;
     }
 
-    const notes = notesCol >= 0 ? (record[notesCol] ?? '').trim() : '';
+    const notes = notesCol >= 0 ? unsanitizeNotes((record[notesCol] ?? '').trim()) : '';
     rows.push({
       weight_kg: weightKg,
       logged_at: toLocalMidnightString(dateKey),
@@ -189,6 +189,18 @@ function detectDelimiter(text: string): string {
 function escapeCsvField(value: string): string {
   const needsQuotes = /[",\r\n]/.test(value) || value !== value.trim();
   return needsQuotes ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+// Spreadsheets execute cells starting with these characters as formulas.
+const FORMULA_TRIGGER = /^'*[=+\-@\t\r]/;
+
+/** Prefixes a `'` so spreadsheets treat the note as text. `unsanitizeNotes` reverses it exactly. */
+function sanitizeNotes(notes: string): string {
+  return FORMULA_TRIGGER.test(notes) ? `'${notes}` : notes;
+}
+
+function unsanitizeNotes(notes: string): string {
+  return notes.startsWith("'") && FORMULA_TRIGGER.test(notes.slice(1)) ? notes.slice(1) : notes;
 }
 
 // RFC 4180 parser: quoted fields may contain delimiters, doubled quotes and line breaks.
