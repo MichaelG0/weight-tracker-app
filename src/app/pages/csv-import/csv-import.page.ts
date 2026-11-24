@@ -14,7 +14,7 @@ import { addIcons } from 'ionicons';
 import { cloudUploadOutline } from 'ionicons/icons';
 import { take } from 'rxjs/operators';
 import { DatabaseService } from '../../services/database.service';
-import { parseWeightLogsCsv } from '../../utils/weight-log-csv.util';
+import { parseWeightLogsCsv, decodeCsvBytes } from '../../utils/weight-log-csv.util';
 
 @Component({
   selector: 'app-csv-import',
@@ -44,7 +44,10 @@ export class CsvImportPage {
     if (!file) return;
 
     try {
-      const { rows, invalidRows } = parseWeightLogsCsv(await file.text(), this.db.weightUnit());
+      const { rows, invalidRows, assumedDateOrder } = parseWeightLogsCsv(
+        decodeCsvBytes(await file.arrayBuffer()),
+        this.db.weightUnit(),
+      );
       if (!rows.length) {
         this.showToast('No valid weight logs found in file');
         return;
@@ -57,6 +60,7 @@ export class CsvImportPage {
           const parts = [`Imported ${added} ${added === 1 ? 'log' : 'logs'}`];
           if (skipped) parts.push(`skipped ${skipped} duplicate ${skipped === 1 ? 'date' : 'dates'}`);
           if (invalidRows) parts.push(`ignored ${invalidRows} invalid ${invalidRows === 1 ? 'row' : 'rows'}`);
+          if (assumedDateOrder) parts.push('dates read as day/month/year');
           this.showToast(parts.join(', '));
         });
     } catch (error) {
