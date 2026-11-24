@@ -1,0 +1,52 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/settings"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Import weight logs</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div>
+    <p class="info-intro">Import weight logs from a CSV file. Each row becomes one weight log.</p>
+
+    <div class="info-card">
+      <h3>Supported format</h3>
+      <p class="info-subtitle">Header row required</p>
+      <p>The first row must contain column names. Columns can be in any order.</p>
+      <ul class="info-stats">
+        <li><strong>date</strong> (required): <code>YYYY-MM-DD</code>, optionally followed by a time.</li>
+        <li><strong>weight</strong> (required): a positive number.</li>
+        <li>
+          <strong>unit</strong> (optional): <code>kg</code>, <code>lbs</code> or <code>st</code>. Blank or missing uses your current unit.
+        </li>
+        <li><strong>notes</strong> (optional): free text. Use quotes if it contains commas.</li>
+      </ul>
+    </div>
+
+    <div class="info-card info-card-highlight">
+      <h3>Example</h3>
+      <pre class="example">
+date,weight,unit,notes
+2024-05-01,82.4,kg,Morning
+2024-05-02,181.2,lbs,
+2024-05-03,82.1,,</pre
+      >
+    </div>
+
+    <div class="info-card">
+      <h3>Good to know</h3>
+      <div class="info-note">
+        Only one log is kept per day. If a date already has a log, the existing one is kept and the imported duplicate is skipped. Invalid
+        rows are ignored and counted in the summary.
+      </div>
+    </div>
+
+    <input #importInput type="file" accept=".csv,text/csv" hidden (change)="onImportFileSelected($event)" />
+    <ion-button expand="block" shape="round" class="action-btn" (click)="openFilePicker()">
+      <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+      Choose CSV file
+    </ion-button>
+  </div>
+</ion-content>

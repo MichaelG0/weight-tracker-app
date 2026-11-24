@@ -155,13 +155,12 @@
           </div>
           <ion-label>Export weight logs (CSV)</ion-label>
         </ion-item>
-        <ion-item class="list-group-item" button (click)="importInput.click()">
+        <ion-item class="list-group-item" button routerLink="/csv-import">
           <div class="icon-wrap" slot="start">
             <ion-icon name="cloud-upload-outline"></ion-icon>
           </div>
           <ion-label>Import weight logs (CSV)</ion-label>
         </ion-item>
-        <input #importInput type="file" accept=".csv,text/csv" hidden (change)="onImportFileSelected($event)" />
       </ion-list>
     </section>
   </div>

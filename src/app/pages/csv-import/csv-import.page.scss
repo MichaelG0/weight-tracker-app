@@ -1,0 +1,16 @@
+@use '../../components/profile-info-modal/profile-info-modal.component';
+
+.info-card {
+  code {
+    font-size: 0.85em;
+  }
+
+  .example {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--ion-text-color);
+  }
+}

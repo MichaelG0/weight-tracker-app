@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -13,6 +13,7 @@ import {
   IonDatetime,
   IonChip,
   IonButton,
+  IonRouterLink,
   AlertController,
   ModalController,
   ToastController,
@@ -44,9 +45,10 @@ import { take } from 'rxjs/operators';
 import { FormatHeightPipe } from '../../../pipes/format-height.pipe';
 import { HeightPickerModalComponent } from 'src/app/components/height-picker-modal/height-picker-modal.component';
 import { toDateKey, todayLocalMidnightString } from 'src/app/utils/date-converter.util';
-import { parseWeightLogsCsv, weightLogsToCsv } from 'src/app/utils/weight-log-csv.util';
+import { weightLogsToCsv } from 'src/app/utils/weight-log-csv.util';
 import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-settings',
@@ -69,6 +71,8 @@ import { FormatDatePipe } from '../../../pipes/format-date.pipe';
     GlassHeaderBackdropDirective,
     FormatDatePipe,
     FormatHeightPipe,
+    RouterLink,
+    IonRouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -79,8 +83,6 @@ export class SettingsPage {
   private alertCtrl = inject(AlertController);
   private cdr = inject(ChangeDetectorRef);
   private toastCtrl = inject(ToastController);
-
-  @ViewChild('importInput') importInput!: ElementRef<HTMLInputElement>;
 
   name = this.db.settings()?.name ?? '';
   birthDate = this.db.settings()?.birthDate ?? '';
@@ -247,33 +249,6 @@ export class SettingsPage {
       await Share.share({ title: fileName, files: [uri], dialogTitle: 'Export weight logs' });
     } catch {
       this.showToast('Could not export weight logs');
-    }
-  }
-
-  async onImportFileSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-
-    try {
-      const { rows, invalidRows } = parseWeightLogsCsv(await file.text(), this.db.weightUnit());
-      if (!rows.length) {
-        this.showToast('No valid weight logs found in file');
-        return;
-      }
-
-      this.db
-        .importEntries(rows)
-        .pipe(take(1))
-        .subscribe(({ added, skipped }) => {
-          const parts = [`Imported ${added} ${added === 1 ? 'log' : 'logs'}`];
-          if (skipped) parts.push(`skipped ${skipped} duplicate ${skipped === 1 ? 'date' : 'dates'}`);
-          if (invalidRows) parts.push(`ignored ${invalidRows} invalid ${invalidRows === 1 ? 'row' : 'rows'}`);
-          this.showToast(parts.join(', '));
-        });
-    } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Could not read CSV file');
     }
   }
 

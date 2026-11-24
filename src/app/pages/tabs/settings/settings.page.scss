@@ -15,17 +15,6 @@
   }
 }
 
-.icon-wrap {
-  display: flex;
-  align-items: center;
-  color: var(--ion-color-primary);
-  justify-content: center;
-
-  ion-icon {
-    font-size: 1.2rem;
-  }
-}
-
 .chip-group {
   display: flex;
   gap: 14px;
@@ -48,7 +37,18 @@
   }
 }
 
-.list-group.profile-list-group ion-list {
+ion-list {
+  .icon-wrap {
+    display: flex;
+    align-items: center;
+    color: var(--ion-color-primary);
+    justify-content: center;
+
+    ion-icon {
+      font-size: 1.2rem;
+    }
+  }
+
   ion-button {
     --padding-start: 8px;
     --padding-end: 8px;
