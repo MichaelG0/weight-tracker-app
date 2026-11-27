@@ -441,6 +441,18 @@ export class DatabaseService {
     );
   }
 
+  deleteEntriesInRange(startDate: string, endDate: string): Observable<void> {
+    const start = toDateKey(startDate);
+    const end = toDateKey(endDate);
+    this.logger.info('Deleting entries in range:', { startDate: start, endDate: end });
+    return this.whenReady(() =>
+      from(this.db.run(`DELETE FROM weight_entries WHERE substr(logged_at, 1, 10) BETWEEN ? AND ?`, [start, end])).pipe(
+        switchMap(() => from(this.syncEntries())),
+        map(() => undefined),
+      ),
+    );
+  }
+
   getEntry(id: number): Observable<WeightEntryDB | null> {
     return this.whenReady(() =>
       from(this.db.query(`SELECT * FROM weight_entries WHERE id = ?`, [id])).pipe(map(r => (r.values?.[0] as WeightEntryDB) ?? null)),

@@ -1,0 +1,35 @@
+@use '../../components/profile-info-modal/profile-info-modal.component';
+
+ion-header ion-toolbar {
+  --background: var(--ion-color-step-100);
+  --border-width: 0;
+
+  ion-title {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+  }
+}
+
+ion-content {
+  background: var(--ion-color-step-100);
+}
+
+.list-group {
+  padding: 0;
+}
+
+.error-msg,
+.summary-msg {
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 12px 0;
+}
+
+.error-msg {
+  color: var(--ion-color-danger);
+}
+
+.summary-msg {
+  color: var(--ion-text-color-step-600);
+}

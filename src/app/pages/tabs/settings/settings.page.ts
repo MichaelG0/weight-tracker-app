@@ -36,6 +36,7 @@ import {
   swapVerticalOutline,
   downloadOutline,
   cloudUploadOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
@@ -47,6 +48,7 @@ import { HeightPickerModalComponent } from 'src/app/components/height-picker-mod
 import { toDateKey, todayLocalMidnightString } from 'src/app/utils/date-converter.util';
 import { weightLogsToCsv } from 'src/app/utils/weight-log-csv.util';
 import { ProfileInfoModalComponent, ProfileInfoTopic } from 'src/app/components/profile-info-modal/profile-info-modal.component';
+import { DeleteWeightLogsModalComponent } from 'src/app/components/delete-weight-logs-modal/delete-weight-logs-modal.component';
 import { FormatDatePipe } from '../../../pipes/format-date.pipe';
 import { RouterLink } from '@angular/router';
 
@@ -113,6 +115,7 @@ export class SettingsPage {
       swapVerticalOutline,
       downloadOutline,
       cloudUploadOutline,
+      trashOutline,
     });
   }
 
@@ -252,8 +255,22 @@ export class SettingsPage {
     }
   }
 
+  async openDeleteWeightLogs(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: DeleteWeightLogsModalComponent,
+      breakpoints: [0, 0.85, 1],
+      initialBreakpoint: 0.85,
+      handleBehavior: 'cycle',
+    });
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss<number>();
+    if (role !== 'deleted' || data == null) return;
+    this.showToast(`${data} weight ${data === 1 ? 'log' : 'logs'} deleted`);
+  }
+
   private async showToast(message: string): Promise<void> {
-    const toast = await this.toastCtrl.create({ message, duration: 3000, position: 'bottom' });
+    const toast = await this.toastCtrl.create({ message, duration: 3000, position: 'bottom', swipeGesture: 'vertical' });
     await toast.present();
   }
 }

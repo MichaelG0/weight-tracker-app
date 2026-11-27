@@ -1,0 +1,74 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Delete Weight Logs</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="list-group-wrp">
+    <section class="list-group">
+      <ion-list lines="none">
+        <ion-item id="delete-logs-start-trigger" class="list-group-item" button detail="false">
+          <ion-label>From</ion-label>
+          <span class="detail-value" slot="end">
+            {{ startDate() | formatDate: { month: 'short', day: 'numeric', year: 'numeric' } }}
+          </span>
+          <ion-modal class="date-modal" trigger="delete-logs-start-trigger">
+            <ng-template>
+              <ion-datetime
+                presentation="date"
+                [value]="startDate()"
+                min="1900-01-01"
+                [max]="endDate()"
+                [showDefaultButtons]="true"
+                (ionChange)="onStartDateChange($event)"
+              ></ion-datetime>
+            </ng-template>
+          </ion-modal>
+        </ion-item>
+
+        <ion-item id="delete-logs-end-trigger" class="list-group-item" button detail="false">
+          <ion-label>To</ion-label>
+          <span class="detail-value" slot="end">
+            {{ endDate() | formatDate: { month: 'short', day: 'numeric', year: 'numeric' } }}
+          </span>
+          <ion-modal class="date-modal" trigger="delete-logs-end-trigger">
+            <ng-template>
+              <ion-datetime
+                presentation="date"
+                [value]="endDate()"
+                [min]="startDate()"
+                [max]="maxDate"
+                [showDefaultButtons]="true"
+                (ionChange)="onEndDateChange($event)"
+              ></ion-datetime>
+            </ng-template>
+          </ion-modal>
+        </ion-item>
+      </ion-list>
+    </section>
+  </div>
+
+  @if (!isValid()) {
+    <p class="error-msg">The start date must be on or before the end date.</p>
+  } @else {
+    <p class="summary-msg">
+      @if (matchingCount() > 0) {
+        {{ matchingCount() }} {{ matchingCount() === 1 ? 'weight log' : 'weight logs' }} will be deleted.
+      } @else {
+        No weight logs in this range.
+      }
+    </p>
+  }
+
+  <ion-button
+    expand="block"
+    shape="round"
+    color="danger"
+    class="action-btn"
+    [disabled]="!isValid() || matchingCount() === 0"
+    (click)="confirmDelete()"
+  >
+    Delete Weight Logs
+  </ion-button>
+</ion-content>
