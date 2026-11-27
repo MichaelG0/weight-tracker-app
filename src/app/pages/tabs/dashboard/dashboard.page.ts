@@ -138,11 +138,11 @@ export class DashboardPage {
     const entriesAfterGoalStart = this.databaseService.entriesAfterGoalStart();
     const weightUnit = this.databaseService.weightUnit();
     const activeGoal = this.databaseService.activeGoal();
+    const activeGoalRatePct = this.databaseService.activeGoalRatePct();
     const startWeight = activeGoal?.startWeight ?? null;
     const goalWeight = activeGoal?.goalWeight ?? null;
     const goalType = activeGoal?.type ?? null;
-    const resolvePct = this.rateResolvePct(goalType, userSettings);
-    const lookbackDays = rateLookbackDays(goalType, resolvePct, rawTrend, kgToUnit(RATE_NOISE_FLOOR_KG, weightUnit));
+    const lookbackDays = rateLookbackDays(goalType, activeGoalRatePct, rawTrend, kgToUnit(RATE_NOISE_FLOOR_KG, weightUnit));
     const rateEst = this.rateEstimate(entriesAfterGoalStart, lookbackDays, weightUnit);
     const rate = assessRate(
       rateEst,
@@ -151,7 +151,7 @@ export class DashboardPage {
       undefined,
       undefined,
       goalType === 'Weight Loss' || goalType === 'Weight Gain' ? RATE_GOAL_FLAT_PCT : null,
-      resolvePct,
+      activeGoalRatePct,
     );
     const displayRate = rateEst?.rate ?? null;
     const dataQuality = activeGoal ? this.dataQuality(entriesAfterGoalStart, rateEst, rate, lookbackDays) : null;
@@ -372,14 +372,6 @@ export class DashboardPage {
     const cutoffMs = todayLocalMidnightMs() - RATE_OUTDATED_AFTER_DAYS * 86400000;
     // Entries are sorted ascending, so the newest one tells us whether any falls inside the window.
     return entriesAfterGoalStart[entriesAfterGoalStart.length - 1].dateMs >= cutoffMs;
-  }
-
-  /** Smallest rate (% BW/week) the goal's coaching bands need to tell apart from zero. */
-  private rateResolvePct(goalType: GoalType | null, userSettings: UserSettingsExtended | null): number | null {
-    if (!userSettings) return null;
-    if (goalType === 'Weight Gain') return userSettings.coaching.idealGainFloorPct;
-    if (goalType === 'Weight Loss') return userSettings.coaching.steadyLossFloorPct;
-    return null;
   }
 
   private rateEstimate(entries: WeightEntry[], lookbackDays: number, unit: WeightUnit): RateEstimate | null {

@@ -27,6 +27,7 @@ import {
   MIN_STEP_KCAL,
   weeklyPctToDailyKcal,
 } from '../constants/coaching.constants';
+import { goalRatePct } from '../utils/goal-rate.util';
 import { LogService } from './log.service';
 
 // ─── Entities ──────────────────────────────────────────────────────────────────
@@ -306,6 +307,10 @@ export class DatabaseService {
     const today = todayLocalMidnightMs();
     return goals.find(g => g.goalDateMs >= today && g.startDateMs <= today) ?? null;
   });
+  readonly activeGoalRatePct: Signal<number | null> = computed(() => {
+    const goal = this.activeGoal();
+    return goal ? goalRatePct(goal) : null;
+  });
   readonly activeOrLastPastGoal: Signal<Goal | null> = computed(() => {
     const active = this.activeGoal();
     if (active) return active;
@@ -346,9 +351,9 @@ export class DatabaseService {
     await this.db.execute(MIGRATIONS);
     await this.ensureDefaultSettings();
 
-    // if (!environment.production) {
-    //   await this.mockData.seed(this.db);
-    // }
+    if (!environment.production) {
+      await this.mockData.seed(this.db);
+    }
 
     // Signal readiness and pre-load reactive state.
     this.ready$.next();

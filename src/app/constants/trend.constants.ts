@@ -10,7 +10,7 @@ export const RATE_LOOKBACK_DAYS_LOSS = 21;
 /** Lookback for gain/maintenance goals, whose rates are small. */
 export const RATE_LOOKBACK_DAYS_STEADY = 28;
 /** Upper limit when the lookback is stretched to resolve a very small target rate. */
-export const RATE_LOOKBACK_DAYS_MAX = 84;
+export const RATE_LOOKBACK_DAYS_MAX = 28;
 
 /** Floor for residual SD (kg) so a few lucky points can't claim tiny uncertainty. */
 export const RATE_NOISE_FLOOR_KG = 0.5;

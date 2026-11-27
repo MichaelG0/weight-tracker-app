@@ -19,6 +19,7 @@ import {
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, sparklesOutline } from 'ionicons/icons';
 import { DatabaseService, Goal, GoalDB, GoalType, UserSettingsExtended, WeightUnit } from 'src/app/services/database.service';
+import { goalRatePct } from 'src/app/utils/goal-rate.util';
 import { PureFnPipe } from 'src/app/pipes/pure-fn.pipe';
 import { WeightPickerModalComponent } from 'src/app/components/weight-picker-modal/weight-picker-modal.component';
 import { RatePickerModalComponent } from 'src/app/components/rate-picker-modal/rate-picker-modal.component';
@@ -86,13 +87,9 @@ export class SetGoalModalComponent implements OnInit {
       this.formData.endDate = this.goal.goalDate.substring(0, 10);
       this.formData.type = this.goal.type;
 
-      if (this.goal.goalDateMs && this.goal.startWeight && this.goal.goalWeight) {
-        const days = (this.goal.goalDateMs - this.goal.startDateMs) / (1000 * 60 * 60 * 24);
-        const weeks = days / 7;
-        const totalChange = Math.abs(this.goal.goalWeight - this.goal.startWeight);
-        if (weeks > 0 && totalChange > 0) {
-          this.weeklyRate = parseFloat(((totalChange / weeks / this.goal.startWeight) * 100).toFixed(2));
-        }
+      const ratePct = goalRatePct(this.goal);
+      if (ratePct != null) {
+        this.weeklyRate = parseFloat(ratePct.toFixed(2));
       }
     } else {
       this.refreshStartDate();
