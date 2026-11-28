@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'dev.michaelguarino.weighttracker',
+  appId: 'com.michaelguarino.weighttracker',
   appName: 'weight-tracker',
   webDir: 'www'
 };
